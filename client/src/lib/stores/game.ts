@@ -63,12 +63,12 @@ export const gameActions = {
       });
     });
 
-    room.on("message", ({ data }: { data: WSEvent }) => {
+    room.on("message", ({ data }) => {
       console.log("Get message");
       console.log(data);
       try {
         if (data) {
-          gameActions.handleWebSocketMessage(data);
+          gameActions.handleWebSocketMessage(data as WSEvent);
         }
       } catch (error) {
         console.error("Error parsing WebSocket message:", error);
@@ -84,7 +84,7 @@ export const gameActions = {
       }));
     });
 
-    room.on("error", (error: Error) => {
+    room.on("error", (error) => {
       console.error("WebSocket error:", error);
       gameState.update((state) => ({
         ...state,

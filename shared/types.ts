@@ -1,9 +1,10 @@
 import type { Static } from "elysia";
-import {t} from "elysia";
+import { t } from "elysia";
 
 // Card schema
 export const CardSchema = t.Object({
   id: t.String(),
+  title: t.String(),
   imageUrl: t.String(),
   description: t.Optional(t.String()),
 });
@@ -39,12 +40,20 @@ export const GameSessionSchema = t.Object({
   association: t.Optional(t.String()),
   roundData: t.Object({
     leaderCard: t.Optional(CardSchema),
+    shuffledCards: t.Array(CardSchema),
     playerCards: t.Array(
       t.Object({
         playerId: t.String(),
         card: CardSchema,
       })
     ),
+    selectedCards: t.Array(
+      t.Object({
+        playerId: t.String(),
+        card: CardSchema,
+      })
+    ),
+
     votes: t.Array(
       t.Object({
         playerId: t.String(),
@@ -142,40 +151,6 @@ export type PlayerVotesEvent = Static<typeof PlayerVotesEventSchema>;
 export type StartGameEvent = Static<typeof StartGameEventSchema>;
 export type GameUpdateEvent = Static<typeof GameUpdateEventSchema>;
 export type ErrorEvent = Static<typeof ErrorEventSchema>;
-
-// Predefined cards for MVP
-export const PREDEFINED_CARDS: Card[] = [
-  { id: "1", imageUrl: "/cards/card1.svg", description: "Солнце" },
-  { id: "2", imageUrl: "/cards/card2.svg", description: "Море" },
-  { id: "3", imageUrl: "/cards/card3.svg", description: "Лес" },
-  { id: "4", imageUrl: "/cards/card4.svg", description: "Город" },
-  { id: "5", imageUrl: "/cards/card5.svg", description: "Мечта" },
-  { id: "6", imageUrl: "/cards/card1.svg", description: "Дружба" },
-  { id: "7", imageUrl: "/cards/card2.svg", description: "Путешествие" },
-  { id: "8", imageUrl: "/cards/card3.svg", description: "Музыка" },
-  { id: "9", imageUrl: "/cards/card4.svg", description: "Танец" },
-  { id: "10", imageUrl: "/cards/card5.svg", description: "Книга" },
-  { id: "11", imageUrl: "/cards/card1.svg", description: "Дом" },
-  { id: "12", imageUrl: "/cards/card2.svg", description: "Семья" },
-  { id: "13", imageUrl: "/cards/card3.svg", description: "Работа" },
-  { id: "14", imageUrl: "/cards/card4.svg", description: "Любовь" },
-  { id: "15", imageUrl: "/cards/card5.svg", description: "Свобода" },
-  { id: "16", imageUrl: "/cards/card1.svg", description: "Смех" },
-  { id: "17", imageUrl: "/cards/card2.svg", description: "Грусть" },
-  { id: "18", imageUrl: "/cards/card3.svg", description: "Надежда" },
-  { id: "19", imageUrl: "/cards/card4.svg", description: "Время" },
-  { id: "20", imageUrl: "/cards/card5.svg", description: "Память" },
-  { id: "21", imageUrl: "/cards/card1.svg", description: "Тайна" },
-  { id: "22", imageUrl: "/cards/card2.svg", description: "Магия" },
-  { id: "23", imageUrl: "/cards/card3.svg", description: "Детство" },
-  { id: "24", imageUrl: "/cards/card4.svg", description: "Старость" },
-  { id: "25", imageUrl: "/cards/card5.svg", description: "Будущее" },
-  { id: "26", imageUrl: "/cards/card1.svg", description: "Прошлое" },
-  { id: "27", imageUrl: "/cards/card2.svg", description: "Настоящее" },
-  { id: "28", imageUrl: "/cards/card3.svg", description: "Удача" },
-  { id: "29", imageUrl: "/cards/card4.svg", description: "Успех" },
-  { id: "30", imageUrl: "/cards/card5.svg", description: "Победа" },
-];
 
 // Game constants
 export const GAME_CONSTANTS = {

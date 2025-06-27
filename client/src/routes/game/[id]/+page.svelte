@@ -104,17 +104,16 @@
     if (!$gameState.session || $gamePhase !== "voting") return [];
 
     const roundData = $gameState.session.roundData;
-    const allCards = [...roundData.playerCards.map((pc) => pc.card)];
+    const votingCards = roundData.selectedCards.map((c) => c.card);
 
     if (roundData.leaderCard) {
-      allCards.push(roundData.leaderCard);
+      votingCards.push(roundData.leaderCard);
     }
 
     // Перемешиваем карты
-    return allCards.sort(() => Math.random() - 0.5);
+    return votingCards.sort(() => Math.random() - 0.5);
   };
 
-  const votingCards = getVotingCards();
   const canStartGame = $derived(
     $gameState.session && $gameState.session.players.length >= 3
   );
@@ -166,7 +165,11 @@
   <header class="border-b bg-white p-4 shadow-sm">
     <div class="mx-auto flex max-w-7xl items-center justify-between">
       <div class="flex items-center gap-3">
-        <h1 class="text-xl font-bold text-gray-900">Имаджинариум</h1>
+        <a
+          href="/"
+          class="text-xl font-bold text-gray-900 hover:text-blue-600 transition-colors"
+          >Имаджинариум</a
+        >
         <span class="text-sm text-gray-500">ID: {gameId}</span>
       </div>
 
@@ -278,7 +281,7 @@
               </div>
 
               <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
-                {#each votingCards as card (card.id)}
+                {#each getVotingCards() as card (card.id)}
                   <GameCard
                     {card}
                     isSelected={selectedVoteCardId === card.id}
@@ -303,7 +306,7 @@
             <div class="rounded-lg bg-white p-6 shadow-md">
               <h3 class="mb-4 text-lg font-semibold">Карты на столе</h3>
               <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
-                {#each votingCards as card (card.id)}
+                {#each getVotingCards() as card (card.id)}
                   <GameCard {card} isClickable={false} />
                 {/each}
               </div>

@@ -76,7 +76,11 @@
       <div class="flex items-center justify-center gap-3 mb-4">
         <GamepadIcon size={40} class="text-white" />
       </div>
-      <h1 class="text-4xl font-bold text-white mb-2">Имаджинариум</h1>
+      <a
+        href="/"
+        class="text-4xl font-bold text-white mb-2 hover:text-blue-100 transition-colors"
+        >Имаджинариум</a
+      >
       <p class="text-blue-100 text-lg">Веб-версия популярной настольной игры</p>
     </div>
 
