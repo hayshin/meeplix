@@ -22,11 +22,11 @@ Thumbs.db
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
-**/assets/**
+# **/assets/**
 **/public/**
-**/*.jpg
-**/*.jpeg
-**/*.png
+# **/*.jpg
+# **/*.jpeg
+# **/*.png
 /scripts/assets
 
 sqlite.db

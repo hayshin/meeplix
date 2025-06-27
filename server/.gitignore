@@ -41,11 +41,11 @@ yarn-error.log*
 package-lock.json
 **/*.bun
 
-/src/assets
-**/assets/**
+# /src/assets
+# **/assets/**
 **/public/**
-**/*.jpg
-**/*.jpeg
-**/*.png
+# **/*.jpg
+# **/*.jpeg
+# **/*.png
 
 sqlite.db

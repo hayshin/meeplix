@@ -117,11 +117,11 @@ export class GameLogic {
   calculateScores(
     players: Player[],
     leaderCard: Card,
-    playerCards: { playerId: string; card: Card }[],
+    selectedCards: { playerId: string; card: Card }[],
     votes: { playerId: string; cardId: string }[]
   ): { [playerId: string]: number } {
     const scores: { [playerId: string]: number } = {};
-    const leaderId = playerCards.find(
+    const leaderId = selectedCards.find(
       (pc) => pc.card.id === leaderCard.id
     )?.playerId;
 
@@ -155,7 +155,7 @@ export class GameLogic {
       }
 
       // 1 очко за каждый голос за их карту (если это не карта ведущего)
-      const playerCard = playerCards.find((pc) => pc.playerId === player.id);
+      const playerCard = selectedCards.find((pc) => pc.playerId === player.id);
       if (playerCard) {
         const votesForPlayerCard = votes.filter(
           (v) => v.cardId === playerCard.card.id && v.cardId !== leaderCard.id

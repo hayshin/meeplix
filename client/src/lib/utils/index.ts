@@ -1,8 +1,9 @@
 import type { App } from "$server/src";
 import { treaty } from "@elysiajs/eden";
+import {PUBLIC_API} from '$env/static/public'
 
-export const PUBLIC_API = "localhost:3000";
-export const PUBLIC_API_URL = `http://${PUBLIC_API}`;
+let api_ip = PUBLIC_API ?? "localhost:3000";
+export const PUBLIC_API_URL = `http://${api_ip}`;
 export const api = treaty<App>(PUBLIC_API_URL);
 export const storage = {
   // Сохранить никнейм

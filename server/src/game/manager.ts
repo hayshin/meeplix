@@ -269,14 +269,12 @@ export class GameManager {
 
     const roundData = game.roundData;
 
-    // Проверить, что игрок еще не голосовал
     if (roundData.votes.some((v) => v.playerId === playerId)) {
       throw new Error("Player already voted");
     }
 
     roundData.votes.push({ playerId, cardId });
 
-    // Проверить, все ли игроки проголосовали
     if (
       this.gameLogic.allPlayersVoted(
         game.players,
@@ -284,15 +282,15 @@ export class GameManager {
         game.leaderPlayerId!
       )
     ) {
-      // Подсчитать очки
       const scores = this.gameLogic.calculateScores(
         game.players,
         roundData.leaderCard!,
-        roundData.playerCards,
+        roundData.selectedCards,
         roundData.votes
       );
 
-      // Обновить очки игроков
+      console.log("Scores calculated:", scores);
+
       for (const player of game.players) {
         const newScore = player.score + (scores[player.id] || 0);
         await db
