@@ -6,7 +6,7 @@
 
   let nickname = $state("");
   let isLoading = $state(false);
-  let error = $state("");
+  let clientError = $state("");
 
   onMount(() => {
     // Загружаем сохраненный никнейм
@@ -18,39 +18,34 @@
 
   const createGame = async () => {
     if (!nickname.trim()) {
-      error = "Пожалуйста, введите никнейм";
+      clientError = "Пожалуйста, введите никнейм";
       return;
     }
 
     if (nickname.trim().length < 2) {
-      error = "Никнейм должен содержать минимум 2 символа";
+      clientError = "Никнейм должен содержать минимум 2 символа";
       return;
     }
 
     isLoading = true;
-    error = "";
+    clientError = "";
 
-    try {
-      // Сохраняем никнейм
-      storage.saveNickname(nickname.trim());
+    storage.saveNickname(nickname.trim());
 
-      // Создаем игру
-      const { data: gameId, error } = await api.game.create.post();
+    const { data: gameId, error } = await api.game.create.post();
 
-      if (gameId) {
-        storage.saveLastGameId(gameId);
-        goto(`/game/${gameId}`);
-      }
-    } catch (err) {
-      error = "Ошибка подключения к серверу";
-    } finally {
-      isLoading = false;
+    if (error) {
+      console.error(error);
+    } else if (gameId) {
+      storage.saveLastGameId(gameId);
+      goto(`/game/${gameId}`);
     }
+    isLoading = false;
   };
 
   const joinByGameId = () => {
     if (!nickname.trim()) {
-      error = "Пожалуйста, введите никнейм";
+      clientError = "Пожалуйста, введите никнейм";
       return;
     }
 
@@ -99,7 +94,7 @@
           bind:value={nickname}
           placeholder="Введите ваш никнейм..."
           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-          class:border-red-500={error}
+          class:border-red-500={clientError}
           disabled={isLoading}
           onkeydown={(e) => {
             if (e.key === "Enter") {
@@ -107,8 +102,8 @@
             }
           }}
         />
-        {#if error}
-          <p class="mt-2 text-sm text-red-600">{error}</p>
+        {#if clientError}
+          <p class="mt-2 text-sm text-red-600">{clientError}</p>
         {/if}
       </div>
 

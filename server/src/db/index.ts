@@ -1,36 +1,16 @@
-import { drizzle } from 'drizzle-orm/bun-sqlite';
-import { Database } from 'bun:sqlite';
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
+import * as schema from "./schema";
 
-const sqlite = new Database('sqlite.db');
-export const db = drizzle({ client: sqlite });
+// Database connection configuration
+const connectionString =
+  process.env.DATABASE_URL ||
+  `postgresql://${process.env.DB_USER || "narrari_user"}:${process.env.DB_PASSWORD || "narrari_password"}@${process.env.DB_HOST || "localhost"}:${process.env.DB_PORT || "5432"}/${process.env.DB_NAME || "narrari_db"}`;
 
-// Инициализация базы данных
-export async function initDB() {
-  // Создаем таблицы, если их нет
-  sqlite.run(`
-    CREATE TABLE IF NOT EXISTS game_sessions (
-      id TEXT PRIMARY KEY,
-      status TEXT NOT NULL,
-      current_round INTEGER DEFAULT 1,
-      leader_player_id TEXT,
-      association TEXT,
-      round_data TEXT,
-      created_at TEXT NOT NULL,
-      max_players INTEGER DEFAULT 8
-    )
-  `);
+// Create postgres client
+const client = postgres(connectionString);
+export const db = drizzle(client, { schema });
 
-  sqlite.run(`
-    CREATE TABLE IF NOT EXISTS players (
-      id TEXT PRIMARY KEY,
-      game_session_id TEXT NOT NULL,
-      nickname TEXT NOT NULL,
-      score INTEGER DEFAULT 0,
-      cards TEXT,
-      is_connected INTEGER DEFAULT 1,
-      joined_at TEXT NOT NULL
-    )
-  `);
-
-  console.log('Database initialized');
+export async function closeDB() {
+  await client.end();
 }

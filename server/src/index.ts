@@ -1,5 +1,4 @@
 import { Elysia } from "elysia";
-import { initDB } from "./db";
 import { websocket } from "./ws/handlers";
 import { gameRoutes } from "./routes/game";
 import { cors } from "@elysiajs/cors";
@@ -14,10 +13,8 @@ const app = new Elysia()
   .use(cardsRoutes)
   .listen(3000);
 
-await initDB();
-
 console.log(
-  `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`
+  `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`,
 );
 
 export type App = typeof app;
