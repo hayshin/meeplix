@@ -104,7 +104,7 @@
     if (!$gameState.session || $gamePhase !== "voting") return [];
 
     const roundData = $gameState.session.roundData;
-    const votingCards = roundData.selectedCards.map((c) => c.card);
+    const votingCards = roundData.selectedCards.map((c: Card) => c.card);
 
     if (roundData.leaderCard) {
       votingCards.push(roundData.leaderCard);
@@ -115,7 +115,7 @@
   };
 
   const canStartGame = $derived(
-    $gameState.session && $gameState.session.players.length >= 3
+    $gameState.session && $gameState.session.players.length >= 3,
   );
 </script>
 

@@ -2,7 +2,8 @@ import { Elysia } from "elysia";
 import { v4 as uuidv4 } from "uuid";
 import { GameManager } from "../game/manager";
 import { t } from "elysia";
-import { GameSessionSchema, PlayerSchema } from "$shared/types";
+import { PlayerSchema } from "$shared/types";
+import { RoomStateSchema } from "$shared/types/server";
 
 const gameManager = new GameManager();
 
@@ -10,18 +11,18 @@ export const gameRoutes = new Elysia({ prefix: "game" })
   .post(
     "/create",
     async () => {
-      const gameId = await gameManager.createGame();
+      const gameId = await gameManager.createRoom();
       return gameId;
     },
     {
       response: t.String(),
-    }
+    },
   )
 
   .get(
     "/:id",
     async ({ params, status }) => {
-      const game = await gameManager.getGame(params.id);
+      const game = await gameManager.getRoom(params.id);
       return game ?? status(404, "Game not found");
     },
     {
@@ -29,10 +30,10 @@ export const gameRoutes = new Elysia({ prefix: "game" })
         id: t.String(),
       }),
       response: {
-        200: GameSessionSchema,
+        200: RoomStateSchema,
         404: t.String(),
       },
-    }
+    },
   )
 
   .post(
@@ -43,16 +44,16 @@ export const gameRoutes = new Elysia({ prefix: "game" })
         return status(400, "Nickname is required");
       }
 
-      const player = await gameManager.addPlayerToGame(
+      const player = await gameManager.addPlayerToRoom(
         params.id,
-        nickname.trim()
+        nickname.trim(),
       );
       if (!player) {
         return status(400, "Could not join game");
       }
 
       // Отправить обновление всем игрокам
-      await gameManager.broadcastGameUpdate(params.id);
+      await gameManager.broadcastRoomUpdate(params.id);
 
       return player;
     },
@@ -67,19 +68,19 @@ export const gameRoutes = new Elysia({ prefix: "game" })
         200: PlayerSchema,
         400: t.String(),
       },
-    }
+    },
   )
 
   .post(
     "/:id/start",
     async ({ params, set }) => {
       await gameManager.startGame(params.id);
-      await gameManager.broadcastGameUpdate(params.id);
+      await gameManager.broadcastRoomUpdate(params.id);
       return "Game started successfully";
     },
     {
       params: t.Object({
         id: t.String(),
       }),
-    }
+    },
   );

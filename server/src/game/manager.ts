@@ -1,123 +1,135 @@
 import { v4 as uuidv4 } from "uuid";
 import { db } from "$db/index";
-import { gameSessions, players } from "$db/schema";
+import { roomSessions, players, decks, cards } from "$db/schema";
 import { eq, and } from "drizzle-orm";
-import {
-  type GameSession,
-  type Player,
-  type Card,
-  GAME_CONSTANTS,
-} from "$shared/types";
+import { Player,  PlayerCard } from "$shared/types/player";
+import { Card } from "$shared/types/card";}
+import { type RoomState, type RoomStage } from "$shared/types/server";
+import { GAME_CONFIG } from "$shared/constants";
 import { GameLogic } from "./logic";
 
 export class GameManager {
   private gameLogic = new GameLogic();
-  private wsConnections = new Map<string, any>(); // gameId -> Set of WebSocket connections
+  private wsConnections = new Map<string, Set<any>>(); // roomId -> Set of WebSocket connections
 
-  constructor() {
-    // Инициализируем карту подключений
-  }
+  constructor() {}
 
-  // Создать новую игру
-  async createGame(): Promise<string> {
-    const gameId = uuidv4();
+  async createRoom(deckId?: string): Promise<string> {
+    const roomId = uuidv4();
     const now = new Date();
 
-    // Перемешиваем карты заранее для будущих игроков
-    const shuffledCards = this.gameLogic.getCards();
+    // Use default deck if none provided
+    let finalDeckId = deckId;
+    if (!finalDeckId) {
+      // Try to find any existing deck, or create a default one
+      const existingDecks = await db.select().from(decks).limit(1);
+      if (existingDecks.length > 0) {
+        finalDeckId = existingDecks[0].id;
+      } else {
+        // Create a minimal deck entry for testing
+        const defaultDeck = await db
+          .insert(decks)
+          .values({
+            id: uuidv4(),
+            name: "Default Deck",
+            description: "Default deck for testing",
+            cardCategoriesId: uuidv4(), // This would need proper category
+            cardStylesId: uuidv4(), // This would need proper style
+          })
+          .returning();
+        finalDeckId = defaultDeck[0].id;
+      }
+    }
 
-    await db.insert(gameSessions).values({
-      id: gameId,
-      status: "waiting",
-      currentRound: 1,
+    await db.insert(roomSessions).values({
+      id: roomId,
+      deckId: finalDeckId,
+      roundNumber: 1,
+      playerOrder: [],
+      stage: "joining",
+      choosedCards: [],
+      votedCards: [],
       createdAt: now,
-      maxPlayers: 8,
-      // Сохраняем перемешанные карты в roundData
-      roundData: JSON.stringify({
-        shuffledCards,
-        selectedCards: [],
-        playerCards: [],
-        votes: [],
-      }),
     });
 
-    this.wsConnections.set(gameId, new Set());
+    this.wsConnections.set(roomId, new Set());
 
-    return gameId;
+    return roomId;
   }
 
-  // Получить игру по ID
-  async getGame(gameId: string): Promise<GameSession | null> {
+  // Get room state by ID
+  async getRoom(roomId: string): Promise<RoomState | null> {
     const sessions = await db
       .select()
-      .from(gameSessions)
-      .where(eq(gameSessions.id, gameId));
-    const gamePlayers = await db
-      .select()
-      .from(players)
-      .where(eq(players.gameSessionId, gameId));
+      .from(roomSessions)
+      .where(eq(roomSessions.id, roomId));
 
     if (sessions.length === 0) return null;
 
     const session = sessions[0];
-    const sessionPlayers: Player[] = gamePlayers.map((p) => ({
+
+    const roomPlayers = await db
+      .select()
+      .from(players)
+      .where(eq(players.roomSessionId, roomId));
+
+    const sessionPlayers: Player[] = roomPlayers.map((p) => ({
       id: p.id,
       nickname: p.nickname,
       score: p.score || 0,
-      cards: p.cards ? JSON.parse(p.cards) : [],
+      cards: p.cards || [],
       isConnected: Boolean(p.isConnected),
+      isReady: Boolean(p.isReady),
       joinedAt: p.joinedAt,
     }));
 
     return {
-      id: session.id,
-      status: session.status as any,
+      roomId: session.id,
       players: sessionPlayers,
-      currentRound: session.currentRound || 1,
-      leaderPlayerId: session.leaderPlayerId || undefined,
-      association: session.association || undefined,
-      roundData: session.roundData
-        ? JSON.parse(session.roundData)
-        : {
-            playerCards: [],
-            votes: [],
-            selectedCards: [],
-            shuffledCards: [],
-          },
-      createdAt: session.createdAt,
-      maxPlayers: session.maxPlayers || 8,
+      deck_id: session.deckId,
+      roundNumber: session.roundNumber || 1,
+      player_order: session.playerOrder || [],
+      leaderId: session.leaderId || "",
+      currentDescription: session.currentDescription || "",
+      choosedCards: session.choosedCards || [],
+      stage: session.stage as RoomStage,
+      votedCards: session.votedCards || [],
     };
   }
 
-  // Добавить игрока в игру
-  async addPlayerToGame(
-    gameId: string,
-    nickname: string
-  ): Promise<Player | undefined> {
-    const game = await this.getGame(gameId);
-    if (!game) return;
+  // Add player to room
+  async addPlayerToRoom(
+    roomId: string,
+    nickname: string,
+  ): Promise<Player | null> {
+    const room = await this.getRoom(roomId);
+    if (!room) return null;
 
-    if (game.players.length >= game.maxPlayers) {
-      throw new Error("Game is full");
+    if (room.players.length >= GAME_CONFIG.maxPlayers) {
+      throw new Error("Room is full");
     }
 
-    // Проверить, что никнейм уникален в этой игре
-    if (game.players.some((p) => p.nickname === nickname)) {
+    // Check that nickname is unique in this room
+    if (room.players.some((p) => p.nickname === nickname)) {
       throw new Error("Nickname already taken");
     }
 
     const playerId = uuidv4();
     const now = new Date();
 
-    // Получаем перемешанные карты из roundData
-    const gameRoundData = game.roundData;
-    const shuffledCards = gameRoundData.shuffledCards || [];
+    // Get cards for the deck to deal to new player
+    const deckCards = await db
+      .select()
+      .from(cards)
+      .where(eq(cards.deckId, room.deck_id));
 
-    // Определяем карты для нового игрока
-    const playerIndex = game.players.length; // Индекс нового игрока
-    const startIndex = playerIndex * GAME_CONSTANTS.CARDS_PER_PLAYER;
-    const endIndex = startIndex + GAME_CONSTANTS.CARDS_PER_PLAYER;
-    const playerCards = shuffledCards.slice(startIndex, endIndex);
+    // Create default cards if none exist in deck
+    let playerCards: Card[] = [];
+    const shuffledCards = this.gameLogic.getCards(deckCards);
+    const playerIndex = room.players.length;
+    const startIndex = playerIndex * GAME_CONFIG.cardsPerPlayer;
+    const endIndex = startIndex + GAME_CONFIG.cardsPerPlayer;
+    playerCards = shuffledCards.slice(startIndex, endIndex);
 
     const newPlayer: Player = {
       id: playerId,
@@ -125,173 +137,192 @@ export class GameManager {
       score: 0,
       cards: playerCards,
       isConnected: true,
+      isReady: false,
       joinedAt: now,
     };
 
-    await db.insert(players).values({
-      id: playerId,
-      gameSessionId: gameId,
-      nickname,
-      score: 0,
-      cards: JSON.stringify(playerCards),
-      isConnected: true,
-      joinedAt: now,
-    });
+    await db.insert(players).values(newPlayer);
 
     return newPlayer;
   }
 
-  // Начать игру (упрощаем, так как карты уже розданы)
-  async startGame(gameId: string): Promise<void> {
-    const game = await this.getGame(gameId);
-    if (!game || !this.gameLogic.canStartGame(game.players)) {
+  // Start game (when all players are ready)
+  async startGame(roomId: string): Promise<void> {
+    const room = await this.getRoom(roomId);
+    if (!room || !this.gameLogic.canStartGame(room.players)) {
       throw new Error("Cannot start game");
     }
 
-    // Карты уже розданы при добавлении игроков, просто выбираем ведущего
-    const leaderId = this.gameLogic.getNextLeader(game.players);
+    // Check all players are ready
+    if (!room.players.every((p) => p.isReady)) {
+      throw new Error("Not all players are ready");
+    }
 
-    // Обновить статус игры
+    // Set player order and choose first leader
+    const playerOrder = room.players.map((p) => p.id);
+    const leaderId = this.gameLogic.getNextLeader(room.players);
+
+    // Get cards for the deck
+    const deckCards = await db
+      .select()
+      .from(cards)
+      .where(eq(cards.deckId, room.deck_id));
+
+    // Deal cards to all players
+    let gameCards: Card[] = [];
+    if (deckCards.length > 0) {
+      gameCards = deckCards;
+    } else {
+      // Use default cards if no deck cards available
+      gameCards = this.gameLogic.getCards();
+    }
+
+    const playersWithCards = this.gameLogic.dealCards(room.players, gameCards);
+
+    // Update all players with their new cards
+    for (const player of playersWithCards) {
+      await db
+        .update(players)
+        .set({ cards: player.cards })
+        .where(eq(players.id, player.id));
+    }
+
+    // Update room status
     await db
-      .update(gameSessions)
+      .update(roomSessions)
       .set({
-        status: "leader_turn",
-        leaderPlayerId: leaderId,
-        roundData: JSON.stringify({
-          playerCards: [],
-          selectedCards: [],
-          votes: [],
-        }),
+        stage: "leader_choosing",
+        playerOrder,
+        leaderId,
+        choosedCards: [],
+        votedCards: [],
       })
-      .where(eq(gameSessions.id, gameId));
+      .where(eq(roomSessions.id, roomId));
   }
 
-  // Ведущий выбирает карту и ассоциацию
-  async leaderSelectsCard(
-    gameId: string,
+  // Leader selects card and association
+  async leaderChooseCard(
+    roomId: string,
     playerId: string,
     cardId: string,
-    association: string
+    description: string,
   ): Promise<void> {
-    const game = await this.getGame(gameId);
+    const room = await this.getRoom(roomId);
     if (
-      !game ||
-      game.status !== "leader_turn" ||
-      game.leaderPlayerId !== playerId
+      !room ||
+      room.stage !== "leader_choosing" ||
+      room.leaderId !== playerId
     ) {
       throw new Error("Invalid move");
     }
 
-    const player = game.players.find((p) => p.id === playerId);
+    const player = room.players.find((p) => p.id === playerId);
     if (!player || !player.cards.some((c) => c.id === cardId)) {
       throw new Error("Invalid card");
     }
-
-    const leaderCard = player.cards.find((c) => c.id === cardId)!;
 
     await db
-      .update(gameSessions)
+      .update(roomSessions)
       .set({
-        status: "player_selection",
-        association,
-        roundData: JSON.stringify({
-          leaderCard,
-          playerCards: [],
-          votes: [],
-        }),
+        stage: "players_choosing",
+        current_description: description,
+        choosedCards: [{ playerId, cardId }],
       })
-      .where(eq(gameSessions.id, gameId));
+      .where(eq(roomSessions.id, roomId));
   }
 
-  // Игрок выбирает карту
-  async playerSubmitsCard(
-    gameId: string,
+  // Player submits card
+  async playerChooseCard(
+    roomId: string,
     playerId: string,
-    cardId: string
+    cardId: string,
   ): Promise<void> {
-    const game = await this.getGame(gameId);
+    const room = await this.getRoom(roomId);
     if (
-      !game ||
-      game.status !== "player_selection" ||
-      game.leaderPlayerId === playerId
+      !room ||
+      room.stage !== "players_choosing" ||
+      room.leaderId === playerId
     ) {
       throw new Error("Invalid move");
     }
 
-    const player = game.players.find((p) => p.id === playerId);
+    const player = room.players.find((p) => p.id === playerId);
     if (!player || !player.cards.some((c) => c.id === cardId)) {
       throw new Error("Invalid card");
     }
 
-    const card = player.cards.find((c) => c.id === cardId)!;
-    const roundData = game.roundData;
-
-    // Проверить, что игрок еще не выбирал карту
-    if (roundData.selectedCards) {
-      if (roundData.selectedCards.some((pc) => pc.playerId === playerId)) {
-        throw new Error("Player already submitted a card");
-      }
-    } else {
-      roundData.selectedCards = [];
+    // Check if player already submitted a card
+    if (room.choosedCards.some((pc) => pc.playerId === playerId)) {
+      throw new Error("Player already submitted a card");
     }
 
-    roundData.selectedCards.push({ playerId, card });
+    const updatedChoosedCards = [...room.choosedCards, { playerId, cardId }];
 
-    // Проверить, все ли игроки выбрали карты
-    if (
-      this.gameLogic.allPlayersSubmitted(game.players, roundData.selectedCards)
-    ) {
+    // Check if all players submitted cards
+    const nonLeaderPlayers = room.players.filter(
+      (p) => p.id !== room.leaderId && p.isConnected && p.isReady,
+    );
+    const nonLeaderSubmissions = updatedChoosedCards.filter(
+      (card) => card.playerId !== room.leaderId,
+    );
+
+    if (nonLeaderSubmissions.length === nonLeaderPlayers.length) {
       await db
-        .update(gameSessions)
+        .update(roomSessions)
         .set({
-          status: "voting",
-          roundData: JSON.stringify(roundData),
+          stage: "voting",
+          choosedCards: updatedChoosedCards,
         })
-        .where(eq(gameSessions.id, gameId));
+        .where(eq(roomSessions.id, roomId));
     } else {
       await db
-        .update(gameSessions)
-        .set({ roundData: JSON.stringify(roundData) })
-        .where(eq(gameSessions.id, gameId));
+        .update(roomSessions)
+        .set({ choosedCards: updatedChoosedCards })
+        .where(eq(roomSessions.id, roomId));
     }
   }
 
-  // Игрок голосует
-  async playerVotes(
-    gameId: string,
+  // Player votes
+  async playerVote(
+    roomId: string,
     playerId: string,
-    cardId: string
+    cardId: string,
   ): Promise<void> {
-    const game = await this.getGame(gameId);
-    if (!game || game.status !== "voting" || game.leaderPlayerId === playerId) {
+    const room = await this.getRoom(roomId);
+    if (!room || room.stage !== "voting" || room.leaderId === playerId) {
       throw new Error("Invalid move");
     }
 
-    const roundData = game.roundData;
-
-    if (roundData.votes.some((v) => v.playerId === playerId)) {
+    if (room.votedCards.some((v) => v.playerId === playerId)) {
       throw new Error("Player already voted");
     }
 
-    roundData.votes.push({ playerId, cardId });
+    const updatedVotedCards = [...room.votedCards, { playerId, cardId }];
 
-    if (
-      this.gameLogic.allPlayersVoted(
-        game.players,
-        roundData.votes,
-        game.leaderPlayerId!
-      )
-    ) {
-      const scores = this.gameLogic.calculateScores(
-        game.players,
-        roundData.leaderCard!,
-        roundData.selectedCards,
-        roundData.votes
+    // Check if all non-leader players voted
+    const nonLeaderPlayers = room.players.filter(
+      (p) => p.id !== room.leaderId && p.isConnected && p.isReady,
+    );
+
+    if (updatedVotedCards.length === nonLeaderPlayers.length) {
+      const leaderCard = room.choosedCards.find(
+        (c) => c.playerId === room.leaderId,
+      );
+      if (!leaderCard) {
+        throw new Error("Leader card not found");
+      }
+
+      const scores = this.gameLogic.calculatePoints(
+        room.players,
+        leaderCard.cardId,
+        room.choosedCards,
+        updatedVotedCards,
       );
 
       console.log("Scores calculated:", scores);
 
-      for (const player of game.players) {
+      // Update player scores
+      for (const player of room.players) {
         const newScore = player.score + (scores[player.id] || 0);
         await db
           .update(players)
@@ -299,65 +330,92 @@ export class GameManager {
           .where(eq(players.id, player.id));
       }
 
-      // Проверить, закончилась ли игра
-      const updatedGame = await this.getGame(gameId);
-      if (updatedGame && this.gameLogic.isGameFinished(updatedGame.players)) {
+      // Check if game is finished
+      const updatedRoom = await this.getRoom(roomId);
+      if (updatedRoom && this.gameLogic.isGameFinished(updatedRoom.players)) {
         await db
-          .update(gameSessions)
+          .update(roomSessions)
           .set({
-            status: "finished",
-            roundData: JSON.stringify(roundData),
+            stage: "finished",
+            votedCards: updatedVotedCards,
           })
-          .where(eq(gameSessions.id, gameId));
+          .where(eq(roomSessions.id, roomId));
       } else {
-        // Перейти к следующему раунду
+        // Move to next round
         const nextLeader = this.gameLogic.getNextLeader(
-          game.players,
-          game.leaderPlayerId
+          room.players,
+          room.leaderId,
         );
         await db
-          .update(gameSessions)
+          .update(roomSessions)
           .set({
-            status: "leader_turn",
-            leaderPlayerId: nextLeader,
-            currentRound: game.currentRound + 1,
-            association: null,
-            roundData: JSON.stringify({
-              playerCards: [],
-              votes: [],
-            }),
+            stage: "results",
+            leaderId: nextLeader,
+            roundNumber: room.roundNumber + 1,
+            currentDescription: null,
+            choosedCards: [],
+            votedCards: updatedVotedCards,
           })
-          .where(eq(gameSessions.id, gameId));
+          .where(eq(roomSessions.id, roomId));
       }
     } else {
       await db
-        .update(gameSessions)
-        .set({ roundData: JSON.stringify(roundData) })
-        .where(eq(gameSessions.id, gameId));
+        .update(roomSessions)
+        .set({ votedCards: updatedVotedCards })
+        .where(eq(roomSessions.id, roomId));
     }
   }
 
-  // Управление WebSocket подключениями
-  addConnection(gameId: string, ws: any): void {
-    if (!this.wsConnections.has(gameId)) {
-      this.wsConnections.set(gameId, new Set());
+  // Start next round
+  async startNextRound(roomId: string): Promise<void> {
+    const room = await this.getRoom(roomId);
+    if (!room || room.stage !== "results") {
+      throw new Error("Cannot start next round");
     }
-    this.wsConnections.get(gameId)!.add(ws);
+
+    await db
+      .update(roomSessions)
+      .set({
+        stage: "leader_choosing",
+        choosedCards: [],
+        votedCards: [],
+      })
+      .where(eq(roomSessions.id, roomId));
   }
 
-  removeConnection(gameId: string, ws: any): void {
-    const connections = this.wsConnections.get(gameId);
+  // Set player ready status
+  async setPlayerReady(
+    roomId: string,
+    playerId: string,
+    isReady: boolean,
+  ): Promise<void> {
+    await db
+      .update(players)
+      .set({ isReady })
+      .where(and(eq(players.id, playerId), eq(players.roomSessionId, roomId)));
+  }
+
+  // WebSocket connection management
+  addConnection(roomId: string, ws: any): void {
+    if (!this.wsConnections.has(roomId)) {
+      this.wsConnections.set(roomId, new Set());
+    }
+    this.wsConnections.get(roomId)!.add(ws);
+  }
+
+  removeConnection(roomId: string, ws: any): void {
+    const connections = this.wsConnections.get(roomId);
     if (connections) {
       connections.delete(ws);
       if (connections.size === 0) {
-        this.wsConnections.delete(gameId);
+        this.wsConnections.delete(roomId);
       }
     }
   }
 
-  // Отправить сообщение всем игрокам в игре
-  broadcastToGame(gameId: string, message: any): void {
-    const connections = this.wsConnections.get(gameId);
+  // Broadcast message to all players in room
+  broadcastToRoom(roomId: string, message: any): void {
+    const connections = this.wsConnections.get(roomId);
     if (connections) {
       connections.forEach((ws: any) => {
         if (ws.readyState === 1) {
@@ -368,14 +426,40 @@ export class GameManager {
     }
   }
 
-  // Отправить обновление игры всем игрокам
-  async broadcastGameUpdate(gameId: string): Promise<void> {
-    const game = await this.getGame(gameId);
-    if (game) {
-      this.broadcastToGame(gameId, {
-        type: "game_update",
-        data: { session: game },
+  // Broadcast room update to all players
+  async broadcastRoomUpdate(roomId: string): Promise<void> {
+    const room = await this.getRoom(roomId);
+    if (room) {
+      this.broadcastToRoom(roomId, {
+        type: "room_update",
+        data: room,
       });
     }
+  }
+
+  // Remove player from room
+  async removePlayerFromRoom(roomId: string, playerId: string): Promise<void> {
+    await db
+      .update(players)
+      .set({ isConnected: false })
+      .where(and(eq(players.id, playerId), eq(players.roomSessionId, roomId)));
+  }
+
+  // Get room cards for display
+  async getRoomCards(roomId: string): Promise<Card[]> {
+    const room = await this.getRoom(roomId);
+    if (!room) return [];
+
+    const roomCards = await db
+      .select()
+      .from(cards)
+      .where(eq(cards.deckId, room.deck_id));
+
+    return roomCards.map((card) => ({
+      id: card.id,
+      title: card.title,
+      imageUrl: card.imageUrl,
+      description: card.description,
+    }));
   }
 }

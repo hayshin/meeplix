@@ -1,5 +1,6 @@
 import { writable, derived } from "svelte/store";
-import type { GameSession, Player } from "$shared/types";
+import type { Player } from "$shared/types";
+import { RoomState } from "$shared/types/server";
 import { api } from "$/lib/utils";
 import type { WSEvent } from "$shared/types";
 
