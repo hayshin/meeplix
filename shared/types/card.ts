@@ -2,6 +2,7 @@ import type { Static } from "elysia";
 import { t } from "elysia";
 import { BaseEntity, BaseEntitySchema } from "./entity";
 import { Collection } from "./collection";
+import { PlayerCollection } from "./player";
 
 export const CardSchema = t.Composite([
   BaseEntitySchema,
@@ -82,5 +83,13 @@ export class CardEntity extends BaseEntity implements CardType {
 export class CardCollection extends Collection<CardEntity> {
   constructor(cards: CardEntity[] = []) {
     super(cards);
+  }
+
+  draw(count: number): CardCollection {
+    const drawnCards = new CardCollection();
+    for (let i = 0; i < count; i++) {
+      drawnCards.add(this.pop()!);
+    }
+    return drawnCards;
   }
 }

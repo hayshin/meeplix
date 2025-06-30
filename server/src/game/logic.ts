@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from "uuid";
-import { Card, PlayerCard, Player } from "$types";
+import { PlayerCardEntity, PlayerEntity } from "$types/player";
+import { CardEntity } from "$shared/types/card";}
 import { GAME_CONFIG } from "$shared/constants";
 import { loadCardsFromAssets } from "./cards";
 import { shuffleArray } from "$shared/utils";

@@ -13,7 +13,7 @@ export const PlayerSchema = t.Composite([
   t.Object({
     nickname: t.String(),
     score: t.Number(),
-    cards: CollectionSchema,
+    hand: CollectionSchema,
     isConnected: t.Boolean(),
     joinedAt: t.Date(),
     isReady: t.Boolean(),
@@ -33,7 +33,7 @@ export type PlayerCardType = Static<typeof PlayerCardSchema>;
 export class PlayerEntity extends BaseEntity implements PlayerType {
   nickname: string;
   score: number;
-  cards: CardCollection;
+  hand: CardCollection;
   isConnected: boolean;
   joinedAt: Date;
   isReady: boolean;
@@ -50,7 +50,7 @@ export class PlayerEntity extends BaseEntity implements PlayerType {
     super(id);
     this.nickname = nickname;
     this.score = score;
-    this.cards = cards;
+    this.hand = cards;
     this.isConnected = isConnected;
     this.joinedAt = joinedAt;
     this.isReady = isReady;
@@ -70,7 +70,7 @@ export class PlayerEntity extends BaseEntity implements PlayerType {
       this.id,
       this.nickname,
       this.score,
-      this.cards.clone(),
+      this.hand.clone(),
       this.isConnected,
       this.joinedAt,
       this.isReady,
@@ -79,7 +79,7 @@ export class PlayerEntity extends BaseEntity implements PlayerType {
 
   // Getters
   getCardCount(): number {
-    return this.cards.size;
+    return this.hand.size;
   }
 
   getStatus(): "ready" | "connected" | "disconnected" {
@@ -90,25 +90,25 @@ export class PlayerEntity extends BaseEntity implements PlayerType {
 
   // Card management methods
   hasCard(cardId: string): boolean {
-    return this.cards.has(cardId);
+    return this.hand.has(cardId);
   }
 
   getCard(cardId: string): CardType | undefined {
-    return this.cards.find((card) => card.id === cardId);
+    return this.hand.find((card) => card.id === cardId);
   }
 
   addCard(card: CardType): PlayerEntity {
-    this.cards.add(CardEntity.fromType(card));
+    this.hand.add(CardEntity.fromType(card));
     return this;
   }
 
   removeCard(cardId: string): PlayerEntity {
-    this.cards.remove(cardId);
+    this.hand.remove(cardId);
     return this;
   }
 
   replaceCards(newCards: Collection<CardEntity>): PlayerEntity {
-    this.cards = newCards;
+    this.hand = newCards;
     return this;
   }
 
@@ -214,5 +214,11 @@ export class PlayerCardEntity extends BaseEntity implements PlayerCardType {
 export class PlayerCollection extends Collection<PlayerEntity> {
   constructor(players: PlayerEntity[]) {
     super(players);
+  }
+}
+
+export class PlayerCardCollection extends Collection<PlayerCardEntity> {
+  constructor(cards: PlayerCardEntity[]) {
+    super(cards);
   }
 }

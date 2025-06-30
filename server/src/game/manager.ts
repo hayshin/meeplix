@@ -1,16 +1,21 @@
 import { v4 as uuidv4 } from "uuid";
 import { db } from "$db/index";
-import { roomSessions, players, decks, cards } from "$db/schema";
+import { decks, cards } from "$db/schema/cards";
 import { eq, and } from "drizzle-orm";
-import { Player,  PlayerCard } from "$shared/types/player";
-import { Card } from "$shared/types/card";}
-import { type RoomState, type RoomStage } from "$shared/types/server";
+import {
+  PlayerEntity,
+  PlayerCardEntity,
+  PlayerCollection,
+  PlayerCardCollection,
+} from "$shared/types/player";
+import { CardCollection, CardEntity } from "$shared/types/card";
+import { RoomStateEntity, type RoomStageType } from "$shared/types/room";
 import { GAME_CONFIG } from "$shared/constants";
 import { GameLogic } from "./logic";
 
 export class GameManager {
-  private gameLogic = new GameLogic();
   private wsConnections = new Map<string, Set<any>>(); // roomId -> Set of WebSocket connections
+  private rooms = new Map<string, RoomStateEntity>(); // roomId -> RoomStateEntity
 
   constructor() {}
 
@@ -20,39 +25,51 @@ export class GameManager {
 
     // Use default deck if none provided
     let finalDeckId = deckId;
-    if (!finalDeckId) {
-      // Try to find any existing deck, or create a default one
-      const existingDecks = await db.select().from(decks).limit(1);
-      if (existingDecks.length > 0) {
-        finalDeckId = existingDecks[0].id;
-      } else {
-        // Create a minimal deck entry for testing
-        const defaultDeck = await db
-          .insert(decks)
-          .values({
-            id: uuidv4(),
-            name: "Default Deck",
-            description: "Default deck for testing",
-            cardCategoriesId: uuidv4(), // This would need proper category
-            cardStylesId: uuidv4(), // This would need proper style
-          })
-          .returning();
-        finalDeckId = defaultDeck[0].id;
-      }
-    }
+    // if (!finalDeckId) {
+    //   // Try to find any existing deck, or create a default one
+    //   const existingDecks = await db.select().from(decks).limit(1);
+    //   if (existingDecks.length > 0) {
+    //     finalDeckId = existingDecks[0].id;
+    //   } else {
+    //     // Create a minimal deck entry for testing
+    //     const defaultDeck = await db
+    //       .insert(decks)
+    //       .values({
+    //         id: uuidv4(),
+    //         name: "Default Deck",
+    //         description: "Default deck for testing",
+    //         cardCategoriesId: uuidv4(), // This would need proper category
+    //         cardStylesId: uuidv4(), // This would need proper style
+    //       })
+    //       .returning();
+    //     finalDeckId = defaultDeck[0].id;
+    //   }
+    // }
 
-    await db.insert(roomSessions).values({
-      id: roomId,
-      deckId: finalDeckId,
-      roundNumber: 1,
-      playerOrder: [],
-      stage: "joining",
-      choosedCards: [],
-      votedCards: [],
-      createdAt: now,
-    });
+    // await db.insert(roomSessions).values({
+    //   id: roomId,
+    //   deckId: finalDeckId,
+    //   roundNumber: 1,
+    //   playerOrder: [],
+    //   stage: "joining",
+    //   choosedCards: [],
+    //   votedCards: [],
+    //   createdAt: now,
+    // });
 
     this.wsConnections.set(roomId, new Set());
+    const room = new RoomStateEntity(
+      roomId,
+      new PlayerCollection([]),
+      new CardCollection([]),
+      0,
+      "",
+      "",
+      new PlayerCardCollection([]),
+      "joining",
+      new PlayerCardCollection([]),
+    );
+    this.rooms.set(roomId, room);
 
     return roomId;
   }
@@ -141,7 +158,7 @@ export class GameManager {
       joinedAt: now,
     };
 
-    await db.insert(players).values(newPlayer);
+    // await db.insert(players).values(newPlayer);
 
     return newPlayer;
   }

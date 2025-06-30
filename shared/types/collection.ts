@@ -16,11 +16,6 @@ export class Collection<Type extends BaseEntity> implements CollectionType {
   }
 
   // Static factory methods
-  // static fromData(itemsData: T[]): Collection<T> {
-  //   const cards = itemsData.map((data) => new T(data));
-  //   return new CardHand(cards);
-  // }
-
   static empty<Type extends BaseEntity>(): Collection<Type> {
     return new Collection<Type>();
   }
@@ -34,10 +29,12 @@ export class Collection<Type extends BaseEntity> implements CollectionType {
     return this.items.pop();
   }
 
+  // Correction for remove: it should filter out the item with the given ID
+  // Your original implementation was keeping only the item with the given ID
   remove(itemId: string): boolean {
-    const originaLength = this.items.length;
-    this.items = this.items.filter((item) => item.id === itemId);
-    return originaLength !== this.items.length;
+    const originalLength = this.items.length;
+    this.items = this.items.filter((item) => item.id !== itemId); // Corrected: filter OUT the item with itemId
+    return originalLength !== this.items.length;
   }
 
   get(cardId: string): Type | undefined {
@@ -73,29 +70,42 @@ export class Collection<Type extends BaseEntity> implements CollectionType {
     return this.toArray().map(callback);
   }
 
-  filter(predicate: (item: Type) => boolean): Collection<Type> {
+  // Use 'this' as the return type for methods that should return the concrete collection type
+  filter(predicate: (item: Type) => boolean): this {
     const filtered = this.toArray().filter(predicate);
-    return new Collection<Type>(filtered);
+    // Use 'new (this.constructor as any)(filtered)' to create an instance of the current class
+    return new (this.constructor as any)(filtered);
   }
 
   find(predicate: (item: Type) => boolean): Type | undefined {
     return this.toArray().find(predicate);
   }
 
-  // Utility methods
-  // search(searchTerm: string): Collection<Type> {
-  //   const term = searchTerm.toLowerCase();
-  //   return this.filter((card) => card.toSearchString().includes(term));
-  // }
-
-  shuffle(): Collection<Type> {
-    const shuffled = this.toArray().sort(() => Math.random() - 0.5);
-    return new Collection<Type>(shuffled);
+  some(predicate: (item: Type) => boolean): boolean {
+    return this.toArray().some(predicate);
   }
 
-  slice(start: number, end?: number): Collection<Type> {
+  reduce<T>(callback: (accumulator: T, item: Type) => T, initialValue: T): T {
+    return this.toArray().reduce(callback, initialValue);
+  }
+
+  findIndex(predicate: (item: Type) => boolean): number {
+    return this.toArray().findIndex(predicate);
+  }
+
+  shuffle(): this {
+    const shuffled = this.toArray().sort(() => Math.random() - 0.5);
+    // Assign to this.items to modify the current instance
+    this.items = shuffled;
+    // Return the current instance for chaining
+    return this;
+  }
+
+  // Use 'this' as the return type
+  slice(start: number, end?: number): this {
     const sliced = this.toArray().slice(start, end);
-    return new Collection<Type>(sliced);
+    // Use 'new (this.constructor as any)(sliced)' to create an instance of the current class
+    return new (this.constructor as any)(sliced);
   }
 
   getRandomItem(): Type | undefined {
@@ -104,8 +114,14 @@ export class Collection<Type extends BaseEntity> implements CollectionType {
     return cards[Math.floor(Math.random() * cards.length)];
   }
 
-  clone(): Collection<Type> {
+  // Use 'this' as the return type
+  clone(): this {
     const clonedItems = this.toArray().map((item) => item.clone());
-    return new Collection<Type>(clonedItems);
+    // Use 'new (this.constructor as any)(clonedItems)' to create an instance of the current class
+    return new (this.constructor as any)(clonedItems);
+  }
+
+  isValid(): boolean {
+    return this.items.every((item) => item.isValid());
   }
 }

@@ -1,31 +1,10 @@
 import type { Static } from "elysia";
 import { t } from "elysia";
-import { CardSchema } from "./card";
+import { CardSchema, CardCollection } from "./card";
 import { PlayerCardSchema, PlayerCollection } from "./player";
 import { PlayerSchema } from "./player";
 import { CollectionSchema } from "./collection";
-
-export const RoomStageSchema = t.Union([
-  t.Literal("joining"),
-  t.Literal("leader_choosing"),
-  t.Literal("players_choosing"),
-  t.Literal("voting"),
-  t.Literal("results"),
-  t.Literal("finished"),
-]);
-
-export const RoomStateSchema = t.Object({
-  roomId: t.String(),
-  players: CollectionSchema,
-  deck: CollectionSchema,
-  roundNumber: t.Number(),
-  leaderId: t.String(),
-  currentDescription: t.String(),
-  // for the active player, this is the active card; for other players, this is the card they chose
-  choosedCards: CollectionSchema,
-  stage: RoomStageSchema,
-  votedCards: CollectionSchema,
-});
+import { BaseEntity } from "./entity";
 
 export const StartRoundMessageSchema = t.Object({
   type: t.Literal("start_round"),
@@ -76,8 +55,6 @@ export const ServerMessageSchema = t.Union([
 ]);
 
 // Type exports
-export type RoomStage = Static<typeof RoomStageSchema>;
-export type RoomState = Static<typeof RoomStateSchema>;
 export type StartRoundMessage = Static<typeof StartRoundMessageSchema>;
 export type PlayersChooseCardMessage = Static<
   typeof PlayersChooseCardMessageSchema
