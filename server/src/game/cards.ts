@@ -1,7 +1,8 @@
-import { Card } from "$types";
+import { CardEntity } from "$types/card";
 import * as fs from "fs";
 import * as path from "path";
-export function loadCardsFromAssets(): Card[] {
+
+export function loadCardsFromAssets(): CardEntity[] {
   const cardsDir = path.join(process.cwd(), "assets", "cards");
 
   try {
@@ -21,14 +22,14 @@ export function loadCardsFromAssets(): Card[] {
         file.toLowerCase().endsWith(".png"),
     );
 
-    const cards: Card[] = jpgFiles.map((filename, index) => {
+    const cards = jpgFiles.map((filename, index) => {
       const cardName = path.parse(filename).name;
-      return {
+      return CardEntity.fromType({
         id: String(index + 1),
         title: filename,
-        imageUrl: `$assets/cards/${filename}`,
-        description: cardName.replace(/[-_]/g, " "), // Change dashes to whitespaces
-      };
+        // imageUrl: `$assets/cards/${filename}`,
+        // description: cardName.replace(/[-_]/g, " "), // Change dashes to whitespaces
+      });
     });
 
     if (cards.length === 0) {
@@ -46,11 +47,13 @@ export function loadCardsFromAssets(): Card[] {
   }
 }
 
-function createFallbackCards(): Card[] {
-  return Array.from({ length: 30 }, (_, i) => ({
-    id: String(i + 1),
-    title: `Card ${i + 1}`,
-    imageUrl: `$assets/cards/card${i + 1}.jpg`,
-    description: `Card ${i + 1}`,
-  }));
+function createFallbackCards(): CardEntity[] {
+  return Array.from({ length: 30 }, (_, i) =>
+    CardEntity.fromType({
+      id: String(i + 1),
+      title: `Card ${i + 1}`,
+      // imageUrl: `$assets/cards/card${i + 1}.jpg`,
+      // description: `Card ${i + 1}`,
+    }),
+  );
 }

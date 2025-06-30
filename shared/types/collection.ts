@@ -37,8 +37,12 @@ export class Collection<Type extends BaseEntity> implements CollectionType {
     return originalLength !== this.items.length;
   }
 
-  get(cardId: string): Type | undefined {
-    return this.items.find((card) => card.id === cardId);
+  get(cardId: string | number): Type | undefined {
+    if (typeof cardId === "string") {
+      return this.items.find((card) => card.id === cardId);
+    } else {
+      return this.items[cardId];
+    }
   }
 
   has(cardId: string): boolean {
@@ -106,6 +110,10 @@ export class Collection<Type extends BaseEntity> implements CollectionType {
     const sliced = this.toArray().slice(start, end);
     // Use 'new (this.constructor as any)(sliced)' to create an instance of the current class
     return new (this.constructor as any)(sliced);
+  }
+
+  every(predicate: (item: Type) => boolean): boolean {
+    return this.toArray().every(predicate);
   }
 
   getRandomItem(): Type | undefined {

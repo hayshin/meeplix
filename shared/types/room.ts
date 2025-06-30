@@ -68,7 +68,7 @@ export class RoomStateEntity extends BaseEntity implements RoomStateType {
   dealCards() {
     this.deck = this.deck.shuffle();
     this.players.forEach((player) => {
-      player.hand = this.deck.draw(5);
+      player.hand = this.deck.draw(6);
     });
   }
 
@@ -78,7 +78,15 @@ export class RoomStateEntity extends BaseEntity implements RoomStateType {
       (player) => player.id === currentLeaderId,
     );
     const nextIndex = (leaderIndex + 1) % this.players.size;
-    return this.players[nextIndex].id;
+    return this.players.get(nextIndex)!.id;
+  }
+
+  getCurrentLeader(): PlayerEntity | undefined {
+    return this.players.find((player) => player.id === this.leaderId);
+  }
+
+  getNonLeaderPlayers(): PlayerCollection {
+    return this.players.filter((player) => player.id !== this.leaderId);
   }
 
   changeLeader() {
@@ -146,7 +154,7 @@ export class RoomStateEntity extends BaseEntity implements RoomStateType {
     if (!this.isGameFinished()) return null;
     const winner = this.players.reduce(
       (max, player) => (player.score > max.score ? player : max),
-      this.players[0],
+      this.players.get(0),
     );
     return winner;
   }
@@ -158,16 +166,20 @@ export class RoomStateEntity extends BaseEntity implements RoomStateType {
     );
   }
 
+  getNonLeaderSubmissions(): PlayerCardCollection {
+    return this.choosedCards.filter((card) => card.playerId !== this.leaderId);
+  }
+
+  getActivePlayers(): PlayerCollection {
+    return this.players.filter((player) => player.isConnected);
+  }
+
   allPlayersSubmitted(): boolean {
-    const activePlayers = this.players.filter((p) => p.isConnected);
-    return this.choosedCards.size === activePlayers.size;
+    return this.choosedCards.size === this.getActivePlayers().size - 1;
   }
 
   allPlayersVoted(): boolean {
-    const activePlayers = this.players.filter(
-      (p) => p.isConnected && p.id !== this.leaderId,
-    );
-    return this.votedCards.size === activePlayers.size;
+    return this.votedCards.size === this.getActivePlayers().size - 1;
   }
   clone(): this {
     return new RoomStateEntity(

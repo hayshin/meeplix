@@ -221,4 +221,12 @@ export class PlayerCardCollection extends Collection<PlayerCardEntity> {
   constructor(cards: PlayerCardEntity[]) {
     super(cards);
   }
+
+  hasCard(cardId: string): boolean {
+    return this.some((card) => card.cardId === cardId);
+  }
+
+  hasPlayer(playerId: string): boolean {
+    return this.some((card) => card.playerId === playerId);
+  }
 }
