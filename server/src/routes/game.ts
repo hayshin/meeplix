@@ -1,11 +1,9 @@
 import { Elysia } from "elysia";
 import { v4 as uuidv4 } from "uuid";
-import { GameManager } from "../game/manager";
+import { gameManager } from "$/ws/handlers";
 import { t } from "elysia";
 import { PlayerSchema } from "$shared/types/player";
 import { RoomStateSchema } from "$shared/types/room";
-
-const gameManager = new GameManager();
 
 export const gameRoutes = new Elysia({ prefix: "game" })
   .post(
@@ -16,7 +14,7 @@ export const gameRoutes = new Elysia({ prefix: "game" })
     },
     {
       response: t.String(),
-    },
+    }
   )
 
   .get(
@@ -33,7 +31,7 @@ export const gameRoutes = new Elysia({ prefix: "game" })
         200: RoomStateSchema,
         404: t.String(),
       },
-    },
+    }
   )
 
   .post(
@@ -46,7 +44,7 @@ export const gameRoutes = new Elysia({ prefix: "game" })
 
       const player = await gameManager.addPlayerToRoom(
         params.id,
-        nickname.trim(),
+        nickname.trim()
       );
       if (!player) {
         return status(400, "Could not join game");
@@ -68,7 +66,7 @@ export const gameRoutes = new Elysia({ prefix: "game" })
         200: PlayerSchema,
         400: t.String(),
       },
-    },
+    }
   )
 
   .post(
@@ -82,5 +80,5 @@ export const gameRoutes = new Elysia({ prefix: "game" })
       params: t.Object({
         id: t.String(),
       }),
-    },
+    }
   );

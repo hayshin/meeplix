@@ -17,7 +17,7 @@ import { ClientMessage } from "$shared/types/client";
 
 export class GameManager {
   private wsConnections = new Map<string, Set<any>>(); // roomId -> Set of WebSocket connections
-  private rooms = new Map<string, RoomStateEntity>(); // roomId -> RoomStateEntity
+  public rooms = new Map<string, RoomStateEntity>(); // roomId -> RoomStateEntity
 
   constructor() {}
 
@@ -70,7 +70,7 @@ export class GameManager {
       "",
       new PlayerCardCollection([]),
       "joining",
-      new PlayerCardCollection([]),
+      new PlayerCardCollection([])
     );
     this.rooms.set(roomId, room);
 
@@ -121,7 +121,7 @@ export class GameManager {
   // Add player to room
   async addPlayerToRoom(
     roomId: string,
-    nickname: string,
+    nickname: string
   ): Promise<PlayerEntity | null> {
     const room = await this.getRoom(roomId);
     if (!room) return null;
@@ -153,9 +153,9 @@ export class GameManager {
       new CardCollection([]),
       true,
       now,
-      false,
+      false
     );
-
+    room.addPlayer(newPlayer);
     // await db.insert(players).values(newPlayer);
 
     return newPlayer;
@@ -178,6 +178,7 @@ export class GameManager {
 
     // Deal cards to all players
     room.dealCards();
+    room.startRound(leaderId);
 
     // // Update all players with their new cards
     // for (const player of playersWithCards) {
@@ -205,7 +206,7 @@ export class GameManager {
     roomId: string,
     playerId: string,
     cardId: string,
-    description: string,
+    description: string
   ): Promise<void> {
     const room = await this.getRoom(roomId);
     if (
@@ -234,7 +235,7 @@ export class GameManager {
   // Player submits card
   async playerChooseCard(
     roomId: string,
-    { playerId, cardId }: PlayerCardEntity,
+    { playerId, cardId }: PlayerCardEntity
   ): Promise<void> {
     const room = await this.getRoom(roomId);
     if (
@@ -279,7 +280,7 @@ export class GameManager {
   // Player votes
   async playerVote(
     roomId: string,
-    { playerId, cardId }: PlayerCardEntity,
+    { playerId, cardId }: PlayerCardEntity
   ): Promise<void> {
     const room = await this.getRoom(roomId);
 
@@ -304,7 +305,7 @@ export class GameManager {
 
     if (room.allPlayersVoted()) {
       const leaderCard = room.choosedCards.find(
-        (c) => c.playerId === room.leaderId,
+        (c) => c.playerId === room.leaderId
       );
       if (!leaderCard) {
         throw new Error("Leader card not found");
@@ -380,8 +381,22 @@ export class GameManager {
   async setPlayerReady(
     roomId: string,
     playerId: string,
-    isReady: boolean,
+    isReady: boolean
   ): Promise<void> {
+    const room = await this.getRoom(roomId);
+    if (!room) {
+      throw new Error("Room not found");
+    }
+
+    const player = room.players.get(playerId);
+    if (!player) {
+      throw new Error("Player not found");
+    }
+
+    console.log(
+      `Setting player ${playerId} ready status to ${isReady} in room ${roomId}`
+    );
+    player.isReady = isReady;
     // await db
     //   .update(players)
     //   .set({ isReady })
@@ -406,15 +421,36 @@ export class GameManager {
     }
   }
 
+  // export const RoomStateUpdateMessageSchema = t.Object({
+  //   type: t.Literal("room_state_update"),
+  //   roomState: RoomStateSchema,
+  // });
   // Broadcast message to all players in room
   broadcastToRoom(
     roomId: string,
-    message: ServerMessage | ClientMessage,
+    message: ServerMessage | ClientMessage
   ): void {
     const connections = this.wsConnections.get(roomId);
     if (connections) {
       connections.forEach((ws: any) => {
         if (ws.readyState === 1) {
+          // OPEN
+          ws.send(message);
+          ws.send({
+            type: "room_state_update",
+            roomState: this.rooms.get(roomId),
+          });
+        }
+      });
+    }
+  }
+
+  // Send message to specific player in room
+  sendToPlayer(roomId: string, playerId: string, message: ServerMessage): void {
+    const connections = this.wsConnections.get(roomId);
+    if (connections) {
+      connections.forEach((ws: any) => {
+        if (ws.readyState === 1 && ws.data.query.playerId === playerId) {
           // OPEN
           ws.send(message);
         }
