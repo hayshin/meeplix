@@ -15,6 +15,7 @@ import Elysia from "elysia";
 import { ElysiaWS } from "elysia/dist/ws";
 import { t } from "elysia";
 import { ServerMessage } from "$shared/types/server";
+import { CardEntity } from "$shared/types/card";
 
 export const gameManager = new GameManager();
 
@@ -260,7 +261,7 @@ async function handlePlayerChooseCard(
 
     await gameManager.playerChooseCard(
       roomId,
-      PlayerCardEntity.fromIds(playerId, card.id)
+      new PlayerCardEntity(playerId, CardEntity.fromType(card))
     );
     // await gameManager.broadcastRoomUpdate(roomId);
   } catch (error) {
@@ -283,7 +284,7 @@ async function handlePlayerVote(ws: WS, message: PlayerVoteMessage) {
 
     await gameManager.playerVote(
       roomId,
-      PlayerCardEntity.fromIds(playerId, card.id)
+      new PlayerCardEntity(playerId, CardEntity.fromType(card))
     );
     // await gameManager.broadcastRoomUpdate(roomId);
   } catch (error) {

@@ -222,20 +222,40 @@ export class GameManager {
       throw new Error("Invalid card");
     }
 
-    // await db
-    //   .update(roomSessions)
-    //   .set({
-    //     stage: "players_choosing",
-    //     current_description: description,
-    //     choosedCards: [{ playerId, cardId }],
-    //   })
-    //   .where(eq(roomSessions.id, roomId));
+    const card = player.hand.get(cardId);
+    if (!card) {
+      throw new Error("Card not found");
+    }
+
+    // Set the description and add leader's card to chosen cards
+    room.currentDescription = description;
+    room.choosedCards.add(PlayerCardEntity.fromEntities(player, card));
+
+    // Move to players choosing stage
+    room.stage = "players_choosing";
+
+    // Remove the card from leader's hand
+    player.hand.remove(cardId);
+
+    // Send updated room state to all players
+    this.broadcastToRoom(roomId, {
+      type: "room_state_update",
+      roomState: room.cloneForClient(),
+    });
+
+    // Send each non-leader player their hand for card selection
+    room.getNonLeaderPlayers().forEach((nonLeaderPlayer) => {
+      this.sendToPlayer(roomId, nonLeaderPlayer.id, {
+        type: "players_choose_card",
+        currentHand: nonLeaderPlayer.hand,
+      });
+    });
   }
 
   // Player submits card
   async playerChooseCard(
     roomId: string,
-    { playerId, cardId }: PlayerCardEntity
+    { playerId, card }: PlayerCardEntity
   ): Promise<void> {
     const room = await this.getRoom(roomId);
     if (
@@ -249,38 +269,57 @@ export class GameManager {
     const player = room.players.get(playerId);
     if (!player) throw new Error("Invalid player");
 
-    const card = player.hand.get(cardId);
     if (!card) throw new Error("Invalid card");
 
     // Check if player already submitted a card
-    if (room.choosedCards.has(playerId)) {
+    if (room.choosedCards.hasPlayer(playerId)) {
       throw new Error("Player already submitted a card");
     }
 
+    // Add player's card to chosen cards
     room.choosedCards.add(PlayerCardEntity.fromEntities(player, card));
 
-    // Check if all players submitted cards
+    console.log(`Player ${playerId} chose card ${card.id} in room ${roomId}`);
+    console.log(`Currently chosen cards:`, room.choosedCards.size);
+    console.log(`Currently active players:`, room.getActivePlayers().size);
+    // Remove the card from player's hand
+    player.hand.remove(card.id);
 
+    // Check if all players submitted cards
     if (room.allPlayersSubmitted()) {
-      // await db
-      //   .update(roomSessions)
-      //   .set({
-      //     stage: "voting",
-      //     choosedCards: updatedChoosedCards,
-      //   })
-      //   .where(eq(roomSessions.id, roomId));
-    } else {
-      // await db
-      //   .update(roomSessions)
-      //   .set({ choosedCards: updatedChoosedCards })
-      //   .where(eq(roomSessions.id, roomId));
+      // Move to voting stage
+      room.stage = "voting";
+      console.log(`All players submitted cards, moving to voting stage`);
+
+      // Get the actual cards for voting (shuffle to hide the order)
+      const cardsForVoting = room.choosedCards.map((playerCard) => {
+        // Find the card in the deck by ID
+        return playerCard.card;
+      });
+
+      // Shuffle the cards to hide the order
+      const shuffledCards = cardsForVoting.sort(() => Math.random() - 0.5);
+
+      // Send voting message to all non-leader players
+      room.getNonLeaderPlayers().forEach((nonLeaderPlayer) => {
+        this.sendToPlayer(roomId, nonLeaderPlayer.id, {
+          type: "begin_vote",
+          choosedCards: shuffledCards,
+        });
+      });
     }
+
+    // Send updated room state to all players
+    this.broadcastToRoom(roomId, {
+      type: "room_state_update",
+      roomState: room.cloneForClient(),
+    });
   }
 
   // Player votes
   async playerVote(
     roomId: string,
-    { playerId, cardId }: PlayerCardEntity
+    { playerId, card }: PlayerCardEntity
   ): Promise<void> {
     const room = await this.getRoom(roomId);
 
@@ -291,18 +330,18 @@ export class GameManager {
     const player = room.players.get(playerId);
     if (!player) throw new Error("Invalid player");
 
-    const card = player.hand.get(cardId);
-    if (!card) throw new Error("Invalid card");
+    // Find the voted card in the chosen cards (not player's hand)
+    const votedCard = room.choosedCards.get(card.id);
+    if (!votedCard) throw new Error("Invalid card to vote for");
 
     if (room.votedCards.hasPlayer(playerId)) {
       throw new Error("Player already voted");
     }
 
-    room.votedCards.add(PlayerCardEntity.fromEntities(player, card));
+    // Record the vote (player voting for a specific card)
+    room.votedCards.add(new PlayerCardEntity(playerId, card));
 
     // Check if all non-leader players voted
-    const nonLeaderPlayers = room.getNonLeaderPlayers();
-
     if (room.allPlayersVoted()) {
       const leaderCard = room.choosedCards.find(
         (c) => c.playerId === room.leaderId
@@ -311,53 +350,50 @@ export class GameManager {
         throw new Error("Leader card not found");
       }
 
-      const scores = room.calculatePoints();
+      // Calculate points
+      room.calculatePoints();
 
-      console.log("Scores calculated:", scores);
+      // Get the actual leader card from the deck
+      const leaderCardEntity = room.deck.get(leaderCard.card.id);
+      if (!leaderCardEntity) {
+        throw new Error("Leader card not found in deck");
+      }
 
-      // Update player scores
-      // for (const player of room.players) {
-      //   const newScore = player.score + (scores[player.id] || 0);
-      //   await db
-      //     .update(players)
-      //     .set({ score: newScore })
-      //     .where(eq(players.id, player.id));
-      // }
+      // Send voting results to all players
+      const pointChanges = room.players.map((player) => ({
+        type: "point_change" as const,
+        playerId: player.id,
+        points: player.score,
+      }));
+
+      this.broadcastToRoom(roomId, {
+        type: "end_vote",
+        votedCards: room.votedCards,
+        leaderCard: leaderCardEntity,
+        points: pointChanges,
+      });
 
       // Check if game is finished
-      //   const updatedRoom = await this.getRoom(roomId);
-      //   if (updatedRoom && this.gameLogic.isGameFinished(updatedRoom.players)) {
-      //     await db
-      //       .update(roomSessions)
-      //       .set({
-      //         stage: "finished",
-      //         votedCards: updatedVotedCards,
-      //       })
-      //       .where(eq(roomSessions.id, roomId));
-      //   } else {
-      //     // Move to next round
-      //     const nextLeader = this.gameLogic.getNextLeader(
-      //       room.players,
-      //       room.leaderId,
-      //     );
-      //     await db
-      //       .update(roomSessions)
-      //       .set({
-      //         stage: "results",
-      //         leaderId: nextLeader,
-      //         roundNumber: room.roundNumber + 1,
-      //         currentDescription: null,
-      //         choosedCards: [],
-      //         votedCards: updatedVotedCards,
-      //       })
-      //       .where(eq(roomSessions.id, roomId));
-      //   }
-      // } else {
-      //   await db
-      //     .update(roomSessions)
-      //     .set({ votedCards: updatedVotedCards })
-      //     .where(eq(roomSessions.id, roomId));
+      if (room.isGameFinished()) {
+        const winner = room.getWinner();
+        if (winner) {
+          this.broadcastToRoom(roomId, {
+            type: "end_game",
+            winner: winner.id,
+          });
+          room.stage = "finished";
+        }
+      } else {
+        // Move to results stage for next round preparation
+        room.stage = "results";
+      }
     }
+
+    // Send updated room state to all players
+    this.broadcastToRoom(roomId, {
+      type: "room_state_update",
+      roomState: room.cloneForClient(),
+    });
   }
 
   // Start next round
@@ -367,14 +403,41 @@ export class GameManager {
       throw new Error("Cannot start next round");
     }
 
-    // await db
-    //   .update(roomSessions)
-    //   .set({
-    //     stage: "leader_choosing",
-    //     choosedCards: [],
-    //     votedCards: [],
-    //   })
-    //   .where(eq(roomSessions.id, roomId));
+    // Change leader to next player
+    room.changeLeader();
+
+    // Deal new cards to all players (assuming some cards were used)
+    const neededCards =
+      room.players.size * 6 -
+      room.players.reduce((total, player) => total + player.hand.size, 0);
+    if (neededCards > 0) {
+      // Deal cards to fill hands back to 6
+      room.players.forEach((player) => {
+        const cardsNeeded = 6 - player.hand.size;
+        if (cardsNeeded > 0) {
+          const newCards = room.deck.draw(cardsNeeded);
+          newCards.forEach((card) => player.hand.add(card));
+        }
+      });
+    }
+
+    // Start the new round
+    room.startRound(room.leaderId);
+
+    // Send each player their updated hand
+    room.players.forEach((player) => {
+      this.sendToPlayer(roomId, player.id, {
+        type: "start_round",
+        roundNumber: room.roundNumber,
+        currentHand: player.hand,
+      });
+    });
+
+    // Broadcast updated room state to all players
+    this.broadcastToRoom(roomId, {
+      type: "room_state_update",
+      roomState: room.cloneForClient(),
+    });
   }
 
   // Set player ready status
@@ -436,10 +499,17 @@ export class GameManager {
         if (ws.readyState === 1) {
           // OPEN
           ws.send(message);
-          ws.send({
-            type: "room_state_update",
-            roomState: this.rooms.get(roomId),
-          });
+          // Only send room state update if the message is not already a room state update
+          if (message.type !== "room_state_update") {
+            const room = this.rooms.get(roomId);
+            console.log(message);
+            if (room) {
+              ws.send({
+                type: "room_state_update",
+                roomState: room.cloneForClient(),
+              });
+            }
+          }
         }
       });
     }
