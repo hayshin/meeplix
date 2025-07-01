@@ -12,6 +12,17 @@ export const StartRoundMessageSchema = t.Object({
   currentHand: CollectionSchema,
 });
 
+export const RoomJoinedMessageSchema = t.Object({
+  type: t.Literal("room_joined"),
+  roomId: t.String(),
+  playerId: t.String(),
+});
+export const RoomCreatedMessageSchema = t.Object({
+  type: t.Literal("room_created"),
+  roomId: t.String(),
+  playerId: t.String(),
+});
+
 export const PlayersChooseCardMessageSchema = t.Object({
   type: t.Literal("players_choose_card"),
   currentHand: CollectionSchema,
@@ -23,6 +34,7 @@ export const BeginVoteMessageSchema = t.Object({
 });
 
 export const PointChangeSchema = t.Object({
+  type: t.Literal("point_change"),
   playerId: t.String(),
   points: t.Number(),
 });
@@ -52,6 +64,8 @@ export const ServerMessageSchema = t.Union([
   EndVoteMessageSchema,
   ErrorMessageSchema,
   EndGameMessageSchema,
+  RoomCreatedMessageSchema,
+  RoomJoinedMessageSchema,
 ]);
 
 // Type exports
@@ -64,4 +78,5 @@ export type PointChange = Static<typeof PointChangeSchema>;
 export type EndVoteMessage = Static<typeof EndVoteMessageSchema>;
 export type ErrorMessage = Static<typeof ErrorMessageSchema>;
 export type EndGameMessage = Static<typeof EndGameMessageSchema>;
+export type RoomCreatedMessage = Static<typeof RoomCreatedMessageSchema>;
 export type ServerMessage = Static<typeof ServerMessageSchema>;

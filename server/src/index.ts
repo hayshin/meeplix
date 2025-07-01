@@ -3,7 +3,7 @@ import { websocket } from "./ws/handlers";
 import { gameRoutes } from "./routes/game";
 import { cors } from "@elysiajs/cors";
 import { swagger } from "@elysiajs/swagger";
-import cardsRoutes from "./routes/cards";
+import { cardsRoutes } from "./routes/cards";
 const app = new Elysia()
   .get("/", () => "Hello Elysia")
   .use(cors())

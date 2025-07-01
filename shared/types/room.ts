@@ -68,7 +68,7 @@ export class RoomStateEntity extends BaseEntity implements RoomStateType {
   dealCards() {
     this.deck = this.deck.shuffle();
     this.players.forEach((player) => {
-      player.hand = this.deck.draw(6);
+      player.replaceCards(this.deck.draw(6));
     });
   }
 
@@ -154,7 +154,7 @@ export class RoomStateEntity extends BaseEntity implements RoomStateType {
     if (!this.isGameFinished()) return null;
     const winner = this.players.reduce(
       (max, player) => (player.score > max.score ? player : max),
-      this.players.get(0),
+      this.players.get(0)!,
     );
     return winner;
   }
@@ -180,6 +180,20 @@ export class RoomStateEntity extends BaseEntity implements RoomStateType {
 
   allPlayersVoted(): boolean {
     return this.votedCards.size === this.getActivePlayers().size - 1;
+  }
+
+  cloneForClient(): RoomStateEntity {
+    return new RoomStateEntity(
+      this.id,
+      this.players.cloneForClient(),
+      new CardCollection([]),
+      this.roundNumber,
+      this.leaderId,
+      this.currentDescription,
+      new PlayerCardCollection([]),
+      this.stage,
+      this.votedCards.clone(),
+    ) as RoomStateEntity;
   }
   clone(): this {
     return new RoomStateEntity(

@@ -10,11 +10,13 @@ import {
   type PlayerVoteMessage,
   type ReadyMessage,
 } from "$shared/types/client";
+import { PlayerCardEntity } from "$shared/types/player";
 import Elysia from "elysia";
 import { ElysiaWS } from "elysia/dist/ws";
 import { t } from "elysia";
+import { ServerMessage } from "$shared/types/server";
 
-const gameManager = new GameManager();
+export const gameManager = new GameManager();
 
 const WSDataSchema = t.Object({
   roomId: t.Optional(t.String()),
@@ -38,37 +40,9 @@ export const websocket = new Elysia().ws("/ws", {
 
   message: async (ws: WS, data: { message: ClientMessage }) => {
     const message = data.message;
-    console.log("WebSocket message received:", message);
 
     try {
-      switch (message.type) {
-        case "ready":
-          await handleReady(ws, message);
-          break;
-
-        case "create_room":
-          await handleCreateRoom(ws, message);
-          break;
-
-        case "join_room":
-          await handleJoinRoom(ws, message);
-          break;
-
-        case "leader_player_choose_card":
-          await handleLeaderChooseCard(ws, message);
-          break;
-
-        case "player_choose_card":
-          await handlePlayerChooseCard(ws, message);
-          break;
-
-        case "player_vote":
-          await handlePlayerVote(ws, message);
-          break;
-
-        default:
-          sendError(ws, "Unknown message type");
-      }
+      handleMessage(ws, message);
     } catch (error) {
       console.error("WebSocket handler error:", error);
       sendError(
@@ -88,23 +62,58 @@ export const websocket = new Elysia().ws("/ws", {
 });
 
 function sendError(ws: WS, message: string) {
-  ws.send(
-    JSON.stringify({
-      type: "error",
-      message,
-    }),
-  );
+  ws.send({
+    type: "error",
+    message,
+  });
 }
 
-function sendMessage(ws: WS, message: any) {
-  ws.send(JSON.stringify(message));
+function sendMessage(ws: WS, message: ServerMessage) {
+  ws.send(message);
+}
+
+function broadcastToRoom(
+  ws: WS,
+  roomId: string,
+  message: ServerMessage | ClientMessage,
+) {
+  gameManager.broadcastToRoom(roomId, message);
+}
+
+async function handleMessage(ws: WS, message: ClientMessage) {
+  console.log("Received message:", message);
+  switch (message.type) {
+    case "ready":
+      await handleReady(ws, message as ReadyMessage);
+      break;
+    case "create_room":
+      await handleCreateRoom(ws, message as CreateRoomMessage);
+      break;
+    case "join_room":
+      await handleJoinRoom(ws, message as JoinRoomMessage);
+      break;
+    case "leader_player_choose_card":
+      await handleLeaderChooseCard(ws, message);
+      break;
+    case "player_choose_card":
+      await handlePlayerChooseCard(ws, message);
+      break;
+    case "player_vote":
+      await handlePlayerVote(ws, message);
+      break;
+    default:
+      sendError(ws, "Unknown message type");
+  }
 }
 
 async function handleReady(ws: WS, message: ReadyMessage) {
-  sendMessage(ws, {
-    type: "ready_ack",
-    message: "Connection ready",
-  });
+  // sendMessage(ws, {
+  //   type: "ready_ack",
+  //   message: "Connection ready",
+  // });
+  const { roomId, playerId } = ws.data.query;
+  if (!roomId) throw Error("No roomId provided in query, ReadyMessage");
+  broadcastToRoom(ws, roomId, message);
 }
 
 async function handleCreateRoom(ws: WS, message: CreateRoomMessage) {
@@ -130,15 +139,15 @@ async function handleCreateRoom(ws: WS, message: CreateRoomMessage) {
 
     // Send room created response
     const room = await gameManager.getRoom(roomId);
-    sendMessage(ws, {
-      type: "room_created",
-      room_id: roomId,
-      player_id: player.id,
-      room: room,
-    });
+    // sendMessage(ws, {
+    //   type: "room_created",
+    //   roomId: roomId,
+    //   playerId: player.id,
+    //   // room: room,
+    // });
 
     // Broadcast room update
-    await gameManager.broadcastRoomUpdate(roomId);
+    // await gameManager.broadcastRoomUpdate(roomId);
   } catch (error) {
     sendError(
       ws,
@@ -149,40 +158,40 @@ async function handleCreateRoom(ws: WS, message: CreateRoomMessage) {
 
 async function handleJoinRoom(ws: WS, message: JoinRoomMessage) {
   try {
-    const { room_id, name } = message;
+    const { roomId, name } = message;
 
     // Check if room exists
-    const room = await gameManager.getRoom(room_id);
+    const room = await gameManager.getRoom(roomId);
     if (!room) {
       sendError(ws, "Room not found");
       return;
     }
 
     // Add player to room
-    const player = await gameManager.addPlayerToRoom(room_id, name);
+    const player = await gameManager.addPlayerToRoom(roomId, name);
     if (!player) {
       sendError(ws, "Failed to join room");
       return;
     }
 
     // Update WebSocket data
-    ws.data.query.roomId = room_id;
+    ws.data.query.roomId = roomId;
     ws.data.query.playerId = player.id;
 
     // Add connection to manager
-    gameManager.addConnection(room_id, ws);
+    gameManager.addConnection(roomId, ws);
 
     // Send join success response
-    const updatedRoom = await gameManager.getRoom(room_id);
+    const updatedRoom = await gameManager.getRoom(roomId);
     sendMessage(ws, {
       type: "room_joined",
-      room_id: room_id,
-      player_id: player.id,
-      room: updatedRoom,
+      roomId: roomId,
+      playerId: player.id,
+      // room: updatedRoom,
     });
 
     // Broadcast room update to all players
-    await gameManager.broadcastRoomUpdate(room_id);
+    // await gameManager.broadcastRoomUpdate(roomId);
   } catch (error) {
     sendError(
       ws,
@@ -197,15 +206,15 @@ async function handleLeaderChooseCard(
 ) {
   try {
     const { roomId, playerId } = ws.data.query;
-    const { card_id, description } = message;
+    const { card, description } = message;
 
     if (!roomId || !playerId) {
       sendError(ws, "Invalid room or player data");
       return;
     }
 
-    await gameManager.leaderChooseCard(roomId, playerId, card_id, description);
-    await gameManager.broadcastRoomUpdate(roomId);
+    await gameManager.leaderChooseCard(roomId, playerId, card.id, description);
+    // await gameManager.broadcastRoomUpdate(roomId);
   } catch (error) {
     sendError(
       ws,
@@ -220,15 +229,18 @@ async function handlePlayerChooseCard(
 ) {
   try {
     const { roomId, playerId } = ws.data.query;
-    const { card_id } = message;
+    const { card } = message;
 
     if (!roomId || !playerId) {
       sendError(ws, "Invalid room or player data");
       return;
     }
 
-    await gameManager.playerChooseCard(roomId, playerId, card_id);
-    await gameManager.broadcastRoomUpdate(roomId);
+    await gameManager.playerChooseCard(
+      roomId,
+      PlayerCardEntity.fromIds(playerId, card.id),
+    );
+    // await gameManager.broadcastRoomUpdate(roomId);
   } catch (error) {
     sendError(
       ws,
@@ -240,15 +252,18 @@ async function handlePlayerChooseCard(
 async function handlePlayerVote(ws: WS, message: PlayerVoteMessage) {
   try {
     const { roomId, playerId } = ws.data.query;
-    const { card_id } = message;
+    const { card } = message;
 
     if (!roomId || !playerId) {
       sendError(ws, "Invalid room or player data");
       return;
     }
 
-    await gameManager.playerVote(roomId, playerId, card_id);
-    await gameManager.broadcastRoomUpdate(roomId);
+    await gameManager.playerVote(
+      roomId,
+      PlayerCardEntity.fromIds(playerId, card.id),
+    );
+    // await gameManager.broadcastRoomUpdate(roomId);
   } catch (error) {
     sendError(ws, error instanceof Error ? error.message : "Failed to vote");
   }
@@ -262,7 +277,7 @@ export async function handleSetPlayerReady(
 ) {
   try {
     await gameManager.setPlayerReady(roomId, playerId, isReady);
-    await gameManager.broadcastRoomUpdate(roomId);
+    // await gameManager.broadcastRoomUpdate(roomId);
   } catch (error) {
     console.error("Failed to set player ready:", error);
     throw error;
@@ -272,7 +287,7 @@ export async function handleSetPlayerReady(
 export async function handleStartGame(roomId: string) {
   try {
     await gameManager.startGame(roomId);
-    await gameManager.broadcastRoomUpdate(roomId);
+    // await gameManager.broadcastRoomUpdate(roomId);
   } catch (error) {
     console.error("Failed to start game:", error);
     throw error;
@@ -282,7 +297,7 @@ export async function handleStartGame(roomId: string) {
 export async function handleNextRound(roomId: string) {
   try {
     await gameManager.startNextRound(roomId);
-    await gameManager.broadcastRoomUpdate(roomId);
+    // await gameManager.broadcastRoomUpdate(roomId);
   } catch (error) {
     console.error("Failed to start next round:", error);
     throw error;
@@ -292,7 +307,7 @@ export async function handleNextRound(roomId: string) {
 export async function handleLeaveRoom(roomId: string, playerId: string) {
   try {
     await gameManager.removePlayerFromRoom(roomId, playerId);
-    await gameManager.broadcastRoomUpdate(roomId);
+    // await gameManager.broadcastRoomUpdate(roomId);
   } catch (error) {
     console.error("Failed to leave room:", error);
     throw error;
@@ -316,5 +331,3 @@ export async function addPlayerToExistingRoom(
 ) {
   return await gameManager.addPlayerToRoom(roomId, nickname);
 }
-
-export { gameManager };

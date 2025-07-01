@@ -1,12 +1,15 @@
 import { writable, derived } from "svelte/store";
-import type { Player } from "$shared/types";
-import { RoomState } from "$shared/types/server";
+import type { PlayerEntity } from "$shared/types/player";
+import { RoomStateEntity } from "$shared/types/room";
 import { api } from "$/lib/utils";
-import type { WSEvent } from "$shared/types";
+import type { ClientMessage } from "$shared/types/client";
+import type { ServerMessage } from "$shared/types/server";
+import type { CardEntity } from "$shared/types/card";
+// import type { WSEvent } from "$shared/types";
 
 export interface GameState {
-  session: GameSession | null;
-  currentPlayer: Player | null;
+  currentPlayer: PlayerEntity | null;
+  roomState: RoomStateEntity | null;
   isConnected: boolean;
   error: string | null;
   room: ReturnType<(typeof api)["ws"]["subscribe"]> | null;
@@ -14,7 +17,7 @@ export interface GameState {
 
 // Основное состояние игры
 export const gameState = writable<GameState>({
-  session: null,
+  roomState: null,
   currentPlayer: null,
   isConnected: false,
   error: null,
@@ -24,52 +27,53 @@ export const gameState = writable<GameState>({
 // Производные состояния
 export const isGameStarted = derived(
   gameState,
-  ($gameState) => $gameState.session?.status !== "waiting",
+  ($gameState) => $gameState.roomState?.stage !== "joining",
 );
 
 export const isCurrentPlayerLeader = derived(
   gameState,
   ($gameState) =>
-    $gameState.session?.leaderPlayerId === $gameState.currentPlayer?.id,
+    $gameState.roomState?.leaderId === $gameState.currentPlayer?.id,
 );
 
 export const gamePhase = derived(
   gameState,
-  ($gameState) => $gameState.session?.status || "waiting",
+  ($gameState) => $gameState.roomState?.stage || "joining",
 );
 
-export const currentAssociation = derived(
+export const currentDescription = derived(
   gameState,
-  ($gameState) => $gameState.session?.association,
+  ($gameState) => $gameState.roomState?.currentDescription,
 );
 
 export const playersCount = derived(
   gameState,
-  ($gameState) => $gameState.session?.players.length || 0,
+  ($gameState) => $gameState.roomState?.players.size || 0,
 );
 
 // Действия для управления состоянием
 export const gameActions = {
   // Подключение к игре
-  connectToGame: (gameId: string, nickname: string) => {
-    const room = api.ws.subscribe({ query: { gameId, playerId: nickname } });
+  connectToGame: (roomId: string, nickname: string) => {
+    const room = api.ws.subscribe({ query: { roomId, playerId: nickname } });
     room.on("open", () => {
       console.log("WebSocket connected");
       gameState.update((state) => ({ ...state, isConnected: true, room }));
 
       // Отправляем запрос на присоединение к игре
-      room.send({
-        type: "join_game",
-        data: { gameId, nickname },
+      gameActions.sendMessage({
+        roomId: roomId,
+        type: "join_room",
+        name: nickname,
       });
     });
 
-    room.on("message", ({ data }) => {
+    room.on("message", ({ data: message }) => {
       console.log("Get message");
-      console.log(data);
+      console.log(message);
       try {
-        if (data) {
-          gameActions.handleWebSocketMessage(data as WSEvent);
+        if (message) {
+          gameActions.handleWebSocketMessage(message as ServerMessage);
         }
       } catch (error) {
         console.error("Error parsing WebSocket message:", error);
@@ -96,15 +100,15 @@ export const gameActions = {
   },
 
   // Обработка сообщений WebSocket
-  handleWebSocketMessage: (event: WSEvent) => {
-    switch (event.type) {
+  handleWebSocketMessage: (message: ServerMessage | ClientMessage) => {
+    switch (message.type) {
       case "game_update":
         gameState.update((state) => ({
           ...state,
-          session: event.data.session,
-          currentPlayer: event.data.playerId
-            ? event.data.session.players.find(
-                (p: Player) => p.id === event.data.playerId,
+          session: message.data.session,
+          currentPlayer: message.data.playerId
+            ? message.data.session.players.find(
+                (p: Player) => p.id === message.data.playerId,
               ) || null
             : state.currentPlayer,
           error: null,
@@ -114,20 +118,20 @@ export const gameActions = {
       case "error":
         gameState.update((state) => ({
           ...state,
-          error: event.data.message,
+          error: message.data.message,
         }));
         break;
 
       default:
-        console.warn("Unknown WebSocket message type:", event.type);
+        console.warn("Unknown WebSocket message type:", message.type);
     }
   },
 
   // Отправка сообщения через WebSocket
-  sendMessage: (message: WSEvent) => {
+  sendMessage: (message: ClientMessage) => {
     gameState.update((state) => {
       if (state.room && state.isConnected) {
-        state.room.send(message);
+        state.room.send({ message });
       } else {
         console.error("WebSocket not connected");
       }
@@ -139,28 +143,28 @@ export const gameActions = {
   startGame: () => {
     gameActions.sendMessage({
       type: "start_game",
-      data: {},
     });
   },
 
-  leaderSelectsCard: (cardId: string, association: string) => {
+  leaderSelectsCard: (card: CardEntity, description: string) => {
     gameActions.sendMessage({
-      type: "leader_selects_card",
-      data: { cardId, association },
+      type: "leader_player_choose_card",
+      card,
+      description,
     });
   },
 
-  playerSubmitsCard: (cardId: string) => {
+  playerSubmitsCard: (card: CardEntity) => {
     gameActions.sendMessage({
-      type: "player_submits_card",
-      data: { cardId },
+      type: "player_choose_card",
+      card,
     });
   },
 
-  playerVotes: (cardId: string) => {
+  playerVotes: (card: CardEntity) => {
     gameActions.sendMessage({
-      type: "player_votes",
-      data: { cardId },
+      type: "player_vote",
+      card,
     });
   },
 
@@ -176,7 +180,7 @@ export const gameActions = {
         state.room.close();
       }
       return {
-        session: null,
+        roomState: null,
         currentPlayer: null,
         isConnected: false,
         error: null,

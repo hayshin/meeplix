@@ -1,6 +1,6 @@
 import { Elysia } from "elysia";
 import { t } from "elysia";
-import { CardSchema, Card } from "$shared/types";
+import { CardSchema, CardEntity } from "$shared/types/card";
 import path from "node:path";
 import fs from "node:fs";
 export const cardsRoutes = new Elysia({ prefix: "cards" }).get(
@@ -18,7 +18,7 @@ export const cardsRoutes = new Elysia({ prefix: "cards" }).get(
       process.cwd(),
       "assets",
       "cards",
-      params.filename
+      params.filename,
     );
     try {
       // Check if file exists
@@ -56,11 +56,5 @@ export const cardsRoutes = new Elysia({ prefix: "cards" }).get(
       404: t.String(),
       500: t.String(),
     },
-  }
+  },
 );
-
-// Экспортируем типы для использования в других модулях
-export type { Card } from "$shared/types";
-export { CardSchema } from "$shared/types";
-
-export default cardsRoutes;

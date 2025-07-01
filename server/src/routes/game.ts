@@ -2,8 +2,8 @@ import { Elysia } from "elysia";
 import { v4 as uuidv4 } from "uuid";
 import { GameManager } from "../game/manager";
 import { t } from "elysia";
-import { PlayerSchema } from "$shared/types";
-import { RoomStateSchema } from "$shared/types/server";
+import { PlayerSchema } from "$shared/types/player";
+import { RoomStateSchema } from "$shared/types/room";
 
 const gameManager = new GameManager();
 
@@ -11,8 +11,8 @@ export const gameRoutes = new Elysia({ prefix: "game" })
   .post(
     "/create",
     async () => {
-      const gameId = await gameManager.createRoom();
-      return gameId;
+      const roomId = await gameManager.createRoom();
+      return roomId;
     },
     {
       response: t.String(),
@@ -53,7 +53,7 @@ export const gameRoutes = new Elysia({ prefix: "game" })
       }
 
       // Отправить обновление всем игрокам
-      await gameManager.broadcastRoomUpdate(params.id);
+      // await gameManager.broadcastRoomUpdate(params.id);
 
       return player;
     },
@@ -75,7 +75,7 @@ export const gameRoutes = new Elysia({ prefix: "game" })
     "/:id/start",
     async ({ params, set }) => {
       await gameManager.startGame(params.id);
-      await gameManager.broadcastRoomUpdate(params.id);
+      // await gameManager.broadcastRoomUpdate(params.id);
       return "Game started successfully";
     },
     {

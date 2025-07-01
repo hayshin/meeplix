@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
-import { db } from "$db/index";
+// import { db } from "$db/index";
 import { decks, cards } from "$db/schema/cards";
 import { eq, and } from "drizzle-orm";
 import { loadCardsFromAssets } from "../game/cards";
@@ -12,7 +12,8 @@ import {
 import { CardCollection, CardEntity } from "$shared/types/card";
 import { RoomStateEntity, type RoomStageType } from "$shared/types/room";
 import { GAME_CONFIG } from "$shared/constants";
-import { GameLogic } from "./logic";
+import { ServerMessage } from "$shared/types/server";
+import { ClientMessage } from "$shared/types/client";
 
 export class GameManager {
   private wsConnections = new Map<string, Set<any>>(); // roomId -> Set of WebSocket connections
@@ -406,28 +407,31 @@ export class GameManager {
   }
 
   // Broadcast message to all players in room
-  broadcastToRoom(roomId: string, message: any): void {
+  broadcastToRoom(
+    roomId: string,
+    message: ServerMessage | ClientMessage,
+  ): void {
     const connections = this.wsConnections.get(roomId);
     if (connections) {
       connections.forEach((ws: any) => {
         if (ws.readyState === 1) {
           // OPEN
-          ws.send(JSON.stringify(message));
+          ws.send(message);
         }
       });
     }
   }
 
   // Broadcast room update to all players
-  async broadcastRoomUpdate(roomId: string): Promise<void> {
-    const room = await this.getRoom(roomId);
-    if (room) {
-      this.broadcastToRoom(roomId, {
-        type: "room_update",
-        data: room,
-      });
-    }
-  }
+  // async broadcastRoomUpdate(roomId: string): Promise<void> {
+  //   const room = await this.getRoom(roomId);
+  //   if (room) {
+  //     this.broadcastToRoom(roomId, {
+  //       type: "room_update",
+  //       data: room,
+  //     });
+  //   }
+  // }
 
   // Remove player from room
   async removePlayerFromRoom(roomId: string, playerId: string): Promise<void> {

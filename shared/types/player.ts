@@ -107,7 +107,7 @@ export class PlayerEntity extends BaseEntity implements PlayerType {
     return this;
   }
 
-  replaceCards(newCards: Collection<CardEntity>): PlayerEntity {
+  replaceCards(newCards: CardCollection): PlayerEntity {
     this.hand = newCards;
     return this;
   }
@@ -203,6 +203,10 @@ export class PlayerCardEntity extends BaseEntity implements PlayerCardType {
   }
 
   // Create from entities
+
+  static fromIds(playerId: string, cardId: string): PlayerCardEntity {
+    return new PlayerCardEntity(playerId, cardId);
+  }
   static fromEntities(
     player: PlayerEntity,
     card: CardEntity,
@@ -214,6 +218,12 @@ export class PlayerCardEntity extends BaseEntity implements PlayerCardType {
 export class PlayerCollection extends Collection<PlayerEntity> {
   constructor(players: PlayerEntity[]) {
     super(players);
+  }
+
+  cloneForClient(): PlayerCollection {
+    let clone = this.clone();
+    clone.forEach((player) => player.replaceCards(new CardCollection([])));
+    return clone;
   }
 }
 

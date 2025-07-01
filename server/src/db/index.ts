@@ -1,6 +1,6 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import * as schema from "./schema";
+// import * as schema from "./schema";
 
 // Database connection configuration
 const connectionString =
@@ -9,7 +9,7 @@ const connectionString =
 
 // Create postgres client
 const client = postgres(connectionString);
-export const db = drizzle(client, { schema });
+// export const db = drizzle(client, { schema });
 
 export async function closeDB() {
   await client.end();
