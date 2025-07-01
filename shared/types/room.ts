@@ -3,8 +3,14 @@ import { t } from "elysia";
 
 import { CollectionSchema } from "./collection";
 import { GAME_CONFIG } from "../constants";
-import { CardCollection } from "./card";
-import { PlayerCollection, PlayerCardCollection, PlayerEntity } from "./player";
+import { CardCollection, CardSchema } from "./card";
+import {
+  PlayerCollection,
+  PlayerCardCollection,
+  PlayerEntity,
+  PlayerSchema,
+  PlayerCardSchema,
+} from "./player";
 import { BaseEntity } from "./entity";
 
 export const RoomStageSchema = t.Union([
@@ -18,17 +24,29 @@ export const RoomStageSchema = t.Union([
 
 export type RoomStageType = Static<typeof RoomStageSchema>;
 
+export const PlayerCollectionSchema = t.Object({
+  items: t.Array(PlayerSchema),
+});
+
+export const CardCollectionSchema = t.Object({
+  items: t.Array(CardSchema),
+});
+
+export const PlayerCardCollectionSchema = t.Object({
+  items: t.Array(PlayerCardSchema),
+});
+
 export const RoomStateSchema = t.Object({
   id: t.String(),
-  players: CollectionSchema,
-  deck: CollectionSchema,
+  players: PlayerCollectionSchema,
+  deck: CardCollectionSchema,
   roundNumber: t.Number(),
   leaderId: t.String(),
   currentDescription: t.String(),
   // for the active player, this is the active card; for other players, this is the card they chose
-  choosedCards: CollectionSchema,
+  choosedCards: PlayerCardCollectionSchema,
   stage: RoomStageSchema,
-  votedCards: CollectionSchema,
+  votedCards: PlayerCardCollectionSchema,
 });
 
 export type RoomStateType = Static<typeof RoomStateSchema>;
@@ -52,7 +70,7 @@ export class RoomStateEntity extends BaseEntity implements RoomStateType {
     currentDescription: string,
     choosedCards: PlayerCardCollection,
     stage: RoomStageType,
-    votedCards: PlayerCardCollection,
+    votedCards: PlayerCardCollection
   ) {
     super(id);
     this.players = players;
@@ -72,10 +90,31 @@ export class RoomStateEntity extends BaseEntity implements RoomStateType {
     });
   }
 
+  startRound(leaderId: string) {
+    this.roundNumber += 1;
+    this.leaderId = leaderId;
+    this.currentDescription = "";
+    this.choosedCards = new PlayerCardCollection([]);
+    this.stage = "leader_choosing";
+    this.votedCards = new PlayerCardCollection([]);
+  }
+  addPlayer(player: PlayerEntity) {
+    if (this.players.has(player.id)) {
+      throw new Error(`Player with id ${player.id} already exists in the room`);
+    }
+    this.players.add(player);
+  }
+
+  setReadyPlayer(playerId: string, isReady: boolean) {
+    const player = this.players.find((p) => p.id === playerId);
+    if (!player) throw new Error(`Player with id ${playerId} not found`);
+    player.isReady = isReady;
+  }
+
   getNextLeader(): string {
     const currentLeaderId = this.leaderId;
     const leaderIndex = this.players.findIndex(
-      (player) => player.id === currentLeaderId,
+      (player) => player.id === currentLeaderId
     );
     const nextIndex = (leaderIndex + 1) % this.players.size;
     return this.players.get(nextIndex)!.id;
@@ -95,19 +134,19 @@ export class RoomStateEntity extends BaseEntity implements RoomStateType {
 
   calculatePoints() {
     const leaderCard = this.choosedCards.find(
-      (card) => card.id === this.leaderId,
+      (card) => card.id === this.leaderId
     );
     if (!leaderCard) throw Error("Leader card not found");
 
     const leaderVotes = this.votedCards.filter(
-      (card) => card.playerId === this.leaderId,
+      (card) => card.playerId === this.leaderId
     );
     const totalVoters = this.votedCards.size;
     const guessedLeader = leaderVotes.size;
 
     // Points for leader
     const leaderPlayer = this.players.find(
-      (player) => player.id === this.leaderId,
+      (player) => player.id === this.leaderId
     );
     if (!leaderPlayer) throw Error("No leader player found");
     if (guessedLeader > 0 && guessedLeader < totalVoters) {
@@ -123,7 +162,7 @@ export class RoomStateEntity extends BaseEntity implements RoomStateType {
       // 3 points for guessing the leader's card
       if (
         this.votedCards.some(
-          (v) => v.playerId === player.id && v.cardId === this.leaderId,
+          (v) => v.playerId === player.id && v.card.id === this.leaderId
         )
       ) {
         player.addPoints(3); // Points for leader if not all and not none guessed
@@ -131,11 +170,11 @@ export class RoomStateEntity extends BaseEntity implements RoomStateType {
 
       // 1 point for each vote for their card (if it's not the leader's card)
       const playerCard = this.choosedCards.find(
-        (pc) => pc.playerId === player.id,
+        (pc) => pc.playerId === player.id
       );
       if (playerCard) {
         const votesForPlayerCard = this.votedCards.filter(
-          (v) => v.cardId === playerCard.cardId && v.cardId !== this.leaderId,
+          (v) => v.card.id === playerCard.card.id && v.card.id !== this.leaderId
         ).size;
         player.addPoints(votesForPlayerCard); // Points for leader if not all and not none guessed
       } else {
@@ -146,7 +185,7 @@ export class RoomStateEntity extends BaseEntity implements RoomStateType {
 
   isGameFinished(): boolean {
     return this.players.some(
-      (player) => player.score >= GAME_CONFIG.winningScore,
+      (player) => player.score >= GAME_CONFIG.winningScore
     );
   }
 
@@ -154,7 +193,7 @@ export class RoomStateEntity extends BaseEntity implements RoomStateType {
     if (!this.isGameFinished()) return null;
     const winner = this.players.reduce(
       (max, player) => (player.score > max.score ? player : max),
-      this.players.get(0)!,
+      this.players.get(0)!
     );
     return winner;
   }
@@ -175,7 +214,7 @@ export class RoomStateEntity extends BaseEntity implements RoomStateType {
   }
 
   allPlayersSubmitted(): boolean {
-    return this.choosedCards.size === this.getActivePlayers().size - 1;
+    return this.choosedCards.size === this.getActivePlayers().size;
   }
 
   allPlayersVoted(): boolean {
@@ -190,9 +229,9 @@ export class RoomStateEntity extends BaseEntity implements RoomStateType {
       this.roundNumber,
       this.leaderId,
       this.currentDescription,
-      new PlayerCardCollection([]),
+      this.choosedCards.clone(),
       this.stage,
-      this.votedCards.clone(),
+      this.votedCards.clone()
     ) as RoomStateEntity;
   }
   clone(): this {
@@ -205,7 +244,7 @@ export class RoomStateEntity extends BaseEntity implements RoomStateType {
       this.currentDescription,
       this.choosedCards.clone(),
       this.stage,
-      this.votedCards.clone(),
+      this.votedCards.clone()
     ) as this;
   }
 

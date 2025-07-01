@@ -24,7 +24,7 @@ export type PlayerType = Static<typeof PlayerSchema>;
 
 export const PlayerCardSchema = t.Object({
   playerId: t.String(),
-  cardId: t.String(),
+  card: CardSchema,
 });
 
 // Type exports
@@ -45,7 +45,7 @@ export class PlayerEntity extends BaseEntity implements PlayerType {
     cards: CardCollection,
     isConnected: boolean,
     joinedAt: Date,
-    isReady: boolean,
+    isReady: boolean
   ) {
     super(id);
     this.nickname = nickname;
@@ -73,7 +73,7 @@ export class PlayerEntity extends BaseEntity implements PlayerType {
       this.hand.clone(),
       this.isConnected,
       this.joinedAt,
-      this.isReady,
+      this.isReady
     ) as this;
   }
 
@@ -167,17 +167,17 @@ export class PlayerEntity extends BaseEntity implements PlayerType {
 }
 
 export class PlayerCardEntity extends BaseEntity implements PlayerCardType {
-  cardId: string;
+  card: CardEntity;
   playerId: string;
 
-  constructor(playerId: string, cardId: string) {
-    super(playerId + cardId);
+  constructor(playerId: string, card: CardEntity) {
+    super(playerId + card.id);
     this.playerId = playerId;
-    this.cardId = cardId;
+    this.card = card;
   }
 
   clone(): this {
-    return new PlayerCardEntity(this.playerId, this.cardId) as this;
+    return new PlayerCardEntity(this.playerId, this.card) as this;
   }
 
   // Static validation
@@ -195,7 +195,7 @@ export class PlayerCardEntity extends BaseEntity implements PlayerCardType {
   }
 
   usesCard(cardId: string): boolean {
-    return this.cardId === cardId;
+    return this.card.id === cardId;
   }
 
   isValid(): boolean {
@@ -204,14 +204,14 @@ export class PlayerCardEntity extends BaseEntity implements PlayerCardType {
 
   // Create from entities
 
-  static fromIds(playerId: string, cardId: string): PlayerCardEntity {
-    return new PlayerCardEntity(playerId, cardId);
-  }
+  // static fromIds(playerId: string, cardId: string): PlayerCardEntity {
+  //   return new PlayerCardEntity(playerId, cardId);
+  // }
   static fromEntities(
     player: PlayerEntity,
-    card: CardEntity,
+    card: CardEntity
   ): PlayerCardEntity {
-    return new PlayerCardEntity(player.id, card.id);
+    return new PlayerCardEntity(player.id, card);
   }
 }
 
@@ -233,7 +233,7 @@ export class PlayerCardCollection extends Collection<PlayerCardEntity> {
   }
 
   hasCard(cardId: string): boolean {
-    return this.some((card) => card.cardId === cardId);
+    return this.some((card) => card.card.id === cardId);
   }
 
   hasPlayer(playerId: string): boolean {

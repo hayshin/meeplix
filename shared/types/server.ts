@@ -5,11 +5,25 @@ import { PlayerCardSchema, PlayerCollection } from "./player";
 import { PlayerSchema } from "./player";
 import { CollectionSchema } from "./collection";
 import { BaseEntity } from "./entity";
+import { RoomStateSchema } from "./room";
+
+export const CardCollectionSchema = t.Object({
+  items: t.Array(CardSchema),
+});
+
+export const PlayerCardCollectionSchema = t.Object({
+  items: t.Array(PlayerCardSchema),
+});
+
+export const RoomStateUpdateMessageSchema = t.Object({
+  type: t.Literal("room_state_update"),
+  roomState: RoomStateSchema,
+});
 
 export const StartRoundMessageSchema = t.Object({
   type: t.Literal("start_round"),
   roundNumber: t.Number(),
-  currentHand: CollectionSchema,
+  currentHand: CardCollectionSchema,
 });
 
 export const RoomJoinedMessageSchema = t.Object({
@@ -25,12 +39,12 @@ export const RoomCreatedMessageSchema = t.Object({
 
 export const PlayersChooseCardMessageSchema = t.Object({
   type: t.Literal("players_choose_card"),
-  currentHand: CollectionSchema,
+  currentHand: CardCollectionSchema,
 });
 
 export const BeginVoteMessageSchema = t.Object({
   type: t.Literal("begin_vote"),
-  choosedCards: CollectionSchema,
+  choosedCards: t.Array(CardSchema),
 });
 
 export const PointChangeSchema = t.Object({
@@ -41,7 +55,7 @@ export const PointChangeSchema = t.Object({
 
 export const EndVoteMessageSchema = t.Object({
   type: t.Literal("end_vote"),
-  votedCards: CollectionSchema,
+  votedCards: PlayerCardCollectionSchema,
   leaderCard: CardSchema,
   points: t.Array(PointChangeSchema),
 });
@@ -66,6 +80,7 @@ export const ServerMessageSchema = t.Union([
   EndGameMessageSchema,
   RoomCreatedMessageSchema,
   RoomJoinedMessageSchema,
+  RoomStateUpdateMessageSchema,
 ]);
 
 // Type exports
@@ -79,4 +94,8 @@ export type EndVoteMessage = Static<typeof EndVoteMessageSchema>;
 export type ErrorMessage = Static<typeof ErrorMessageSchema>;
 export type EndGameMessage = Static<typeof EndGameMessageSchema>;
 export type RoomCreatedMessage = Static<typeof RoomCreatedMessageSchema>;
+export type RoomJoinedMessage = Static<typeof RoomJoinedMessageSchema>;
+export type RoomStateUpdateMessage = Static<
+  typeof RoomStateUpdateMessageSchema
+>;
 export type ServerMessage = Static<typeof ServerMessageSchema>;

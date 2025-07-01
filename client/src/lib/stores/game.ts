@@ -1,5 +1,10 @@
 import { writable, derived, get } from "svelte/store";
-import { PlayerEntity, PlayerCollection, PlayerCardCollection, PlayerCardEntity } from "$shared/types/player";
+import {
+  PlayerEntity,
+  PlayerCollection,
+  PlayerCardCollection,
+  PlayerCardEntity,
+} from "$shared/types/player";
 import { RoomStateEntity, type RoomStateType } from "$shared/types/room";
 import { api } from "$/lib/utils";
 import type { ClientMessage } from "$shared/types/client";
@@ -10,6 +15,7 @@ export interface GameState {
   currentPlayer: PlayerEntity | null;
   roomState: RoomStateEntity | null;
   currentHand: CardCollection | null;
+  cardsForVoting: CardCollection | null; // Cards available for voting
   roomId: string | null;
   playerId: string | null;
   isConnected: boolean;
@@ -22,6 +28,7 @@ export const gameState = writable<GameState>({
   roomState: null,
   currentPlayer: null,
   currentHand: null,
+  cardsForVoting: null,
   roomId: null,
   playerId: null,
   isConnected: false,
@@ -68,12 +75,12 @@ export const canStartGame = derived(
 
 export const allPlayersReady = derived(
   gameState,
-  ($gameState) => $gameState.roomState?.players.every(p => p.isReady) || false,
+  ($gameState) =>
+    $gameState.roomState?.players.every((p) => p.isReady) || false,
 );
 
-export const gameWinner = derived(
-  gameState,
-  ($gameState) => $gameState.roomState?.getWinner(),
+export const gameWinner = derived(gameState, ($gameState) =>
+  $gameState.roomState?.getWinner(),
 );
 
 export const isGameFinished = derived(
@@ -81,32 +88,44 @@ export const isGameFinished = derived(
   ($gameState) => $gameState.roomState?.isGameFinished() || false,
 );
 
+export const cardsForVoting = derived(
+  gameState,
+  ($gameState) => $gameState.cardsForVoting || new CardCollection([]),
+);
+
 // Действия для управления состоянием
 export const gameActions = {
   // Helper function to create RoomStateEntity from server data
   createRoomStateFromData: (data: RoomStateType): RoomStateEntity => {
     const players = new PlayerCollection(
-      data.players.items.map((p) => new PlayerEntity(
-        p.id,
-        p.nickname,
-        p.score,
-        new CardCollection([]), // Client doesn't get other players' cards in room state
-        p.isConnected,
-        p.joinedAt,
-        p.isReady
-      ))
+      data.players.items.map(
+        (p) =>
+          new PlayerEntity(
+            p.id,
+            p.nickname,
+            p.score,
+            new CardCollection([]), // Client doesn't get other players' cards in room state
+            p.isConnected,
+            p.joinedAt,
+            p.isReady,
+          ),
+      ),
     );
 
     const deck = new CardCollection(
-      data.deck.items.map((c) => CardEntity.fromType(c))
+      data.deck.items.map((c) => CardEntity.fromType(c)),
     );
 
     const choosedCards = new PlayerCardCollection(
-      data.choosedCards.items.map((pc) => PlayerCardEntity.fromIds(pc.playerId, pc.cardId))
+      data.choosedCards.items.map(
+        (pc) => new PlayerCardEntity(pc.playerId, CardEntity.fromType(pc.card)),
+      ),
     );
 
     const votedCards = new PlayerCardCollection(
-      data.votedCards.items.map((pc) => PlayerCardEntity.fromIds(pc.playerId, pc.cardId))
+      data.votedCards.items.map(
+        (pc) => new PlayerCardEntity(pc.playerId, CardEntity.fromType(pc.card)),
+      ),
     );
 
     return new RoomStateEntity(
@@ -118,7 +137,7 @@ export const gameActions = {
       data.currentDescription,
       choosedCards,
       data.stage,
-      votedCards
+      votedCards,
     );
   },
 
@@ -220,6 +239,11 @@ export const gameActions = {
 
   // Обработка сообщений WebSocket
   handleWebSocketMessage: (message: ServerMessage) => {
+    console.log("Processing server message:", message.type, message);
+
+    // Reset error on any successful message
+    gameState.update((state) => ({ ...state, error: null }));
+
     switch (message.type) {
       case "room_created":
         gameState.update((state) => ({
@@ -228,15 +252,55 @@ export const gameActions = {
           playerId: message.playerId,
           error: null,
         }));
+        // After room creation, request room state
+        setTimeout(() => gameActions.requestRoomState(), 100);
         break;
 
       case "room_joined":
-        gameState.update((state) => ({
-          ...state,
-          roomId: message.roomId,
-          playerId: message.playerId,
-          error: null,
-        }));
+        gameState.update((state) => {
+          console.log("Player joined room successfully:", message);
+
+          // Get the nickname from the current context
+          const savedNickname =
+            typeof window !== "undefined" && window.localStorage
+              ? localStorage.getItem("nickname") || "You"
+              : "You";
+
+          // Create a basic room state with the current player
+          const currentPlayer = new PlayerEntity(
+            message.playerId,
+            savedNickname,
+            0,
+            new CardCollection([]),
+            true,
+            new Date(),
+            false,
+          );
+
+          const basicRoomState = new RoomStateEntity(
+            message.roomId,
+            new PlayerCollection([currentPlayer]),
+            new CardCollection([]),
+            0,
+            "",
+            "",
+            new PlayerCardCollection([]),
+            "joining",
+            new PlayerCardCollection([]),
+          );
+
+          return {
+            ...state,
+            isConnected: true,
+            roomId: message.roomId,
+            playerId: message.playerId,
+            roomState: basicRoomState,
+            currentPlayer: currentPlayer,
+            error: null,
+          };
+        });
+        // Request more complete room state
+        setTimeout(() => gameActions.requestRoomState(), 100);
         break;
 
       case "start_round":
@@ -261,21 +325,53 @@ export const gameActions = {
 
       case "room_state_update":
         gameState.update((state) => {
-          const roomState = gameActions.createRoomStateFromData(message.roomState);
+          console.log("Updating room state from server:", message.roomState);
+          const roomState = gameActions.createRoomStateFromData(
+            message.roomState,
+          );
+          const currentPlayer = state.playerId
+            ? roomState.players.get(state.playerId) || state.currentPlayer
+            : state.currentPlayer;
           return {
             ...state,
             roomState,
-            currentPlayer: state.playerId ? (roomState.players.get(state.playerId) || state.currentPlayer) : state.currentPlayer,
+            currentPlayer,
             error: null,
           };
         });
         break;
 
       case "begin_vote":
-        gameState.update((state) => ({
-          ...state,
-          error: null,
-        }));
+        gameState.update((state) => {
+          // Update room state to reflect the voting phase has begun
+          let updatedRoomState = state.roomState;
+          if (updatedRoomState) {
+            // Update stage to voting
+            updatedRoomState = new RoomStateEntity(
+              updatedRoomState.id,
+              updatedRoomState.players,
+              updatedRoomState.deck,
+              updatedRoomState.roundNumber,
+              updatedRoomState.leaderId,
+              updatedRoomState.currentDescription,
+              updatedRoomState.choosedCards,
+              "voting", // Update stage to voting
+              updatedRoomState.votedCards,
+            );
+          }
+
+          // Store the actual cards for voting
+          const cardsForVoting = new CardCollection(
+            message.choosedCards.map((card) => CardEntity.fromType(card)),
+          );
+
+          return {
+            ...state,
+            roomState: updatedRoomState,
+            cardsForVoting, // Add the cards for voting
+            error: null,
+          };
+        });
         break;
 
       case "end_vote":
@@ -365,6 +461,14 @@ export const gameActions = {
     }
   },
 
+  // Request current room state (temporary workaround until server sends it automatically)
+  requestRoomState: () => {
+    console.log("Requesting room state...");
+    // Since the server doesn't have a specific message for requesting room state,
+    // we'll send a ready message which should trigger a response
+    gameActions.sendReady();
+  },
+
   // Get current player's cards
   getCurrentPlayerCards: (): CardCollection => {
     const state = get(gameState);
@@ -380,7 +484,11 @@ export const gameActions = {
   // Check if current player can perform actions
   canPlayerAct: (): boolean => {
     const state = get(gameState);
-    return state.isConnected && state.currentPlayer !== null && state.roomState !== null;
+    return (
+      state.isConnected &&
+      state.currentPlayer !== null &&
+      state.roomState !== null
+    );
   },
 
   // Очистка ошибки
@@ -398,6 +506,7 @@ export const gameActions = {
         roomState: null,
         currentPlayer: null,
         currentHand: null,
+        cardsForVoting: null,
         roomId: null,
         playerId: null,
         isConnected: false,

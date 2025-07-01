@@ -81,6 +81,7 @@ export class CardEntity extends BaseEntity implements CardType {
 }
 
 export class CardCollection extends Collection<CardEntity> {
+  usedCards: Set<string> = new Set();
   constructor(cards: CardEntity[] = []) {
     super(cards);
   }

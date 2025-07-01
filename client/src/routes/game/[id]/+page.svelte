@@ -7,8 +7,15 @@
     gameActions,
     isCurrentPlayerLeader,
     gamePhase,
+    currentPlayerHand,
+    canStartGame,
+    allPlayersReady,
+    currentDescription,
+    playersCount,
+    cardsForVoting,
   } from "$lib/stores/game";
   import { storage, api } from "$lib/utils";
+  import { CardEntity } from "$shared/types/card";
 
   import PlayersList from "$lib/components/PlayersList.svelte";
   import StatusBar from "$lib/components/StatusBar.svelte";
@@ -18,7 +25,7 @@
   import { Users, Home, Play, Send } from "lucide-svelte";
 
   const gameId = $page.params.id;
-  let nickname = "";
+  let nickname = $state("");
   let showNicknameModal = $state(false);
   let associationInput = $state("");
   let selectedCardId = $state("");
@@ -51,7 +58,7 @@
       }
 
       // Подключаемся к игре через WebSocket
-      gameActions.connectToGame(gameId, nickname);
+      gameActions.joinRoom(gameId, nickname);
     } catch (error) {
       console.error("Error connecting to game:", error);
       alert("Ошибка подключения к игре");
@@ -71,26 +78,41 @@
     gameActions.startGame();
   };
 
+  const toggleReady = () => {
+    gameActions.sendReady();
+  };
+
   const submitLeaderChoice = () => {
     if (selectedCardId && associationInput.trim()) {
-      gameActions.leaderSelectsCard(selectedCardId, associationInput.trim());
-      selectedCardId = "";
-      associationInput = "";
+      const selectedCard = $currentPlayerHand.get(selectedCardId);
+      if (selectedCard) {
+        gameActions.leaderSelectsCard(selectedCard, associationInput.trim());
+        selectedCardId = "";
+        associationInput = "";
+      }
     }
   };
 
   const submitPlayerCard = () => {
     if (selectedCardId) {
-      gameActions.playerSubmitsCard(selectedCardId);
-      selectedCardId = "";
+      const selectedCard = $currentPlayerHand.get(selectedCardId);
+      if (selectedCard) {
+        gameActions.playerSubmitsCard(selectedCard);
+        selectedCardId = "";
+      }
     }
   };
 
   const submitVote = () => {
     if (selectedVoteCardId) {
-      gameActions.playerVotes(selectedVoteCardId);
-      selectedVoteCardId = "";
-      enlargedCardId = "";
+      const selectedCard = getVotingCards().find(
+        (c) => c.id === selectedVoteCardId
+      );
+      if (selectedCard) {
+        gameActions.playerVotes(selectedCard);
+        selectedVoteCardId = "";
+        enlargedCardId = "";
+      }
     }
   };
 
@@ -99,24 +121,19 @@
     goto("/");
   };
 
-  // Получаем карты для голосования (все выбранные карты + карта ведущего)
-  const getVotingCards = () => {
-    if (!$gameState.session || $gamePhase !== "voting") return [];
-
-    const roundData = $gameState.session.roundData;
-    const votingCards = roundData.selectedCards.map((c: Card) => c.card);
-
-    if (roundData.leaderCard) {
-      votingCards.push(roundData.leaderCard);
-    }
-
-    // Перемешиваем карты
-    return votingCards.sort(() => Math.random() - 0.5);
+  // Получаем карты для голосования (карты, выбранные игроками в предыдущем этапе)
+  const getVotingCards = (): CardEntity[] => {
+    return $cardsForVoting.toArray();
   };
 
-  const canStartGame = $derived(
-    $gameState.session && $gameState.session.players.length >= 3,
-  );
+  // Reactive effect to handle phase changes
+  $effect(() => {
+    if ($gamePhase === "voting" && $cardsForVoting.size === 0) {
+      console.log("Voting phase started, waiting for voting cards...");
+    }
+  });
+
+  // Remove the duplicate canStartGame derived - use the one from the store
 </script>
 
 <svelte:head>
@@ -174,7 +191,16 @@
       </div>
 
       <div class="flex items-center gap-2">
-        {#if $gameState.session?.status === "waiting" && canStartGame}
+        {#if $gameState.roomState?.stage === "joining"}
+          <button
+            onclick={toggleReady}
+            class="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+          >
+            Готов
+          </button>
+        {/if}
+
+        {#if $gameState.roomState?.stage === "joining" && $canStartGame && $allPlayersReady}
           <button
             onclick={startGame}
             class="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700"
@@ -195,12 +221,12 @@
     </div>
   </header>
 
-  {#if $gameState.session}
+  {#if $gameState.roomState}
     <div class="mx-auto max-w-7xl p-4">
       <!-- Статусная строка -->
       <div class="mb-6">
         <StatusBar
-          session={$gameState.session}
+          session={$gameState.roomState}
           currentPlayer={$gameState.currentPlayer}
           isLeader={$isCurrentPlayerLeader}
         />
@@ -210,27 +236,99 @@
         <!-- Левая колонка: Список игроков -->
         <div class="lg:col-span-1">
           <PlayersList
-            players={$gameState.session.players}
-            leaderId={$gameState.session.leaderPlayerId}
+            players={$gameState.roomState.players.toArray()}
+            leaderId={$gameState.roomState.leaderId}
             currentPlayerId={$gameState.currentPlayer?.id}
           />
         </div>
 
         <!-- Основная область игры -->
         <div class="space-y-6 lg:col-span-3">
-          <!-- Область выбора ассоциации (только для ведущего в фазе leader_turn) -->
-          {#if $isCurrentPlayerLeader && $gamePhase === "leader_turn"}
+          <!-- Информационная панель для разных фаз игры -->
+          {#if $gamePhase === "joining"}
+            <div class="rounded-lg bg-blue-50 border border-blue-200 p-6">
+              <h3 class="text-lg font-semibold text-blue-800 mb-2">
+                Ожидание игроков
+              </h3>
+              <p class="text-blue-600">
+                Игроков в комнате: {$playersCount}.
+                {#if !$allPlayersReady}
+                  Не все игроки готовы.
+                {:else if !$canStartGame}
+                  Нужно минимум 3 игрока для начала игры.
+                {:else}
+                  Все готовы! Можно начинать игру.
+                {/if}
+              </p>
+            </div>
+          {:else if $gamePhase === "leader_choosing"}
+            <div class="rounded-lg bg-yellow-50 border border-yellow-200 p-6">
+              <h3 class="text-lg font-semibold text-yellow-800 mb-2">
+                {#if $isCurrentPlayerLeader}
+                  Ваша очередь быть ведущим
+                {:else}
+                  Ведущий выбирает карту и ассоциацию
+                {/if}
+              </h3>
+              <p class="text-yellow-600">
+                {#if $isCurrentPlayerLeader}
+                  Выберите карту из своей руки и придумайте ассоциацию к ней.
+                {:else}
+                  Ожидайте, пока ведущий сделает выбор.
+                {/if}
+              </p>
+            </div>
+          {:else if $gamePhase === "players_choosing"}
+            <div class="rounded-lg bg-purple-50 border border-purple-200 p-6">
+              <h3 class="text-lg font-semibold text-purple-800 mb-2">
+                {#if !$isCurrentPlayerLeader}
+                  Выберите подходящую карту
+                {:else}
+                  Игроки выбирают карты
+                {/if}
+              </h3>
+              <p class="text-purple-600">
+                Ассоциация: <strong>"{$currentDescription}"</strong>
+                {#if !$isCurrentPlayerLeader}
+                  <br />Выберите карту из своей руки, которая подходит к этой
+                  ассоциации.
+                {:else}
+                  <br />Ожидайте, пока все игроки сделают выбор.
+                {/if}
+              </p>
+            </div>
+          {:else if $gamePhase === "voting"}
+            <div class="rounded-lg bg-green-50 border border-green-200 p-6">
+              <h3 class="text-lg font-semibold text-green-800 mb-2">
+                Голосование
+              </h3>
+              <p class="text-green-600">
+                {#if !$isCurrentPlayerLeader}
+                  Попробуйте угадать, какая карта принадлежит ведущему.
+                {:else}
+                  Ожидайте, пока игроки проголосуют.
+                {/if}
+              </p>
+            </div>
+          {/if}
+
+          <!-- Область выбора ассоциации (только для ведущего в фазе leader_choosing) -->
+          {#if $isCurrentPlayerLeader && $gamePhase === "leader_choosing"}
             <div class="rounded-lg bg-white p-6 shadow-md">
               <h3 class="mb-4 text-lg font-semibold">
                 Выберите карту и введите ассоциацию
               </h3>
 
               <div class="mb-4">
-                <label class="mb-2 block text-sm font-medium text-gray-700">
+                <label
+                  for="association-input"
+                  class="mb-2 block text-sm font-medium text-gray-700"
+                >
                   Ассоциация:
                 </label>
                 <div class="flex gap-2">
                   <input
+                    id="association-input"
                     type="text"
                     bind:value={associationInput}
                     placeholder="Введите ассоциацию..."
@@ -249,11 +347,14 @@
             </div>
           {/if}
 
-          <!-- Область выбора карты (не для ведущего в фазе player_selection) -->
-          {#if !$isCurrentPlayerLeader && $gamePhase === "player_selection"}
+          <!-- Область выбора карты (не для ведущего в фазе players_choosing) -->
+          {#if !$isCurrentPlayerLeader && $gamePhase === "players_choosing"}
             <div class="rounded-lg bg-white p-6 shadow-md">
               <div class="mb-4 flex items-center justify-between">
                 <h3 class="text-lg font-semibold">Выберите подходящую карту</h3>
+                <p class="text-sm text-gray-600">
+                  Ассоциация: "{$currentDescription}"
+                </p>
                 <button
                   onclick={submitPlayerCard}
                   disabled={!selectedCardId}
@@ -314,18 +415,18 @@
           {/if}
 
           <!-- Карты игрока -->
-          {#if $gameState.currentPlayer?.cards && $gameState.currentPlayer.cards.length > 0}
+          {#if $currentPlayerHand && $currentPlayerHand.size > 0}
             <div class="rounded-lg bg-white p-6 shadow-md">
               <h3 class="mb-4 text-lg font-semibold">Ваши карты</h3>
               <div class="grid grid-cols-2 gap-4 md:grid-cols-6">
-                {#each $gameState.currentPlayer.cards as card (card.id)}
+                {#each $currentPlayerHand.toArray() as card (card.id)}
                   <GameCard
                     {card}
                     isSelected={selectedCardId === card.id}
                     onclick={() => {
                       if (
-                        $gamePhase === "leader_turn" ||
-                        $gamePhase === "player_selection"
+                        $gamePhase === "leader_choosing" ||
+                        $gamePhase === "players_choosing"
                       ) {
                         selectedCardId =
                           selectedCardId === card.id ? "" : card.id;
@@ -338,8 +439,8 @@
           {/if}
 
           <!-- Таблица результатов -->
-          {#if $gameState.session.players.length > 0}
-            <ScoreTable players={$gameState.session.players} />
+          {#if $gameState.roomState && $gameState.roomState.players.size > 0}
+            <ScoreTable players={$gameState.roomState.players.toArray()} />
           {/if}
         </div>
       </div>
@@ -349,20 +450,53 @@
       <div class="rounded-lg border border-red-200 bg-red-50 p-4">
         <h2 class="mb-2 text-lg font-semibold text-red-800">Ошибка</h2>
         <p class="text-red-700">{$gameState.error}</p>
-        <button
-          onclick={() => goto("/")}
-          class="mt-4 rounded-lg bg-red-600 px-4 py-2 text-white"
-        >
-          Вернуться на главную
-        </button>
+        <div class="mt-4 flex gap-2">
+          <button
+            onclick={() => gameActions.clearError()}
+            class="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+          >
+            Повторить
+          </button>
+          <button
+            onclick={() => goto("/")}
+            class="rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700"
+          >
+            Вернуться на главную
+          </button>
+        </div>
       </div>
+    </div>
+  {:else if !$gameState.isConnected}
+    <div class="mx-auto max-w-2xl p-4 text-center">
+      <div
+        class="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-blue-500 border-t-transparent"
+      ></div>
+      <p class="text-gray-600">Подключение к игре...</p>
+      <button
+        onclick={() => goto("/")}
+        class="mt-4 rounded-lg bg-gray-600 px-4 py-2 text-white hover:bg-gray-700"
+      >
+        Отмена
+      </button>
     </div>
   {:else}
     <div class="mx-auto max-w-2xl p-4 text-center">
       <div
         class="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-blue-500 border-t-transparent"
       ></div>
-      <p class="text-gray-600">Подключение к игре...</p>
+      <p class="text-gray-600">Загрузка игры...</p>
+      <div class="mt-4 p-4 text-left bg-gray-50 rounded-lg"></div>
     </div>
   {/if}
+  <h4 class="font-semibold mb-2">Debug Info:</h4>
+  <pre class="text-xs text-gray-600">
+Connected: {$gameState.isConnected}
+Room ID: {$gameState.roomId || "null"}
+Player ID: {$gameState.playerId || "null"}
+Room State: {$gameState.roomState ? "exists" : "null"}
+Room Players: {$gameState.roomState?.players.size || 0}
+Game Phase: {$gamePhase}
+Current Player: {$gameState.currentPlayer?.nickname || "null"}
+Error: {$gameState.error || "none"}
+        </pre>
 </div>
