@@ -1,4 +1,21 @@
 {
-	"$schema": "https://inlang.com/schema/inlang-message-format",
-	"hello_world": "Hello, {name} from kz!"
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "hello_world": "Hello, {name} from kz!",
+  "home_title": "Meeplix",
+  "home_subtitle": "ЖИ-мен Ауызша Дастан Серуені",
+  "home_description": "Қиял мен жасанды интеллекттің кездесетін сиқырлы саяхатқа шығыңыз",
+  "home_nickname_label": "Сіздің Аватар Атыңыз",
+  "home_nickname_placeholder": "Мистикалық атыңызды енгізіңіз...",
+  "home_nickname_required": "Аватар атын енгізіңіз",
+  "home_nickname_minLength": "Аватар аты кемінде 2 символдан тұруы керек",
+  "home_actions_createGame": "Жаңа Әлем Жасау",
+  "home_actions_joinGame": "Әлемге Қосылу",
+  "home_actions_creating": "Шындықты тоқимыз...",
+  "home_actions_joinPrompt": "Әлем ID-сын енгізіңіз:",
+  "home_howToPlay_title": "Қалай ойнау керек:",
+  "home_howToPlay_rule1": "Серуенді бастау үшін кемінде 3 ауызшы",
+  "home_howToPlay_rule2": "Жетекші картаны таңдайды және ассоциация жасайды",
+  "home_howToPlay_rule3": "Басқа ойыншылар тарихқа сәйкес карталарды таңдайды",
+  "home_howToPlay_rule4": "Барлығы жетекшінің жұмбақ картасына дауыс береді",
+  "home_howToPlay_rule5": "20 ұпайға алғашқы жеткен Ұстаз Ауызшы болады!"
 }

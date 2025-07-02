@@ -1,4 +1,21 @@
 {
-	"$schema": "https://inlang.com/schema/inlang-message-format",
-	"hello_world": "Hello, {name} from es!"
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "hello_world": "Hello, {name} from es!",
+  "home_title": "Meeplix",
+  "home_subtitle": "Aventura de Narración Potenciada por IA",
+  "home_description": "Embárcate en un viaje mágico donde la imaginación se encuentra con la inteligencia artificial",
+  "home_nickname_label": "Nombre de tu Avatar",
+  "home_nickname_placeholder": "Introduce tu nombre místico...",
+  "home_nickname_required": "Por favor, introduce el nombre de tu avatar",
+  "home_nickname_minLength": "El nombre del avatar debe tener al menos 2 caracteres",
+  "home_actions_createGame": "Crear Nuevo Reino",
+  "home_actions_joinGame": "Unirse a Reino Existente",
+  "home_actions_creating": "Tejiendo la realidad...",
+  "home_actions_joinPrompt": "Introduce el ID del Reino:",
+  "home_howToPlay_title": "Cómo jugar:",
+  "home_howToPlay_rule1": "Mínimo 3 narradores para comenzar la aventura",
+  "home_howToPlay_rule2": "El narrador elige una carta y teje una asociación",
+  "home_howToPlay_rule3": "Otros jugadores seleccionan cartas que coincidan con la historia",
+  "home_howToPlay_rule4": "Todos votan por la carta misteriosa del narrador",
+  "home_howToPlay_rule5": "¡El primero en llegar a 20 puntos se convierte en el Maestro Narrador!"
 }

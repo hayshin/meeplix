@@ -1,4 +1,21 @@
 {
-	"$schema": "https://inlang.com/schema/inlang-message-format",
-	"hello_world": "Hello, {name} from ru!"
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "hello_world": "Hello, {name} from ru!",
+  "home_title": "Meeplix",
+  "home_subtitle": "Приключение с ИИ-Повествованием",
+  "home_description": "Отправьтесь в магическое путешествие, где воображение встречается с искусственным интеллектом",
+  "home_nickname_label": "Имя Вашего Аватара",
+  "home_nickname_placeholder": "Введите ваше мистическое имя...",
+  "home_nickname_required": "Пожалуйста, введите имя аватара",
+  "home_nickname_minLength": "Имя аватара должно содержать минимум 2 символа",
+  "home_actions_createGame": "Создать Новый Мир",
+  "home_actions_joinGame": "Присоединиться к Миру",
+  "home_actions_creating": "Плетём реальность...",
+  "home_actions_joinPrompt": "Введите ID мира:",
+  "home_howToPlay_title": "Как играть:",
+  "home_howToPlay_rule1": "Минимум 3 рассказчика для начала приключения",
+  "home_howToPlay_rule2": "Ведущий выбирает карту и создаёт ассоциацию",
+  "home_howToPlay_rule3": "Остальные игроки выбирают карты, подходящие к истории",
+  "home_howToPlay_rule4": "Все голосуют за загадочную карту ведущего",
+  "home_howToPlay_rule5": "Первый до 20 очков становится Мастером Рассказчиком!"
 }

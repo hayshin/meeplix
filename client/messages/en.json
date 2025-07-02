@@ -1,4 +1,21 @@
 {
-	"$schema": "https://inlang.com/schema/inlang-message-format",
-	"hello_world": "Hello, {name} from en!"
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "hello_world": "Hello, {name} from en!",
+  "home_title": "Meeplix",
+  "home_subtitle": "AI-Enhanced Storytelling Adventure",
+  "home_description": "Embark on a magical journey where imagination meets artificial intelligence",
+  "home_nickname_label": "Your Avatar Name",
+  "home_nickname_placeholder": "Enter your mystical name...",
+  "home_nickname_required": "Please enter your avatar name",
+  "home_nickname_minLength": "Avatar name must be at least 2 characters",
+  "home_actions_createGame": "Create New Realm",
+  "home_actions_joinGame": "Join Existing Realm",
+  "home_actions_creating": "Weaving reality...",
+  "home_actions_joinPrompt": "Enter the Realm ID:",
+  "home_howToPlay_title": "How to Play:",
+  "home_howToPlay_rule1": "Minimum 3 storytellers to begin the adventure",
+  "home_howToPlay_rule2": "The narrator chooses a card and weaves an association",
+  "home_howToPlay_rule3": "Other players select cards that match the story",
+  "home_howToPlay_rule4": "Everyone votes for the narrator's mysterious card",
+  "home_howToPlay_rule5": "First to 20 points becomes the Master Storyteller!"
 }
