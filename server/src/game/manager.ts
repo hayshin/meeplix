@@ -3,17 +3,16 @@ import { v4 as uuidv4 } from "uuid";
 import { decks, cards } from "$db/schema/cards";
 import { eq, and } from "drizzle-orm";
 import { loadCardsFromAssets } from "../game/cards";
-import {
-  PlayerEntity,
-  PlayerCardEntity,
-  PlayerCollection,
-  PlayerCardCollection,
-} from "$shared/types/player";
+import { PlayerEntity, PlayerCollection } from "$shared/types/player";
+import { PairHandCollection } from "$types/pair";
+import { PairHandEntity } from "$types/pair";
 import { CardCollection, CardEntity } from "$shared/types/card";
 import { RoomStateEntity, type RoomStageType } from "$shared/types/room";
 import { GAME_CONFIG } from "$shared/constants";
 import { ServerMessage } from "$shared/types/server";
 import { ClientMessage } from "$shared/types/client";
+import { createPlayer } from "./player";
+import { createRoom } from "./room";
 
 export class GameManager {
   private wsConnections = new Map<string, Set<any>>(); // roomId -> Set of WebSocket connections
@@ -21,101 +20,19 @@ export class GameManager {
 
   constructor() {}
 
-  async createRoom(deckId?: string): Promise<string> {
-    const roomId = uuidv4();
-    const now = new Date();
+  async addRoom(deckId?: string): Promise<string> {
+    const room = await createRoom(deckId);
 
-    // Use default deck if none provided
-    let finalDeckId = deckId;
-    // if (!finalDeckId) {
-    //   // Try to find any existing deck, or create a default one
-    //   const existingDecks = await db.select().from(decks).limit(1);
-    //   if (existingDecks.length > 0) {
-    //     finalDeckId = existingDecks[0].id;
-    //   } else {
-    //     // Create a minimal deck entry for testing
-    //     const defaultDeck = await db
-    //       .insert(decks)
-    //       .values({
-    //         id: uuidv4(),
-    //         name: "Default Deck",
-    //         description: "Default deck for testing",
-    //         cardCategoriesId: uuidv4(), // This would need proper category
-    //         cardStylesId: uuidv4(), // This would need proper style
-    //       })
-    //       .returning();
-    //     finalDeckId = defaultDeck[0].id;
-    //   }
-    // }
+    this.wsConnections.set(room.id, new Set());
+    this.rooms.set(room.id, room);
 
-    // await db.insert(roomSessions).values({
-    //   id: roomId,
-    //   deckId: finalDeckId,
-    //   roundNumber: 1,
-    //   playerOrder: [],
-    //   stage: "joining",
-    //   choosedCards: [],
-    //   votedCards: [],
-    //   createdAt: now,
-    // });
-
-    const deck = loadCardsFromAssets();
-    this.wsConnections.set(roomId, new Set());
-    const room = new RoomStateEntity(
-      roomId,
-      new PlayerCollection([]),
-      new CardCollection(deck),
-      0,
-      "",
-      "",
-      new PlayerCardCollection([]),
-      "joining",
-      new PlayerCardCollection([]),
-    );
-    this.rooms.set(roomId, room);
-
-    return roomId;
+    return room.id;
   }
 
-  // Get room state by ID
-  async getRoom(roomId: string): Promise<RoomStateEntity | undefined> {
-    return this.rooms.get(roomId);
-    // const sessions = await db
-    //   .select()
-    //   .from(roomSessions)
-    //   .where(eq(roomSessions.id, roomId));
-
-    // if (sessions.length === 0) return null;
-
-    // const session = sessions[0];
-
-    // const roomPlayers = await db
-    //   .select()
-    //   .from(players)
-    //   .where(eq(players.roomSessionId, roomId));
-
-    // const sessionPlayers: Player[] = roomPlayers.map((p) => ({
-    //   id: p.id,
-    //   nickname: p.nickname,
-    //   score: p.score || 0,
-    //   cards: p.cards || [],
-    //   isConnected: Boolean(p.isConnected),
-    //   isReady: Boolean(p.isReady),
-    //   joinedAt: p.joinedAt,
-    // }));
-
-    // return {
-    //   roomId: session.id,
-    //   players: sessionPlayers,
-    //   deck_id: session.deckId,
-    //   roundNumber: session.roundNumber || 1,
-    //   player_order: session.playerOrder || [],
-    //   leaderId: session.leaderId || "",
-    //   currentDescription: session.currentDescription || "",
-    //   choosedCards: session.choosedCards || [],
-    //   stage: session.stage as RoomStage,
-    //   votedCards: session.votedCards || [],
-    // };
+  async getRoom(roomId: string): Promise<RoomStateEntity> {
+    const room = this.rooms.get(roomId);
+    if (!room) throw new Error("Room not found");
+    return room;
   }
 
   // Add player to room
@@ -124,7 +41,6 @@ export class GameManager {
     nickname: string,
   ): Promise<PlayerEntity | null> {
     const room = await this.getRoom(roomId);
-    if (!room) return null;
 
     if (room.players.size >= GAME_CONFIG.maxPlayers) {
       throw new Error("Room is full");
@@ -134,29 +50,8 @@ export class GameManager {
     if (room.players.some((p) => p.nickname === nickname)) {
       throw new Error("Nickname already taken");
     }
-
-    const playerId = uuidv4();
-    const now = new Date();
-
-    // Get cards for the deck to deal to new player
-    // const deckCards = await db
-    //   .select()
-    //   .from(cards)
-    //   .where(eq(cards.deckId, room.deck_id));
-
-    // Create default cards if none exist in deck
-
-    const newPlayer = new PlayerEntity(
-      playerId,
-      nickname,
-      0,
-      new CardCollection([]),
-      true,
-      now,
-      false,
-    );
+    const newPlayer = createPlayer(nickname);
     room.addPlayer(newPlayer);
-    // await db.insert(players).values(newPlayer);
 
     return newPlayer;
   }
@@ -164,11 +59,10 @@ export class GameManager {
   // Start game (when all players are ready)
   async startGame(roomId: string): Promise<void> {
     const room = await this.getRoom(roomId);
-    if (!room || !room.canStartGame()) {
+    if (!room.canStartGame()) {
       throw new Error("Cannot start game");
     }
 
-    // Check all players are ready
     if (!room.players.every((p) => p.isReady)) {
       throw new Error("Not all players are ready");
     }
@@ -176,29 +70,8 @@ export class GameManager {
     // Set player order and choose first leader
     const leaderId = room.getNextLeader();
 
-    // Deal cards to all players
     room.dealCards();
     room.startRound(leaderId);
-
-    // // Update all players with their new cards
-    // for (const player of playersWithCards) {
-    //   await db
-    //     .update(players)
-    //     .set({ cards: player.cards })
-    //     .where(eq(players.id, player.id));
-    // }
-
-    // Update room status
-    // await db
-    //   .update(roomSessions)
-    //   .set({
-    //     stage: "leader_choosing",
-    //     playerOrder,
-    //     leaderId,
-    //     choosedCards: [],
-    //     votedCards: [],
-    //   })
-    //   .where(eq(roomSessions.id, roomId));
   }
 
   // Leader selects card and association
@@ -209,45 +82,40 @@ export class GameManager {
     description: string,
   ): Promise<void> {
     const room = await this.getRoom(roomId);
-    if (
-      !room ||
-      room.stage !== "leader_choosing" ||
-      room.leaderId !== playerId
-    ) {
-      throw new Error("Invalid move");
+    room.assertStage("leader_choosing");
+
+    if (room.leaderId !== playerId) {
+      throw new Error("Player is not the leader");
     }
 
-    const player = room.players.get(playerId);
-    if (!player || !player.hand.has(cardId)) {
-      throw new Error("Invalid card");
-    }
+    const player = room.getPlayer(playerId);
 
-    const card = player.hand.get(cardId);
+    const card = player.getCard(cardId);
     if (!card) {
       throw new Error("Card not found");
     }
 
     // Set the description and add leader's card to chosen cards
     room.currentDescription = description;
-    room.choosedCards.add(PlayerCardEntity.fromEntities(player, card));
+    room.choosedPairs.add(PairHandEntity.fromEntities(player, card));
 
     // Move to players choosing stage
     room.stage = "players_choosing";
 
     // Remove the card from leader's hand
-    player.hand.remove(cardId);
+    player.removeCard(cardId);
 
-    // Send updated room state to all players
-    this.broadcastToRoom(roomId, {
-      type: "room_state_update",
-      roomState: room.cloneForClient(),
-    });
+    // // Send updated room state to all players
+    // this.broadcastToRoom(roomId, {
+    //   type: "room_state_update",
+    //   roomState: room.cloneForClient(),
+    // });
 
     // Send each non-leader player their hand for card selection
-    room.getNonLeaderPlayers().forEach((nonLeaderPlayer) => {
-      this.sendToPlayer(roomId, nonLeaderPlayer.id, {
+    room.getNonLeaderPlayers().forEach((player) => {
+      this.sendToPlayer(roomId, player.id, {
         type: "players_choose_card",
-        currentHand: nonLeaderPlayer.hand,
+        currentHand: player.hand,
       });
     });
   }
@@ -255,35 +123,29 @@ export class GameManager {
   // Player submits card
   async playerChooseCard(
     roomId: string,
-    { playerId, card }: PlayerCardEntity,
+    { playerId, card }: PairHandEntity,
   ): Promise<void> {
     const room = await this.getRoom(roomId);
-    if (
-      !room ||
-      room.stage !== "players_choosing" ||
-      room.leaderId === playerId
-    ) {
-      throw new Error("Invalid move");
+
+    room.assertStage("players_choosing");
+
+    if (room.leaderId === playerId) {
+      throw new Error("Leader cannot choose card");
     }
 
-    const player = room.players.get(playerId);
-    if (!player) throw new Error("Invalid player");
-
-    if (!card) throw new Error("Invalid card");
+    const player = room.getPlayer(playerId);
 
     // Check if player already submitted a card
-    if (room.choosedCards.hasPlayer(playerId)) {
+    if (room.choosedPairs.hasPlayer(playerId)) {
       throw new Error("Player already submitted a card");
     }
 
     // Add player's card to chosen cards
-    room.choosedCards.add(PlayerCardEntity.fromEntities(player, card));
+    room.choosedPairs.add(PairHandEntity.fromEntities(player, card));
 
     console.log(`Player ${playerId} chose card ${card.id} in room ${roomId}`);
-    console.log(`Currently chosen cards:`, room.choosedCards.size);
-    console.log(`Currently active players:`, room.getActivePlayers().size);
     // Remove the card from player's hand
-    player.hand.remove(card.id);
+    player.removeCard(card.id);
 
     // Check if all players submitted cards
     if (room.allPlayersSubmitted()) {
@@ -292,69 +154,57 @@ export class GameManager {
       console.log(`All players submitted cards, moving to voting stage`);
 
       // Get the actual cards for voting (shuffle to hide the order)
-      const cardsForVoting = room.choosedCards.map((playerCard) => {
+      const cardsForVoting = room.choosedPairs.map((pair) => {
         // Find the card in the deck by ID
-        return playerCard.card;
+        return pair.card;
       });
 
       // Shuffle the cards to hide the order
       const shuffledCards = cardsForVoting.sort(() => Math.random() - 0.5);
 
       // Send voting message to all non-leader players
-      room.getNonLeaderPlayers().forEach((nonLeaderPlayer) => {
-        this.sendToPlayer(roomId, nonLeaderPlayer.id, {
+      room.getNonLeaderPlayers().forEach((player) => {
+        this.sendToPlayer(roomId, player.id, {
           type: "begin_vote",
-          choosedCards: shuffledCards,
+          cardsForVoting: shuffledCards,
         });
       });
     }
 
     // Send updated room state to all players
-    this.broadcastToRoom(roomId, {
-      type: "room_state_update",
-      roomState: room.cloneForClient(),
-    });
+    // this.broadcastToRoom(roomId, {
+    //   type: "room_state_update",
+    //   roomState: room.cloneForClient(),
+    // });
   }
 
   // Player votes
   async playerVote(
     roomId: string,
-    { playerId, card }: PlayerCardEntity,
+    { playerId, card }: PairHandEntity,
   ): Promise<void> {
     try {
       console.log(`=== PLAYER VOTE START ===`);
-      console.log(`Room ID: ${roomId}`);
-      console.log(`Player ID: ${playerId}`);
-      console.log(`Card ID: ${card.id}`);
 
       const room = await this.getRoom(roomId);
       console.log(`Player ${playerId} voted for card ${card.id}`);
 
-      console.log(`Room exists: ${!!room}`);
-      console.log(`Room stage: ${room?.stage}`);
-      console.log(`Room leader: ${room?.leaderId}`);
-      console.log(`Is player leader: ${room?.leaderId === playerId}`);
+      room.assertStage("voting");
 
-      if (!room || room.stage !== "voting" || room.leaderId === playerId) {
-        console.log(
-          `ERROR: Invalid move - room: ${!!room}, stage: ${room?.stage}, isLeader: ${room?.leaderId === playerId}`,
-        );
-        throw new Error("Invalid move");
+      if (room.leaderId === playerId) {
+        console.log(`isLeader: ${room.leaderId === playerId}`);
+        throw new Error("Leader cannot vote");
       }
 
-      const player = room.players.get(playerId);
+      const player = room.getPlayer(playerId);
       console.log(`Player found: ${!!player}`);
-      if (!player) {
-        console.log(`ERROR: Player not found: ${playerId}`);
-        throw new Error("Invalid player");
-      }
 
       // Find the voted card in the chosen cards (not player's hand)
-      const hasVotedCard = room.choosedCards.hasCard(card.id);
+      const hasVotedCard = room.choosedPairs.hasCard(card.id);
       console.log(`Voted card found in chosen cards: ${!!hasVotedCard}`);
       console.log(
         `Chosen cards:`,
-        room.choosedCards
+        room.choosedPairs
           .toArray()
           .map((c) => ({ id: c.card.id, playerId: c.playerId })),
       );
@@ -372,7 +222,7 @@ export class GameManager {
 
       // Record the vote (player voting for a specific card)
       console.log(`Recording vote...`);
-      room.votedCards.add(new PlayerCardEntity(playerId, card));
+      room.votedCards.add(new PairHandEntity(playerId, card));
       console.log(`Vote recorded successfully`);
       console.log(
         `Current voted cards:`,
@@ -393,7 +243,7 @@ export class GameManager {
       if (allPlayersVoted) {
         console.log(`All players voted - processing end of voting...`);
 
-        const leaderCard = room.choosedCards.find(
+        const leaderCard = room.choosedPairs.find(
           (c) => c.playerId === room.leaderId,
         );
         console.log(`Leader card found: ${!!leaderCard}`);

@@ -4,13 +4,8 @@ import { t } from "elysia";
 import { CollectionSchema } from "./collection";
 import { GAME_CONFIG } from "../constants";
 import { CardCollection, CardSchema } from "./card";
-import {
-  PlayerCollection,
-  PlayerCardCollection,
-  PlayerEntity,
-  PlayerSchema,
-  PlayerCardSchema,
-} from "./player";
+import { PlayerCollection, PlayerEntity, PlayerSchema } from "./player";
+import { PairHandCollection, PairHandEntity, PairHandSchema } from "./pair";
 import { BaseEntity } from "./entity";
 
 export const RoomStageSchema = t.Union([
@@ -33,7 +28,7 @@ export const CardCollectionSchema = t.Object({
 });
 
 export const PlayerCardCollectionSchema = t.Object({
-  items: t.Array(PlayerCardSchema),
+  items: t.Array(PairHandSchema),
 });
 
 export const RoomStateSchema = t.Object({
@@ -44,7 +39,7 @@ export const RoomStateSchema = t.Object({
   leaderId: t.String(),
   currentDescription: t.String(),
   // for the active player, this is the active card; for other players, this is the card they chose
-  choosedCards: PlayerCardCollectionSchema,
+  choosedPairs: PlayerCardCollectionSchema,
   stage: RoomStageSchema,
   votedCards: PlayerCardCollectionSchema,
 });
@@ -57,9 +52,9 @@ export class RoomStateEntity extends BaseEntity implements RoomStateType {
   roundNumber: number;
   leaderId: string;
   currentDescription: string;
-  choosedCards: PlayerCardCollection;
+  choosedPairs: PairHandCollection;
   stage: RoomStageType;
-  votedCards: PlayerCardCollection;
+  votedCards: PairHandCollection;
 
   constructor(
     id: string,
@@ -68,9 +63,9 @@ export class RoomStateEntity extends BaseEntity implements RoomStateType {
     roundNumber: number,
     leaderId: string,
     currentDescription: string,
-    choosedCards: PlayerCardCollection,
+    choosedCards: PairHandCollection,
     stage: RoomStageType,
-    votedCards: PlayerCardCollection,
+    votedCards: PairHandCollection,
   ) {
     super(id);
     this.players = players;
@@ -78,7 +73,7 @@ export class RoomStateEntity extends BaseEntity implements RoomStateType {
     this.roundNumber = roundNumber;
     this.leaderId = leaderId;
     this.currentDescription = currentDescription;
-    this.choosedCards = choosedCards;
+    this.choosedPairs = choosedCards;
     this.stage = stage;
     this.votedCards = votedCards;
   }
@@ -94,10 +89,11 @@ export class RoomStateEntity extends BaseEntity implements RoomStateType {
     this.roundNumber += 1;
     this.leaderId = leaderId;
     this.currentDescription = "";
-    this.choosedCards = new PlayerCardCollection([]);
+    this.choosedPairs = new PairHandCollection([]);
     this.stage = "leader_choosing";
-    this.votedCards = new PlayerCardCollection([]);
+    this.votedCards = new PairHandCollection([]);
   }
+
   addPlayer(player: PlayerEntity) {
     if (this.players.has(player.id)) {
       throw new Error(`Player with id ${player.id} already exists in the room`);
@@ -124,6 +120,16 @@ export class RoomStateEntity extends BaseEntity implements RoomStateType {
     return this.players.find((player) => player.id === this.leaderId);
   }
 
+  getPlayer(playerId: string): PlayerEntity {
+    const player = this.players.get(playerId);
+    if (!player) throw new Error(`Player with id ${playerId} not found`);
+    return player;
+  }
+
+  hasPlayer(playerId: string): boolean {
+    return this.players.has(playerId);
+  }
+
   getNonLeaderPlayers(): PlayerCollection {
     return this.players.filter((player) => player.id !== this.leaderId);
   }
@@ -133,7 +139,7 @@ export class RoomStateEntity extends BaseEntity implements RoomStateType {
   }
 
   calculatePoints() {
-    const leaderCard = this.choosedCards.find(
+    const leaderCard = this.choosedPairs.find(
       (playerCard) => playerCard.playerId === this.leaderId,
     );
     if (!leaderCard) throw Error("Leader card not found");
@@ -169,7 +175,7 @@ export class RoomStateEntity extends BaseEntity implements RoomStateType {
       }
 
       // 1 point for each vote for their card (if it's not the leader's card)
-      const playerCard = this.choosedCards.find(
+      const playerCard = this.choosedPairs.find(
         (pc) => pc.playerId === player.id,
       );
       if (playerCard) {
@@ -182,6 +188,12 @@ export class RoomStateEntity extends BaseEntity implements RoomStateType {
         throw Error("No player card found");
       }
     });
+  }
+
+  assertStage(stage: string): void {
+    if (this.stage !== stage) {
+      throw new Error(`Invalid stage of game ${this.stage}`);
+    }
   }
 
   isGameFinished(): boolean {
@@ -206,8 +218,8 @@ export class RoomStateEntity extends BaseEntity implements RoomStateType {
     );
   }
 
-  getNonLeaderSubmissions(): PlayerCardCollection {
-    return this.choosedCards.filter((card) => card.playerId !== this.leaderId);
+  getNonLeaderSubmissions(): PairHandCollection {
+    return this.choosedPairs.filter((card) => card.playerId !== this.leaderId);
   }
 
   getActivePlayers(): PlayerCollection {
@@ -215,7 +227,7 @@ export class RoomStateEntity extends BaseEntity implements RoomStateType {
   }
 
   allPlayersSubmitted(): boolean {
-    return this.choosedCards.size === this.getActivePlayers().size;
+    return this.choosedPairs.size === this.getActivePlayers().size;
   }
 
   allPlayersVoted(): boolean {
@@ -230,7 +242,7 @@ export class RoomStateEntity extends BaseEntity implements RoomStateType {
       this.roundNumber,
       this.leaderId,
       this.currentDescription,
-      this.choosedCards.clone(),
+      this.choosedPairs.clone(),
       this.stage,
       this.votedCards.clone(),
     ) as RoomStateEntity;
@@ -243,7 +255,7 @@ export class RoomStateEntity extends BaseEntity implements RoomStateType {
       this.roundNumber,
       this.leaderId,
       this.currentDescription,
-      this.choosedCards.clone(),
+      this.choosedPairs.clone(),
       this.stage,
       this.votedCards.clone(),
     ) as this;
@@ -256,7 +268,7 @@ export class RoomStateEntity extends BaseEntity implements RoomStateType {
       this.roundNumber >= 0 &&
       this.leaderId !== "" &&
       this.currentDescription !== "" &&
-      this.choosedCards.isValid() &&
+      this.choosedPairs.isValid() &&
       this.stage &&
       this.votedCards.isValid()
     );

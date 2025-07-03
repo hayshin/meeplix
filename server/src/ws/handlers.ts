@@ -10,7 +10,7 @@ import {
   type PlayerVoteMessage,
   type ReadyMessage,
 } from "$shared/types/client";
-import { PlayerCardEntity } from "$shared/types/player";
+import { PairHandEntity } from "$types/pair";
 import Elysia from "elysia";
 import { ElysiaWS } from "elysia/dist/ws";
 import { t } from "elysia";
@@ -126,7 +126,7 @@ async function handleCreateRoom(ws: WS, message: CreateRoomMessage) {
   try {
     // For now, use a default deck ID. In the future, this could come from the message
     const defaultDeckId = "default-deck-id";
-    const roomId = await gameManager.createRoom(defaultDeckId);
+    const roomId = await gameManager.addRoom(defaultDeckId);
 
     // Add the creator to the room
     const player = await gameManager.addPlayerToRoom(roomId, message.name);
@@ -261,7 +261,7 @@ async function handlePlayerChooseCard(
 
     await gameManager.playerChooseCard(
       roomId,
-      new PlayerCardEntity(playerId, CardEntity.fromType(card)),
+      new PairHandEntity(playerId, CardEntity.fromType(card)),
     );
     // await gameManager.broadcastRoomUpdate(roomId);
   } catch (error) {
@@ -287,7 +287,7 @@ async function handlePlayerVote(ws: WS, message: PlayerVoteMessage) {
 
     await gameManager.playerVote(
       roomId,
-      new PlayerCardEntity(playerId, CardEntity.fromType(card)),
+      new PairHandEntity(playerId, CardEntity.fromType(card)),
     );
     // await gameManager.broadcastRoomUpdate(roomId);
   } catch (error) {
@@ -387,7 +387,7 @@ export async function getRoomState(roomId: string) {
 export async function createNewRoom(
   deckId: string = "default-deck-id",
 ): Promise<string> {
-  return await gameManager.createRoom(deckId);
+  return await gameManager.addRoom(deckId);
 }
 
 export async function addPlayerToExistingRoom(

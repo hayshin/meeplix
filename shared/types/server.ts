@@ -1,7 +1,7 @@
 import type { Static } from "elysia";
 import { t } from "elysia";
 import { CardSchema, CardCollection } from "./card";
-import { PlayerCardSchema, PlayerCollection } from "./player";
+import { PairHandSchema, PlayerCollection } from "./player";
 import { PlayerSchema } from "./player";
 import { CollectionSchema } from "./collection";
 import { BaseEntity } from "./entity";
@@ -12,7 +12,7 @@ export const CardCollectionSchema = t.Object({
 });
 
 export const PlayerCardCollectionSchema = t.Object({
-  items: t.Array(PlayerCardSchema),
+  items: t.Array(PairHandSchema),
 });
 
 export const RoomStateUpdateMessageSchema = t.Object({
@@ -44,7 +44,7 @@ export const PlayersChooseCardMessageSchema = t.Object({
 
 export const BeginVoteMessageSchema = t.Object({
   type: t.Literal("begin_vote"),
-  choosedCards: t.Array(CardSchema),
+  cardsForVoting: t.Array(CardSchema),
 });
 
 export const PointChangeSchema = t.Object({

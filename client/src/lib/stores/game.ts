@@ -2,9 +2,9 @@ import { writable, derived, get } from "svelte/store";
 import {
   PlayerEntity,
   PlayerCollection,
-  PlayerCardCollection,
-  PlayerCardEntity,
+  PairHandCollection,
 } from "$shared/types/player";
+import { PairHandEntity } from "$types/pair";
 import { RoomStateEntity, type RoomStateType } from "$shared/types/room";
 import { api } from "$/lib/utils";
 import type { ClientMessage } from "$shared/types/client";
@@ -116,15 +116,15 @@ export const gameActions = {
       data.deck.items.map((c) => CardEntity.fromType(c)),
     );
 
-    const choosedCards = new PlayerCardCollection(
-      data.choosedCards.items.map(
-        (pc) => new PlayerCardEntity(pc.playerId, CardEntity.fromType(pc.card)),
+    const choosedCards = new PairHandCollection(
+      data.choosedPairs.items.map(
+        (pc) => new PairHandEntity(pc.playerId, CardEntity.fromType(pc.card)),
       ),
     );
 
-    const votedCards = new PlayerCardCollection(
+    const votedCards = new PairHandCollection(
       data.votedCards.items.map(
-        (pc) => new PlayerCardEntity(pc.playerId, CardEntity.fromType(pc.card)),
+        (pc) => new PairHandEntity(pc.playerId, CardEntity.fromType(pc.card)),
       ),
     );
 
@@ -284,9 +284,9 @@ export const gameActions = {
             0,
             "",
             "",
-            new PlayerCardCollection([]),
+            new PairHandCollection([]),
             "joining",
-            new PlayerCardCollection([]),
+            new PairHandCollection([]),
           );
 
           return {
@@ -354,7 +354,7 @@ export const gameActions = {
               updatedRoomState.roundNumber,
               updatedRoomState.leaderId,
               updatedRoomState.currentDescription,
-              updatedRoomState.choosedCards,
+              updatedRoomState.choosedPairs,
               "voting", // Update stage to voting
               updatedRoomState.votedCards,
             );
@@ -362,7 +362,7 @@ export const gameActions = {
 
           // Store the actual cards for voting
           const cardsForVoting = new CardCollection(
-            message.choosedCards.map((card) => CardEntity.fromType(card)),
+            message.cardsForVoting.map((card) => CardEntity.fromType(card)),
           );
 
           return {

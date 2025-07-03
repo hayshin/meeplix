@@ -1,6 +1,6 @@
 import type { Static } from "elysia";
 import { t } from "elysia";
-import { PlayerCardSchema } from "./player";
+import { PairHandSchema } from "./pair";
 import { CardSchema } from "./card";
 
 // Define the base properties for all client messages

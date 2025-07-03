@@ -5,7 +5,7 @@ import { BaseEntitySchema } from "./entity";
 import { CardSchema, type CardType, CardEntity, CardCollection } from "./card";
 import { CollectionSchema, Collection } from "./collection";
 import { BaseEntity } from "./entity";
-
+./pair
 // Schema definitions
 
 export const PlayerSchema = t.Composite([
@@ -21,14 +21,6 @@ export const PlayerSchema = t.Composite([
 ]);
 
 export type PlayerType = Static<typeof PlayerSchema>;
-
-export const PlayerCardSchema = t.Object({
-  playerId: t.String(),
-  card: CardSchema,
-});
-
-// Type exports
-export type PlayerCardType = Static<typeof PlayerCardSchema>;
 
 export class PlayerEntity extends BaseEntity implements PlayerType {
   nickname: string;
@@ -93,7 +85,7 @@ export class PlayerEntity extends BaseEntity implements PlayerType {
     return this.hand.has(cardId);
   }
 
-  getCard(cardId: string): CardType | undefined {
+  getCard(cardId: string): CardEntity | undefined {
     return this.hand.find((card) => card.id === cardId);
   }
 
@@ -166,55 +158,6 @@ export class PlayerEntity extends BaseEntity implements PlayerType {
   }
 }
 
-export class PlayerCardEntity extends BaseEntity implements PlayerCardType {
-  card: CardEntity;
-  playerId: string;
-
-  constructor(playerId: string, card: CardEntity) {
-    super(playerId + card.id);
-    this.playerId = playerId;
-    this.card = card;
-  }
-
-  clone(): this {
-    return new PlayerCardEntity(this.playerId, this.card) as this;
-  }
-
-  // Static validation
-  static validate(obj: unknown): obj is PlayerCardType {
-    try {
-      return PlayerCardSchema.Check(obj);
-    } catch {
-      return false;
-    }
-  }
-
-  // Methods
-  belongsToPlayer(playerId: string): boolean {
-    return this.playerId === playerId;
-  }
-
-  usesCard(cardId: string): boolean {
-    return this.card.id === cardId;
-  }
-
-  isValid(): boolean {
-    return PlayerCardEntity.validate(this);
-  }
-
-  // Create from entities
-
-  // static fromIds(playerId: string, cardId: string): PlayerCardEntity {
-  //   return new PlayerCardEntity(playerId, cardId);
-  // }
-  static fromEntities(
-    player: PlayerEntity,
-    card: CardEntity,
-  ): PlayerCardEntity {
-    return new PlayerCardEntity(player.id, card);
-  }
-}
-
 export class PlayerCollection extends Collection<PlayerEntity> {
   constructor(players: PlayerEntity[]) {
     super(players);
@@ -224,19 +167,5 @@ export class PlayerCollection extends Collection<PlayerEntity> {
     let clone = this.clone();
     clone.forEach((player) => player.replaceCards(new CardCollection([])));
     return clone;
-  }
-}
-
-export class PlayerCardCollection extends Collection<PlayerCardEntity> {
-  constructor(cards: PlayerCardEntity[]) {
-    super(cards);
-  }
-
-  hasCard(cardId: string): boolean {
-    return this.some((card) => card.card.id === cardId);
-  }
-
-  hasPlayer(playerId: string): boolean {
-    return this.some((card) => card.playerId === playerId);
   }
 }
