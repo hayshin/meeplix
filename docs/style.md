@@ -18,26 +18,11 @@ You're empDesign a modern, AI-enhanced user interface for an online board game i
 – Responsive design with tablet/desktop in mind
 – Encourages player focus on cards and storytelling
 – Localization and internationalization using Paraglide
-- Contrast buttons
+- Contrast buttons with accent colors
 
 ## Tone:
 – Playful, original, curious
 – But with a sleek futuristic polish to reflect the AI innovation
 
 ## Inspiration Sources:
-– Dixit, Board Games, Gradients,
-
-## Tech stack:
-- SvelteKit as the frontend framework
-- TailwindCSS for stylesheets
-- BitsUI as component library
-- Paraglide for localization and internationalization
-
-# Backend
-You're emphasizing type-safety and clean design. The backend must follow clean architecture principles, fully typed request/response logic, and be modular.
-
-## Tech stack:
-- ElysiaJS as the backend framework
-- Eden for end-to-end type-safe client-server communication
-- Typebox for input/output validation schemas
-- Drizzle ORM with PostgreSQL for database models and queries
+– Dixit, Board Games, Gradients, futuristic design

@@ -1,9 +1,9 @@
 <script lang="ts">
-  import type { Card } from "$shared/types";
+  import type { CardEntity } from "$shared/types/card";
   import { onMount } from "svelte";
   import { api, PUBLIC_API_URL } from "../utils";
   interface Props {
-    card: Card;
+    card: CardEntity;
     isSelected?: boolean;
     isClickable?: boolean;
     isEnlarged?: boolean;
@@ -53,8 +53,8 @@
   class:scale-110={isSelected && !isEnlarged}
   class:scale-150={isEnlarged}
   class:ring-4={isSelected}
-  class:ring-blue-500={isSelected}
-  class:hover:scale-105={isClickable && !isSelected && !isEnlarged}
+  class:ring-purple-500={isSelected}
+  class:hover:scale-110={isClickable && !isSelected && !isEnlarged}
   class:cursor-not-allowed={!isClickable}
   role="button"
   tabindex={isClickable ? 0 : -1}
@@ -77,80 +77,83 @@
     }
   }}
 >
-  <!-- Карта -->
+  <!-- Card -->
   <div
-    class="relative h-36 w-24 overflow-hidden rounded-lg border-2 border-gray-300 bg-gradient-to-br from-blue-100 to-purple-100 shadow-md"
-    class:shadow-lg={isHovered || isSelected}
-    class:border-blue-500={isSelected}
+    class="relative h-48 w-32 overflow-hidden rounded-xl border-2 border-gray-300 bg-gradient-to-br from-slate-100 to-purple-100 shadow-lg"
+    class:shadow-xl={isHovered || isSelected}
+    class:border-purple-500={isSelected}
+    class:shadow-purple-500:20={isSelected}
   >
-    <!-- Изображение карты -->
+    <!-- Card Image -->
     {#if imageUrl && !imageError}
       <img
         src={imageUrl}
-        alt={card.description || `Card ${card.id}`}
-        class="h-full w-full object-cover"
+        alt={`Card ${card.id}`}
+        class="h-full w-full object-cover transition-transform duration-200"
         class:opacity-0={!imageLoaded}
         class:opacity-100={imageLoaded}
+        class:scale-105={isHovered && isClickable}
         onload={handleImageLoad}
         onerror={handleImageError}
       />
     {/if}
 
-    <!-- Заглушка при ошибке загрузки или отсутствии изображения -->
+    <!-- Placeholder for missing/error images -->
     {#if !imageUrl || imageError || !imageLoaded}
       <div
-        class="flex h-full w-full items-center justify-center bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500"
+        class="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-600 via-purple-600 to-blue-600"
         class:opacity-0={imageLoaded && !imageError}
       >
-        <!-- Временная заглушка вместо изображения -->
-        <div class="p-2 text-center text-white">
-          <div class="mb-1 text-lg font-bold">🎨</div>
-          <div class="text-xs">{card.description || `Card ${card.id}`}</div>
+        <div class="p-3 text-center text-white">
+          <div class="mb-2 text-2xl">🎨</div>
+          <div class="text-sm font-medium">
+            {`Card ${card.id}`}
+          </div>
         </div>
       </div>
     {/if}
 
-    <!-- Индикатор загрузки -->
+    <!-- Loading indicator -->
     {#if imageUrl && !imageLoaded && !imageError}
       <div
-        class="absolute inset-0 flex items-center justify-center bg-gray-200"
+        class="absolute inset-0 flex items-center justify-center bg-slate-200"
       >
         <div
-          class="h-6 w-6 animate-spin rounded-full border-2 border-blue-500 border-t-transparent"
+          class="h-8 w-8 animate-spin rounded-full border-2 border-purple-500 border-t-transparent"
         ></div>
       </div>
     {/if}
 
-    <!-- Индикатор выбора -->
+    <!-- Selection indicator -->
     {#if isSelected}
       <div
-        class="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-blue-500"
+        class="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-purple-500 shadow-lg"
       >
-        <div class="h-2 w-2 rounded-full bg-white"></div>
+        <div class="h-3 w-3 rounded-full bg-white"></div>
       </div>
     {/if}
 
-    <!-- Кнопка для увеличенной карты -->
+    <!-- Enlarged card button -->
     {#if isEnlarged && isClickable}
-      <div class="absolute bottom-2 left-1/2 -translate-x-1/2 transform">
+      <div class="absolute bottom-3 left-1/2 -translate-x-1/2 transform">
         <button
-          class="rounded-full bg-blue-500 px-3 py-1 text-sm text-white transition-colors hover:bg-blue-600"
+          class="rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-700"
           onclick={() => {
             if (ondoubleclick) ondoubleclick();
           }}
         >
-          Выбрать эту карту
+          Select This Card
         </button>
       </div>
     {/if}
   </div>
 
-  <!-- Голоса игроков -->
+  <!-- Player votes -->
   {#if showVotes && voters.length > 0}
     <div class="absolute -right-2 -top-2 flex -space-x-1">
       {#each voters.slice(0, 3) as voter}
         <div
-          class="flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-green-500"
+          class="flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-green-500 shadow-lg"
         >
           <span class="text-xs font-bold text-white">
             {voter.charAt(0).toUpperCase()}
@@ -159,7 +162,7 @@
       {/each}
       {#if voters.length > 3}
         <div
-          class="flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-gray-500"
+          class="flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-gray-500 shadow-lg"
         >
           <span class="text-xs font-bold text-white">
             +{voters.length - 3}

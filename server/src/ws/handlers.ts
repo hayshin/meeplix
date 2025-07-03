@@ -48,7 +48,7 @@ export const websocket = new Elysia().ws("/ws", {
       console.error("WebSocket handler error:", error);
       sendError(
         ws,
-        error instanceof Error ? error.message : "Internal server error"
+        error instanceof Error ? error.message : "Internal server error",
       );
     }
   },
@@ -76,7 +76,7 @@ function sendMessage(ws: WS, message: ServerMessage) {
 function broadcastToRoom(
   ws: WS,
   roomId: string,
-  message: ServerMessage | ClientMessage
+  message: ServerMessage | ClientMessage,
 ) {
   gameManager.broadcastToRoom(roomId, message);
 }
@@ -157,7 +157,7 @@ async function handleCreateRoom(ws: WS, message: CreateRoomMessage) {
   } catch (error) {
     sendError(
       ws,
-      error instanceof Error ? error.message : "Failed to create room"
+      error instanceof Error ? error.message : "Failed to create room",
     );
   }
 }
@@ -171,7 +171,7 @@ async function handleJoinRoom(ws: WS, message: JoinRoomMessage) {
     const room = await gameManager.getRoom(roomId);
     console.log(
       `Attempting to join room ${roomId}:`,
-      room ? "exists" : "does not exist"
+      room ? "exists" : "does not exist",
     );
 
     if (!room) {
@@ -218,14 +218,14 @@ async function handleJoinRoom(ws: WS, message: JoinRoomMessage) {
   } catch (error) {
     sendError(
       ws,
-      error instanceof Error ? error.message : "Failed to join room"
+      error instanceof Error ? error.message : "Failed to join room",
     );
   }
 }
 
 async function handleLeaderChooseCard(
   ws: WS,
-  message: LeaderPlayerChooseCardMessage
+  message: LeaderPlayerChooseCardMessage,
 ) {
   try {
     const { roomId, playerId } = ws.data.query;
@@ -241,14 +241,14 @@ async function handleLeaderChooseCard(
   } catch (error) {
     sendError(
       ws,
-      error instanceof Error ? error.message : "Failed to select leader card"
+      error instanceof Error ? error.message : "Failed to select leader card",
     );
   }
 }
 
 async function handlePlayerChooseCard(
   ws: WS,
-  message: PlayerChooseCardMessage
+  message: PlayerChooseCardMessage,
 ) {
   try {
     const { roomId, playerId } = ws.data.query;
@@ -261,13 +261,13 @@ async function handlePlayerChooseCard(
 
     await gameManager.playerChooseCard(
       roomId,
-      new PlayerCardEntity(playerId, CardEntity.fromType(card))
+      new PlayerCardEntity(playerId, CardEntity.fromType(card)),
     );
     // await gameManager.broadcastRoomUpdate(roomId);
   } catch (error) {
     sendError(
       ws,
-      error instanceof Error ? error.message : "Failed to select card"
+      error instanceof Error ? error.message : "Failed to select card",
     );
   }
 }
@@ -281,13 +281,26 @@ async function handlePlayerVote(ws: WS, message: PlayerVoteMessage) {
       sendError(ws, "Invalid room or player data");
       return;
     }
+    console.log(
+      `Handling player vote for room ${roomId} by player ${playerId}`,
+    );
 
     await gameManager.playerVote(
       roomId,
-      new PlayerCardEntity(playerId, CardEntity.fromType(card))
+      new PlayerCardEntity(playerId, CardEntity.fromType(card)),
     );
     // await gameManager.broadcastRoomUpdate(roomId);
   } catch (error) {
+    console.error(`=== WEBSOCKET HANDLER ERROR ===`);
+    console.error(`Error in handlePlayerVote:`, error);
+    console.error(
+      `Stack trace:`,
+      error instanceof Error ? error.stack : "No stack trace",
+    );
+    console.error(`Room ID: ${ws.data.query.roomId}`);
+    console.error(`Player ID: ${ws.data.query.playerId}`);
+    console.error(`Card:`, message.card);
+    console.error(`=== WEBSOCKET HANDLER ERROR END ===`);
     sendError(ws, error instanceof Error ? error.message : "Failed to vote");
   }
 }
@@ -296,7 +309,7 @@ async function handlePlayerVote(ws: WS, message: PlayerVoteMessage) {
 export async function handleSetPlayerReady(
   roomId: string,
   playerId: string,
-  isReady: boolean
+  isReady: boolean,
 ) {
   try {
     await gameManager.setPlayerReady(roomId, playerId, isReady);
@@ -341,7 +354,7 @@ export async function handleStartGame(ws: WS) {
     console.error("Failed to start game:", error);
     sendError(
       ws,
-      error instanceof Error ? error.message : "Failed to start game"
+      error instanceof Error ? error.message : "Failed to start game",
     );
   }
 }
@@ -372,14 +385,14 @@ export async function getRoomState(roomId: string) {
 }
 
 export async function createNewRoom(
-  deckId: string = "default-deck-id"
+  deckId: string = "default-deck-id",
 ): Promise<string> {
   return await gameManager.createRoom(deckId);
 }
 
 export async function addPlayerToExistingRoom(
   roomId: string,
-  nickname: string
+  nickname: string,
 ) {
   return await gameManager.addPlayerToRoom(roomId, nickname);
 }

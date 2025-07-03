@@ -466,7 +466,7 @@ export const gameActions = {
     console.log("Requesting room state...");
     // Since the server doesn't have a specific message for requesting room state,
     // we'll send a ready message which should trigger a response
-    gameActions.sendReady();
+    // gameActions.sendReady();
   },
 
   // Get current player's cards

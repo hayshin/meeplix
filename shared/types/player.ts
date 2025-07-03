@@ -45,7 +45,7 @@ export class PlayerEntity extends BaseEntity implements PlayerType {
     cards: CardCollection,
     isConnected: boolean,
     joinedAt: Date,
-    isReady: boolean
+    isReady: boolean,
   ) {
     super(id);
     this.nickname = nickname;
@@ -73,7 +73,7 @@ export class PlayerEntity extends BaseEntity implements PlayerType {
       this.hand.clone(),
       this.isConnected,
       this.joinedAt,
-      this.isReady
+      this.isReady,
     ) as this;
   }
 
@@ -209,7 +209,7 @@ export class PlayerCardEntity extends BaseEntity implements PlayerCardType {
   // }
   static fromEntities(
     player: PlayerEntity,
-    card: CardEntity
+    card: CardEntity,
   ): PlayerCardEntity {
     return new PlayerCardEntity(player.id, card);
   }
