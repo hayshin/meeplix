@@ -31,6 +31,7 @@ const WSDataSchema = t.Object({
 type WSData = typeof WSDataSchema.static;
 
 export type WS = ElysiaWS<{
+  query: WSData;
   body: { message: ClientMessage };
 }>;
 
@@ -56,6 +57,20 @@ export const websocket = new Elysia().ws("/ws", {
 
   close: (ws: WS) => {
     console.log("WebSocket connection closed");
+
+    // Clean up connection from gameManager
+    if (ws.data.query.roomId) {
+      gameManager.removeConnection(ws.data.query.roomId, ws);
+
+      // Optionally broadcast player disconnection
+      if (ws.data.query.playerId) {
+        gameManager.broadcastToRoom(ws.data.query.roomId, {
+          type: "player_disconnected",
+          roomId: ws.data.query.roomId,
+          playerId: ws.data.query.playerId,
+        });
+      }
+    }
   },
 });
 
@@ -108,6 +123,9 @@ export async function sendMessage(
   ws: WS,
   message: ServerMessageWithoutRoomState,
 ) {
+  const newMessage = {
+    ...message,
+  };
   ws.send(message);
 }
 
@@ -123,7 +141,26 @@ async function getIds(
 async function handleCreateRoom(ws: WS, message: CreateRoomMessage) {
   try {
     const defaultDeckId = "default-deck-id";
-    await gameManager.addRoom(defaultDeckId);
+    const roomId = await gameManager.addRoom(defaultDeckId);
+
+    // If creator provided a name, add them as a player and connect them
+    if (message.name) {
+      const player = await gameManager.addPlayerToRoom(roomId, message.name);
+      await gameManager.connectPlayer(ws, roomId, player.id);
+
+      // Send room created with player info
+      sendMessage(ws, {
+        type: "room_created",
+        roomId,
+        playerId: player.id,
+      });
+    } else {
+      // Send room ID back to client
+      sendMessage(ws, {
+        type: "room_created",
+        roomId,
+      });
+    }
   } catch (error) {
     sendError(
       ws,
@@ -148,7 +185,14 @@ async function handleJoinRoom(ws: WS, message: JoinRoomMessage) {
   try {
     const { roomId, name } = message;
     console.log(`Joining room: ${roomId} with name: ${name}`);
-    await gameManager.connectPlayer(ws, roomId, name);
+
+    // First add player to room
+    const player = await gameManager.addPlayerToRoom(roomId, name);
+
+    // Then connect the player via WebSocket
+    await gameManager.connectPlayer(ws, roomId, player.id);
+
+    // Note: connectPlayer already broadcasts player_joined message to room
   } catch (error) {
     sendError(
       ws,

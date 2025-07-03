@@ -52,7 +52,6 @@ export const gameRoutes = new Elysia({ prefix: "game" })
 
       // Отправить обновление всем игрокам
       // await gameManager.broadcastRoomUpdate(params.id);
-
       return player;
     },
     {

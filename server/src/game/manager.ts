@@ -51,30 +51,70 @@ export class GameManager {
     }
 
     // Check that nickname is unique in this room
-    if (room.players.some((p) => p.nickname === nickname)) {
-      throw new Error("Nickname already taken");
-    }
+    // if (room.players.some((p) => p.nickname === nickname)) {
+    //   throw new Error("Nickname already taken");
+    // }
+
+    console.log(`Creating new player with nickname: ${nickname}`);
     const newPlayer = createPlayer(nickname);
+    console.log(
+      `Generated player ID: ${newPlayer.id} for nickname: ${nickname}`,
+    );
+
     room.addPlayer(newPlayer);
+    console.log(
+      `Added player to room ${roomId}. Total players: ${room.players.size}`,
+    );
+    console.log(
+      `All player IDs in room:`,
+      room.players.map((p) => `${p.nickname}: ${p.id}`),
+    );
+
     return newPlayer;
   }
 
+  async sendMessage(
+    ws: WS,
+    message: ServerMessageWithoutRoomState,
+    room: RoomStateEntity,
+  ) {
+    const newMessage = {
+      ...message,
+      room: room.cloneForClient(),
+    };
+    ws.send(message);
+  }
   async connectPlayer(ws: WS, roomId: string, playerId: string): Promise<void> {
-    this.addConnection(roomId, ws);
+    console.log(`Connecting player ${playerId} to room ${roomId}`);
 
-    // Send confirmation to the player
-    // this.sendToPlayer(roomId, playerId, {
-    //   type: "player_connected",
+    // Store player ID in WebSocket data for later identification
+    if (!ws.data.query) {
+      ws.data.query = {};
+    }
+    ws.data.query.playerId = playerId;
+    ws.data.query.roomId = roomId;
+
+    this.addConnection(roomId, ws);
+    console.log(`WebSocket connection added for player ${playerId}`);
+
+    // Broadcast to room that player joined
+
+    // this.broadcastToRoom(roomId, {
+    //   type: "player_joined",
     //   roomId: roomId,
     //   playerId: playerId,
     // });
+    this.sendMessage(
+      ws,
+      {
+        type: "player_joined",
+        roomId: roomId,
+        playerId: playerId,
+      },
+      this.getRoom(roomId),
+    );
 
-    // Broadcast to room that player connected
-    this.broadcastToRoom(roomId, {
-      type: "player_joined",
-      roomId: roomId,
-      playerId: playerId,
-    });
+    console.log(`Player ${playerId} successfully connected to room ${roomId}`);
   }
 
   // Start game (when all players are ready)
@@ -370,14 +410,21 @@ export class GameManager {
     playerId: string,
     isReady: boolean,
   ): Promise<void> {
-    const room = await this.getRoom(roomId);
+    const room = this.getRoom(roomId);
     const player = room.getPlayer(playerId);
 
     console.log(
       `Setting player ${playerId} ready status to ${isReady} in room ${roomId}`,
     );
     player.isReady = isReady;
+
+    console.log(room.getReadyPlayers().size);
+    console.log(room.getActivePlayers().size);
+    console.log(room.allPlayersReady());
     this.broadcastToRoom(roomId, { type: "player_ready", roomId, playerId });
+    if (room.allPlayersReady()) {
+      room.startRound(room.leaderId);
+    }
   }
 
   // WebSocket connection management
@@ -431,12 +478,16 @@ export class GameManager {
     playerId: string,
     message: ServerMessageWithoutRoomState,
   ): void {
+    const room = this.getRoom(roomId);
     const connections = this.wsConnections.get(roomId);
     if (connections) {
       connections.forEach((ws: any) => {
-        if (ws.readyState === 1 && ws.data.query.playerId === playerId) {
+        if (ws.readyState === 1 && ws.data?.playerId === playerId) {
           // OPEN
-          ws.send(message);
+          ws.send({
+            ...message,
+            roomState: room.cloneForClient(),
+          });
         }
       });
     }
