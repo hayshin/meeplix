@@ -1,7 +1,8 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
-  import { storage, api } from "$lib/utils";
+  import { storage } from "$lib/utils";
+  import { gameActions, gameState } from "$lib/stores/game";
   import { Play, Users, Sparkles, Stars, Wand2 } from "lucide-svelte";
   import * as m from "$lib/paraglide/messages.js";
   import LanguageSelector from "$lib/components/LanguageSelector.svelte";
@@ -19,6 +20,26 @@
     }
   });
 
+  // Effect to handle navigation after room creation
+  $effect(() => {
+    if ($gameState.roomId && $gameState.playerId && isLoading) {
+      // Room was created successfully, navigate to game
+      storage.saveLastGameId($gameState.roomId);
+      goto(`/game/${$gameState.roomId}`);
+      isLoading = false;
+    }
+  });
+
+  // Effect to handle errors
+  $effect(() => {
+    if ($gameState.error && isLoading) {
+      // Error occurred during room creation
+      clientError = $gameState.error;
+      isLoading = false;
+      gameActions.clearError();
+    }
+  });
+
   const createGame = async () => {
     if (!nickname.trim()) {
       clientError = "Please enter your avatar name";
@@ -33,17 +54,21 @@
     isLoading = true;
     clientError = "";
 
-    storage.saveNickname(nickname.trim());
+    try {
+      storage.saveNickname(nickname.trim());
 
-    const { data: gameId, error } = await api.game.create.post();
+      // Clear any previous errors
+      gameActions.clearError();
 
-    if (error) {
-      console.error(error);
-    } else if (gameId) {
-      storage.saveLastGameId(gameId);
-      goto(`/game/${gameId}`);
+      // Use WebSocket-based room creation
+      gameActions.createRoom(nickname.trim());
+
+      // Navigation will be handled by the reactive statement
+    } catch (error) {
+      console.error("Error creating room:", error);
+      clientError = "Failed to create room. Please try again.";
+      isLoading = false;
     }
-    isLoading = false;
   };
 
   const joinByGameId = () => {
@@ -52,10 +77,36 @@
       return;
     }
 
+    if (nickname.trim().length < 2) {
+      clientError = "Avatar name must be at least 2 characters";
+      return;
+    }
+
     const gameId = prompt("Enter the Realm ID:");
-    if (gameId) {
-      storage.saveNickname(nickname.trim());
-      goto(`/game/${gameId}`);
+    if (gameId && gameId.trim()) {
+      isLoading = true;
+      clientError = "";
+
+      try {
+        storage.saveNickname(nickname.trim());
+
+        // Clear any previous errors
+        gameActions.clearError();
+
+        // Use WebSocket-based room joining
+        gameActions.joinRoom(gameId.trim(), nickname.trim());
+
+        // Navigate to game page immediately
+        storage.saveLastGameId(gameId.trim());
+        goto(`/game/${gameId.trim()}`);
+
+        // Reset loading state after navigation
+        isLoading = false;
+      } catch (error) {
+        console.error("Error joining room:", error);
+        clientError = "Failed to join room. Please try again.";
+        isLoading = false;
+      }
     }
   };
 </script>

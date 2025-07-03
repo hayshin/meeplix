@@ -98,15 +98,51 @@ export const gameActions = {
   },
   createRoom: (nickname: string) => {
     const room = api.ws.subscribe();
+    let connectionTimeout: NodeJS.Timeout | null = null;
+
+    // Set connection timeout
+    connectionTimeout = setTimeout(() => {
+      console.error("WebSocket connection timeout");
+      gameState.update((state) => ({
+        ...state,
+        error: "Connection timeout. Please try again.",
+        isConnected: false,
+      }));
+      room.close();
+    }, 10000); // 10 second timeout
 
     room.on("open", () => {
-      console.log("WebSocket connected");
-      gameState.update((state) => ({ ...state, isConnected: true, room }));
+      console.log("WebSocket connected for room creation");
 
-      gameActions.sendMessage({
-        type: "create_room",
-        name: nickname,
-      });
+      // Clear timeout on successful connection
+      if (connectionTimeout) {
+        clearTimeout(connectionTimeout);
+        connectionTimeout = null;
+      }
+
+      gameState.update((state) => ({
+        ...state,
+        isConnected: true,
+        room,
+        error: null,
+      }));
+
+      // Send create room message
+      try {
+        room.send({
+          message: {
+            type: "create_room",
+            name: nickname,
+          },
+        });
+      } catch (error) {
+        console.error("Error sending create room message:", error);
+        gameState.update((state) => ({
+          ...state,
+          error: "Failed to send room creation request",
+          isConnected: false,
+        }));
+      }
     });
 
     room.on("message", ({ data: message }) => {
@@ -117,11 +153,19 @@ export const gameActions = {
         }
       } catch (error) {
         console.error("Error parsing WebSocket message:", error);
+        gameState.update((state) => ({
+          ...state,
+          error: "Error processing server message",
+        }));
       }
     });
 
     room.on("close", () => {
       console.log("WebSocket disconnected");
+      if (connectionTimeout) {
+        clearTimeout(connectionTimeout);
+        connectionTimeout = null;
+      }
       gameState.update((state) => ({
         ...state,
         isConnected: false,
@@ -131,31 +175,68 @@ export const gameActions = {
 
     room.on("error", (error) => {
       console.error("WebSocket error:", error);
+      if (connectionTimeout) {
+        clearTimeout(connectionTimeout);
+        connectionTimeout = null;
+      }
       gameState.update((state) => ({
         ...state,
-        error: "Connection error",
+        error: "Connection error. Please try again.",
         isConnected: false,
+        room: null,
       }));
     });
   },
 
   joinRoom: (roomId: string, nickname: string) => {
     const room = api.ws.subscribe();
+    let connectionTimeout: NodeJS.Timeout | null = null;
+
+    // Set connection timeout
+    connectionTimeout = setTimeout(() => {
+      console.error("WebSocket connection timeout");
+      gameState.update((state) => ({
+        ...state,
+        error: "Connection timeout. Please try again.",
+        isConnected: false,
+      }));
+      room.close();
+    }, 10000); // 10 second timeout
 
     room.on("open", () => {
-      console.log("WebSocket connected");
+      console.log("WebSocket connected for room joining");
+
+      // Clear timeout on successful connection
+      if (connectionTimeout) {
+        clearTimeout(connectionTimeout);
+        connectionTimeout = null;
+      }
+
       gameState.update((state) => ({
         ...state,
         isConnected: true,
         room,
         roomId,
+        error: null,
       }));
 
-      gameActions.sendMessage({
-        type: "join_room",
-        roomId: roomId,
-        name: nickname,
-      });
+      // Send join room message
+      try {
+        room.send({
+          message: {
+            type: "join_room",
+            roomId: roomId,
+            name: nickname,
+          },
+        });
+      } catch (error) {
+        console.error("Error sending join room message:", error);
+        gameState.update((state) => ({
+          ...state,
+          error: "Failed to send room join request",
+          isConnected: false,
+        }));
+      }
     });
 
     room.on("message", ({ data: message }) => {
@@ -166,11 +247,19 @@ export const gameActions = {
         }
       } catch (error) {
         console.error("Error parsing WebSocket message:", error);
+        gameState.update((state) => ({
+          ...state,
+          error: "Error processing server message",
+        }));
       }
     });
 
     room.on("close", () => {
       console.log("WebSocket disconnected");
+      if (connectionTimeout) {
+        clearTimeout(connectionTimeout);
+        connectionTimeout = null;
+      }
       gameState.update((state) => ({
         ...state,
         isConnected: false,
@@ -180,10 +269,15 @@ export const gameActions = {
 
     room.on("error", (error) => {
       console.error("WebSocket error:", error);
+      if (connectionTimeout) {
+        clearTimeout(connectionTimeout);
+        connectionTimeout = null;
+      }
       gameState.update((state) => ({
         ...state,
-        error: "Connection error",
+        error: "Connection error. Please try again.",
         isConnected: false,
+        room: null,
       }));
     });
   },
@@ -201,48 +295,49 @@ export const gameActions = {
 
     switch (message.type) {
       case "room_created":
+        console.log("Room created successfully:", message);
         gameState.update((state) => ({
           ...state,
           roomId: message.roomId,
+          playerId: message.playerId ?? null,
           error: null,
         }));
-        // After room creation, request room state
-        setTimeout(() => gameActions.requestRoomState(), 100);
+
+        // Navigation will be handled by the component
         break;
 
       case "player_joined":
+        console.log("Player joined room successfully:", message);
         gameState.update((state) => {
-          console.log("Player joined room successfully:", message);
+          // Update room state and set current player if this is our join
+          const roomState = RoomStateEntity.fromType(message.roomState);
+          let currentPlayer = state.currentPlayer;
+          let playerId = state.playerId;
 
-          // Get the nickname from the current context
-          const savedNickname =
-            typeof window !== "undefined" && window.localStorage
-              ? localStorage.getItem("nickname") || "You"
-              : "You";
-
-          // Create a basic room state with the current player
-          const currentPlayer = new PlayerEntity(
-            message.playerId,
-            savedNickname,
-            0,
-            new CardCollection([]),
-            true,
-            new Date(),
-            false,
-          );
+          // If this is our player joining, set up current player and playerId
+          if (
+            message.playerId &&
+            (!state.playerId || message.playerId === state.playerId)
+          ) {
+            const player = roomState.players.find(
+              (p) => p.id === message.playerId,
+            );
+            if (player) {
+              currentPlayer = player;
+              playerId = message.playerId;
+            }
+          }
 
           return {
             ...state,
             isConnected: true,
             roomId: message.roomId,
-            playerId: message.playerId,
-            roomState: RoomStateEntity.fromType(message.roomState),
+            playerId: playerId,
+            roomState: roomState,
             currentPlayer: currentPlayer,
             error: null,
           };
         });
-        // Request more complete room state
-        setTimeout(() => gameActions.requestRoomState(), 100);
         break;
 
       case "start_round":
@@ -302,10 +397,17 @@ export const gameActions = {
         break;
 
       case "end_vote":
-        gameState.update((state) => ({
-          ...state,
-          error: null,
-        }));
+        gameState.update((state) => {
+          // Update room state with voting results
+          const roomState = RoomStateEntity.fromType(message.roomState);
+
+          return {
+            ...state,
+            roomState: roomState,
+            cardsForVoting: null, // Clear voting cards since voting is done
+            error: null,
+          };
+        });
         break;
 
       case "end_game":
@@ -316,6 +418,7 @@ export const gameActions = {
         break;
 
       case "error":
+        console.error("Server error:", message.message);
         gameState.update((state) => ({
           ...state,
           error: message.message,
@@ -370,6 +473,7 @@ export const gameActions = {
       const messageToSend: any = { ...message };
       if (roomId) messageToSend.roomId = roomId;
       if (playerId) messageToSend.playerId = playerId;
+      console.log("Send message", messageToSend);
 
       state.room.send({ message: messageToSend });
       return state;
@@ -409,6 +513,12 @@ export const gameActions = {
     gameActions.sendMessage({
       type: "player_vote",
       card,
+    });
+  },
+
+  startNextRound: () => {
+    gameActions.sendMessage({
+      type: "next_round",
     });
   },
 

@@ -339,6 +339,160 @@
                 {/if}
               </div>
             </div>
+          {:else if $gamePhase === "results"}
+            <div
+              class="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-8 shadow-xl"
+            >
+              <div class="flex items-center gap-3 mb-6">
+                <Stars size={24} class="text-yellow-400" />
+                <h3 class="text-2xl font-bold text-white">Round Results</h3>
+              </div>
+
+              <div class="space-y-6">
+                <!-- Leader's Card Reveal -->
+                {#if $gameState.roomState}
+                  {@const leaderCard =
+                    $gameState.roomState.getSubmittedLeaderCard()}
+                  {#if leaderCard}
+                    <div
+                      class="bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-xl p-6 border border-purple-400/30"
+                    >
+                      <div class="flex items-center gap-3 mb-4">
+                        <Wand2 size={20} class="text-purple-400" />
+                        <h4 class="text-xl font-bold text-white">
+                          The Storyteller's Card
+                        </h4>
+                      </div>
+                      <div class="flex items-center gap-6">
+                        <div class="flex-shrink-0">
+                          <GameCard card={leaderCard} isClickable={false} />
+                        </div>
+                        <div class="flex-1">
+                          <p class="text-slate-300 text-lg italic mb-3">
+                            "{$gameState.roomState.currentDescription}"
+                          </p>
+                          <p class="text-purple-300 text-base">
+                            This was the storyteller's association!
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  {/if}
+                {/if}
+
+                <!-- Voting Results -->
+                {#if $gameState.roomState?.votedPairs}
+                  <div class="bg-white/5 rounded-xl p-6 border border-white/10">
+                    <h4
+                      class="text-lg font-bold text-white mb-4 flex items-center gap-2"
+                    >
+                      <AlertCircle size={20} class="text-green-400" />
+                      Voting Results
+                    </h4>
+                    <div class="space-y-3">
+                      {#each $gameState.roomState.votedPairs.toArray() as vote}
+                        {@const voter = $gameState.roomState.players.find(
+                          (p) => p.id === vote.voterPlayerId,
+                        )}
+                        {@const chosen = $gameState.roomState.players.find(
+                          (p) => p.id === vote.choicePlayerId,
+                        )}
+                        {#if voter && chosen}
+                          <div
+                            class="flex items-center justify-between p-3 bg-white/5 rounded-lg"
+                          >
+                            <div class="flex items-center gap-3">
+                              <span class="text-blue-300 font-medium"
+                                >{voter.nickname}</span
+                              >
+                              <span class="text-slate-400">voted for</span>
+                              <span class="text-green-300 font-medium"
+                                >{chosen.nickname}</span
+                              >
+                            </div>
+                            <div class="text-sm text-slate-400">
+                              {vote.choicePlayerId ===
+                              $gameState.roomState.leaderId
+                                ? "✨ Correct!"
+                                : "❌ Wrong"}
+                            </div>
+                          </div>
+                        {/if}
+                      {/each}
+                    </div>
+                  </div>
+                {/if}
+
+                <!-- Score Changes -->
+                <div
+                  class="bg-gradient-to-r from-blue-500/20 to-green-500/20 rounded-xl p-6 border border-blue-400/30"
+                >
+                  <h4
+                    class="text-lg font-bold text-white mb-4 flex items-center gap-2"
+                  >
+                    <Sparkles size={20} class="text-yellow-400" />
+                    Score Changes
+                  </h4>
+                  <div class="grid grid-cols-2 gap-4 md:grid-cols-3">
+                    {#each $gameState.roomState?.players.toArray() || [] as player}
+                      <div class="bg-white/5 rounded-lg p-4 text-center">
+                        <div class="text-white font-medium">
+                          {player.nickname}
+                        </div>
+                        <div class="text-2xl font-bold text-yellow-400">
+                          {player.score}
+                        </div>
+                        <div class="text-sm text-slate-400">points</div>
+                      </div>
+                    {/each}
+                  </div>
+                </div>
+
+                <!-- Game End / Next Round -->
+                <div class="text-center">
+                  {#if $gameState.roomState?.isGameFinished()}
+                    {@const winner = $gameState.roomState.getWinner()}
+                    <div
+                      class="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-xl p-6 border border-yellow-400/30"
+                    >
+                      <div class="flex items-center justify-center gap-3 mb-4">
+                        <Stars size={32} class="text-yellow-400" />
+                        <h3 class="text-3xl font-bold text-white">
+                          Game Over!
+                        </h3>
+                        <Stars size={32} class="text-yellow-400" />
+                      </div>
+                      {#if winner}
+                        <p class="text-xl text-yellow-300 mb-4">
+                          🎉 <span class="font-bold">{winner.nickname}</span>
+                          wins with {winner.score} points! 🎉
+                        </p>
+                      {/if}
+                      <p class="text-slate-300">
+                        Thank you for playing! The realm of stories awaits your
+                        return.
+                      </p>
+                    </div>
+                  {:else if $isCurrentPlayerLeader}
+                    <button
+                      class="bg-purple-600 hover:bg-purple-700 px-8 py-3 rounded-lg text-white font-semibold text-lg transition-colors duration-200 flex items-center gap-3 mx-auto"
+                      onclick={() => {
+                        gameActions.startNextRound();
+                      }}
+                    >
+                      <Play size={20} />
+                      Next Round
+                    </button>
+                  {:else}
+                    <div class="bg-white/5 rounded-lg p-4">
+                      <p class="text-slate-300">
+                        Waiting for the storyteller to start the next round...
+                      </p>
+                    </div>
+                  {/if}
+                </div>
+              </div>
+            </div>
           {/if}
 
           <!-- Leader Association Input -->
