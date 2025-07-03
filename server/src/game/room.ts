@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from "uuid";
 import { PlayerEntity, PlayerCollection } from "$types/player";
-import { PairHandCollection } from "$shared/types/pair";
+import { SubmittedCardCollection } from "$shared/types/submitted_card";
 import { CardCollection } from "$types/card";
 import { RoomStateEntity } from "$types/room";
 import { loadCardsFromAssets } from "./cards";
@@ -20,9 +20,9 @@ export async function createRoom(deckId?: string): Promise<RoomStateEntity> {
     0,
     "",
     "",
-    new PairHandCollection([]),
+    new SubmittedCardCollection([]),
     "joining",
-    new PairHandCollection([]),
+    new SubmittedCardCollection([]),
   );
 
   return room;

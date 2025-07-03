@@ -5,7 +5,6 @@ import { BaseEntitySchema } from "./entity";
 import { CardSchema, type CardType, CardEntity, CardCollection } from "./card";
 import { CollectionSchema, Collection } from "./collection";
 import { BaseEntity } from "./entity";
-./pair
 // Schema definitions
 
 export const PlayerSchema = t.Composite([
@@ -158,7 +157,14 @@ export class PlayerEntity extends BaseEntity implements PlayerType {
   }
 }
 
-export class PlayerCollection extends Collection<PlayerEntity> {
+export const PlayerCollectionSchema = t.Object({
+  items: t.Array(PlayerSchema),
+});
+export type PlayerCollectionType = Static<typeof PlayerCollectionSchema>;
+export class PlayerCollection
+  extends Collection<PlayerEntity>
+  implements PlayerCollectionType
+{
   constructor(players: PlayerEntity[]) {
     super(players);
   }

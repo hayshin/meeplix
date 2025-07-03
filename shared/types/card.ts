@@ -79,8 +79,15 @@ export class CardEntity extends BaseEntity implements CardType {
     return new CardEntity(this.id, this.title) as this;
   }
 }
+export const CardCollectionSchema = t.Object({
+  items: t.Array(CardSchema),
+});
+export type CardCollectionType = Static<typeof CardCollectionSchema>;
 
-export class CardCollection extends Collection<CardEntity> {
+export class CardCollection
+  extends Collection<CardEntity>
+  implements CardCollectionType
+{
   usedCards: Set<string> = new Set();
   constructor(cards: CardEntity[] = []) {
     super(cards);

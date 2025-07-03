@@ -1,10 +1,6 @@
 import { writable, derived, get } from "svelte/store";
-import {
-  PlayerEntity,
-  PlayerCollection,
-  PairHandCollection,
-} from "$shared/types/player";
-import { PairHandEntity } from "$types/pair";
+import { PlayerEntity, PlayerCollection } from "$shared/types/player";
+import { SubmittedCardEntity } from "$types/submitted_card";
 import { RoomStateEntity, type RoomStateType } from "$shared/types/room";
 import { api } from "$/lib/utils";
 import type { ClientMessage } from "$shared/types/client";
@@ -96,50 +92,6 @@ export const cardsForVoting = derived(
 // Действия для управления состоянием
 export const gameActions = {
   // Helper function to create RoomStateEntity from server data
-  createRoomStateFromData: (data: RoomStateType): RoomStateEntity => {
-    const players = new PlayerCollection(
-      data.players.items.map(
-        (p) =>
-          new PlayerEntity(
-            p.id,
-            p.nickname,
-            p.score,
-            new CardCollection([]), // Client doesn't get other players' cards in room state
-            p.isConnected,
-            p.joinedAt,
-            p.isReady,
-          ),
-      ),
-    );
-
-    const deck = new CardCollection(
-      data.deck.items.map((c) => CardEntity.fromType(c)),
-    );
-
-    const choosedCards = new PairHandCollection(
-      data.choosedPairs.items.map(
-        (pc) => new PairHandEntity(pc.playerId, CardEntity.fromType(pc.card)),
-      ),
-    );
-
-    const votedCards = new PairHandCollection(
-      data.votedCards.items.map(
-        (pc) => new PairHandEntity(pc.playerId, CardEntity.fromType(pc.card)),
-      ),
-    );
-
-    return new RoomStateEntity(
-      data.id,
-      players,
-      deck,
-      data.roundNumber,
-      data.leaderId,
-      data.currentDescription,
-      choosedCards,
-      data.stage,
-      votedCards,
-    );
-  },
 
   // Подключение к игре
   createRoom: (nickname: string) => {
@@ -354,9 +306,9 @@ export const gameActions = {
               updatedRoomState.roundNumber,
               updatedRoomState.leaderId,
               updatedRoomState.currentDescription,
-              updatedRoomState.choosedPairs,
+              updatedRoomState.submittedCards,
               "voting", // Update stage to voting
-              updatedRoomState.votedCards,
+              updatedRoomState.votedPairs,
             );
           }
 

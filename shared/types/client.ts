@@ -1,6 +1,6 @@
 import type { Static } from "elysia";
 import { t } from "elysia";
-import { PairHandSchema } from "./pair";
+import { SubmittedCardSchema } from "./submitted_card";
 import { CardSchema } from "./card";
 
 // Define the base properties for all client messages
@@ -40,13 +40,13 @@ export const LeaderPlayerChooseCardMessageSchema = t.Object({
   description: t.String(),
 });
 
-export const PlayerVoteMessageSchema = t.Object({
+export const VoteMessageSchema = t.Object({
   ...BaseClientMessageSchema.properties,
   type: t.Literal("player_vote"),
   card: CardSchema,
 });
 
-export const PlayerChooseCardMessageSchema = t.Object({
+export const SubmitCardMessageSchema = t.Object({
   ...BaseClientMessageSchema.properties,
   type: t.Literal("player_choose_card"),
   card: CardSchema,
@@ -58,8 +58,8 @@ export const ClientMessageSchema = t.Union([
   StartGameMessageSchema,
   CreateRoomMessageSchema,
   LeaderPlayerChooseCardMessageSchema,
-  PlayerVoteMessageSchema,
-  PlayerChooseCardMessageSchema,
+  VoteMessageSchema,
+  SubmitCardMessageSchema,
 ]);
 
 // Type exports
@@ -69,8 +69,6 @@ export type CreateRoomMessage = Static<typeof CreateRoomMessageSchema>;
 export type LeaderPlayerChooseCardMessage = Static<
   typeof LeaderPlayerChooseCardMessageSchema
 >;
-export type PlayerVoteMessage = Static<typeof PlayerVoteMessageSchema>;
-export type PlayerChooseCardMessage = Static<
-  typeof PlayerChooseCardMessageSchema
->;
+export type PlayerVoteMessage = Static<typeof VoteMessageSchema>;
+export type PlayerChooseCardMessage = Static<typeof SubmitCardMessageSchema>;
 export type ClientMessage = Static<typeof ClientMessageSchema>;
