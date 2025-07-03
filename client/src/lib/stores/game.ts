@@ -3,7 +3,12 @@ import { PlayerEntity, PlayerCollection } from "$shared/types/player";
 import { SubmittedCardEntity } from "$types/submitted_card";
 import { RoomStateEntity, type RoomStateType } from "$shared/types/room";
 import { api } from "$/lib/utils";
-import type { ClientMessage } from "$shared/types/client";
+import type {
+  ClientMessage,
+  ClientMessageWithoutRoomState,
+  CreateRoomMessage,
+  JoinRoomMessage,
+} from "$shared/types/client";
 import type { ServerMessage } from "$shared/types/server";
 import { CardEntity, CardCollection } from "$shared/types/card";
 
@@ -19,7 +24,6 @@ export interface GameState {
   room: ReturnType<(typeof api)["ws"]["subscribe"]> | null;
 }
 
-// Основное состояние игры
 export const gameState = writable<GameState>({
   roomState: null,
   currentPlayer: null,
@@ -32,7 +36,6 @@ export const gameState = writable<GameState>({
   room: null,
 });
 
-// Производные состояния
 export const isGameStarted = derived(
   gameState,
   ($gameState) => $gameState.roomState?.stage !== "joining",
@@ -89,19 +92,17 @@ export const cardsForVoting = derived(
   ($gameState) => $gameState.cardsForVoting || new CardCollection([]),
 );
 
-// Действия для управления состоянием
 export const gameActions = {
-  // Helper function to create RoomStateEntity from server data
-
-  // Подключение к игре
+  setRoomId(id: string) {
+    gameState.update((state) => ({ ...state, roomId: id }));
+  },
   createRoom: (nickname: string) => {
-    const room = api.ws.subscribe({ query: {} });
+    const room = api.ws.subscribe();
 
     room.on("open", () => {
       console.log("WebSocket connected");
       gameState.update((state) => ({ ...state, isConnected: true, room }));
 
-      // Отправляем запрос на создание комнаты
       gameActions.sendMessage({
         type: "create_room",
         name: nickname,
@@ -138,9 +139,8 @@ export const gameActions = {
     });
   },
 
-  // Подключение к существующей игре
   joinRoom: (roomId: string, nickname: string) => {
-    const room = api.ws.subscribe({ query: { roomId } });
+    const room = api.ws.subscribe();
 
     room.on("open", () => {
       console.log("WebSocket connected");
@@ -151,7 +151,6 @@ export const gameActions = {
         roomId,
       }));
 
-      // Отправляем запрос на присоединение к игре
       gameActions.sendMessage({
         type: "join_room",
         roomId: roomId,
@@ -189,26 +188,29 @@ export const gameActions = {
     });
   },
 
-  // Обработка сообщений WebSocket
   handleWebSocketMessage: (message: ServerMessage) => {
     console.log("Processing server message:", message.type, message);
 
     // Reset error on any successful message
-    gameState.update((state) => ({ ...state, error: null }));
+    let updatedRoomState = RoomStateEntity.fromType(message.roomState);
+    gameState.update((state) => ({
+      ...state,
+      roomState: updatedRoomState,
+      error: null,
+    }));
 
     switch (message.type) {
       case "room_created":
         gameState.update((state) => ({
           ...state,
           roomId: message.roomId,
-          playerId: message.playerId,
           error: null,
         }));
         // After room creation, request room state
         setTimeout(() => gameActions.requestRoomState(), 100);
         break;
 
-      case "room_joined":
+      case "player_joined":
         gameState.update((state) => {
           console.log("Player joined room successfully:", message);
 
@@ -229,24 +231,12 @@ export const gameActions = {
             false,
           );
 
-          const basicRoomState = new RoomStateEntity(
-            message.roomId,
-            new PlayerCollection([currentPlayer]),
-            new CardCollection([]),
-            0,
-            "",
-            "",
-            new PairHandCollection([]),
-            "joining",
-            new PairHandCollection([]),
-          );
-
           return {
             ...state,
             isConnected: true,
             roomId: message.roomId,
             playerId: message.playerId,
-            roomState: basicRoomState,
+            roomState: RoomStateEntity.fromType(message.roomState),
             currentPlayer: currentPlayer,
             error: null,
           };
@@ -275,42 +265,27 @@ export const gameActions = {
         }));
         break;
 
-      case "room_state_update":
-        gameState.update((state) => {
-          console.log("Updating room state from server:", message.roomState);
-          const roomState = gameActions.createRoomStateFromData(
-            message.roomState,
-          );
-          const currentPlayer = state.playerId
-            ? roomState.players.get(state.playerId) || state.currentPlayer
-            : state.currentPlayer;
-          return {
-            ...state,
-            roomState,
-            currentPlayer,
-            error: null,
-          };
-        });
-        break;
+      // case "room_state_update":
+      //   gameState.update((state) => {
+      //     console.log("Updating room state from server:", message.roomState);
+      //     const roomState = gameActions.createRoomStateFromData(
+      //       message.roomState,
+      //     );
+      //     const currentPlayer = state.playerId
+      //       ? roomState.players.get(state.playerId) || state.currentPlayer
+      //       : state.currentPlayer;
+      //     return {
+      //       ...state,
+      //       roomState,
+      //       currentPlayer,
+      //       error: null,
+      //     };
+      //   });
+      //   break;
 
       case "begin_vote":
         gameState.update((state) => {
           // Update room state to reflect the voting phase has begun
-          let updatedRoomState = state.roomState;
-          if (updatedRoomState) {
-            // Update stage to voting
-            updatedRoomState = new RoomStateEntity(
-              updatedRoomState.id,
-              updatedRoomState.players,
-              updatedRoomState.deck,
-              updatedRoomState.roundNumber,
-              updatedRoomState.leaderId,
-              updatedRoomState.currentDescription,
-              updatedRoomState.submittedCards,
-              "voting", // Update stage to voting
-              updatedRoomState.votedPairs,
-            );
-          }
 
           // Store the actual cards for voting
           const cardsForVoting = new CardCollection(
@@ -333,10 +308,6 @@ export const gameActions = {
         }));
         break;
 
-      case "point_change":
-        // Handle individual point changes if needed
-        break;
-
       case "end_game":
         gameState.update((state) => ({
           ...state,
@@ -357,13 +328,50 @@ export const gameActions = {
   },
 
   // Отправка сообщения через WebSocket
-  sendMessage: (message: ClientMessage) => {
+  sendMessage: (message: ClientMessageWithoutRoomState) => {
     gameState.update((state) => {
-      if (state.room && state.isConnected) {
-        state.room.send({ message });
-      } else {
+      if (!state.room || !state.isConnected) {
         console.error("WebSocket not connected");
+        return state;
       }
+
+      const roomId = state.roomId;
+      console.log(roomId);
+      const playerId = state.playerId;
+
+      // Messages that require roomId
+      const roomRequiredTypes = [
+        "join_room",
+        "ready",
+        "start_game",
+        "make_move",
+      ];
+
+      // Messages that require playerId
+      const playerRequiredTypes = ["ready", "start_game", "make_move"];
+
+      // Check if message type requires roomId and we have it
+      if (roomRequiredTypes.includes(message.type) && !roomId) {
+        console.error(
+          `Message type ${message.type} requires roomId but it's not available`,
+        );
+        return state;
+      }
+
+      // Check if message type requires playerId and we have it
+      if (playerRequiredTypes.includes(message.type) && !playerId) {
+        console.error(
+          `Message type ${message.type} requires playerId but it's not available`,
+        );
+        return state;
+      }
+
+      // Build message with required properties
+      const messageToSend: any = { ...message };
+      if (roomId) messageToSend.roomId = roomId;
+      if (playerId) messageToSend.playerId = playerId;
+
+      state.room.send({ message: messageToSend });
       return state;
     });
   },

@@ -38,7 +38,6 @@ export const RoomCreatedMessageSchema = t.Object({
   ...BaseServerMessageSchema.properties,
   type: t.Literal("room_created"),
   roomId: t.String(),
-  playerId: t.String(),
 });
 
 export const PlayersChooseCardMessageSchema = t.Object({

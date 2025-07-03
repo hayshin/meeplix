@@ -17,6 +17,7 @@ import {
 import { ClientMessage } from "$shared/types/client";
 import { createPlayer } from "./player";
 import { createRoom } from "./room";
+import { sendMessage, WS } from "$/ws/handlers";
 
 export class GameManager {
   private wsConnections = new Map<string, Set<any>>(); // roomId -> Set of WebSocket connections
@@ -27,13 +28,12 @@ export class GameManager {
   async addRoom(deckId?: string): Promise<string> {
     const room = await createRoom(deckId);
 
-    this.wsConnections.set(room.id, new Set());
     this.rooms.set(room.id, room);
 
     return room.id;
   }
 
-  async getRoom(roomId: string): Promise<RoomStateEntity> {
+  getRoom(roomId: string): RoomStateEntity {
     const room = this.rooms.get(roomId);
     if (!room) throw new Error("Room not found");
     return room;
@@ -44,7 +44,7 @@ export class GameManager {
     roomId: string,
     nickname: string,
   ): Promise<PlayerEntity> {
-    const room = await this.getRoom(roomId);
+    const room = this.getRoom(roomId);
 
     if (room.players.size >= GAME_CONFIG.maxPlayers) {
       throw new Error("Room is full");
@@ -56,13 +56,30 @@ export class GameManager {
     }
     const newPlayer = createPlayer(nickname);
     room.addPlayer(newPlayer);
-
     return newPlayer;
+  }
+
+  async connectPlayer(ws: WS, roomId: string, playerId: string): Promise<void> {
+    this.addConnection(roomId, ws);
+
+    // Send confirmation to the player
+    // this.sendToPlayer(roomId, playerId, {
+    //   type: "player_connected",
+    //   roomId: roomId,
+    //   playerId: playerId,
+    // });
+
+    // Broadcast to room that player connected
+    this.broadcastToRoom(roomId, {
+      type: "player_joined",
+      roomId: roomId,
+      playerId: playerId,
+    });
   }
 
   // Start game (when all players are ready)
   async startGame(roomId: string): Promise<void> {
-    const room = await this.getRoom(roomId);
+    const room = this.getRoom(roomId);
     if (!room.canStartGame()) {
       throw new Error("Cannot start game");
     }
@@ -93,7 +110,7 @@ export class GameManager {
     cardId: string,
     description: string,
   ): Promise<void> {
-    const room = await this.getRoom(roomId);
+    const room = this.getRoom(roomId);
     room.assertStage("leader_choosing");
 
     if (room.leaderId !== playerId) {
@@ -116,12 +133,6 @@ export class GameManager {
 
     // Remove the card from leader's hand
     player.removeCard(cardId);
-
-    // // Send updated room state to all players
-    // this.broadcastToRoom(roomId, {
-    //   type: "room_state_update",
-    //   roomState: room.cloneForClient(),
-    // });
 
     // Send each non-leader player their hand for card selection
     room.getNonLeaderPlayers().forEach((player) => {
@@ -162,32 +173,30 @@ export class GameManager {
     // Check if all players submitted cards
     if (room.allPlayersSubmitted()) {
       // Move to voting stage
-      room.stage = "voting";
-      console.log(`All players submitted cards, moving to voting stage`);
-
-      // Get the actual cards for voting (shuffle to hide the order)
-      const cardsForVoting = room.submittedCards.map((pair) => {
-        // Find the card in the deck by ID
-        return pair.card;
-      });
-
-      // Shuffle the cards to hide the order
-      const shuffledCards = cardsForVoting.sort(() => Math.random() - 0.5);
-
-      // Send voting message to all non-leader players
-      room.getNonLeaderPlayers().forEach((player) => {
-        this.sendToPlayer(roomId, player.id, {
-          type: "begin_vote",
-          cardsForVoting: shuffledCards,
-        });
-      });
+      await this.startVoting(room);
     }
+  }
 
-    // Send updated room state to all players
-    // this.broadcastToRoom(roomId, {
-    //   type: "room_state_update",
-    //   roomState: room.cloneForClient(),
-    // });
+  async startVoting(room: RoomStateEntity) {
+    room.stage = "voting";
+    console.log(`All players submitted cards, moving to voting stage`);
+
+    // Get the actual cards for voting (shuffle to hide the order)
+    const cardsForVoting = room.submittedCards.map((pair) => {
+      // Find the card in the deck by ID
+      return pair.card;
+    });
+
+    // Shuffle the cards to hide the order
+    const shuffledCards = cardsForVoting.sort(() => Math.random() - 0.5);
+
+    // Send voting message to all non-leader players
+    room.getNonLeaderPlayers().forEach((player) => {
+      this.sendToPlayer(room.id, player.id, {
+        type: "begin_vote",
+        cardsForVoting: shuffledCards,
+      });
+    });
   }
 
   // Player votes
@@ -372,14 +381,14 @@ export class GameManager {
   }
 
   // WebSocket connection management
-  addConnection(roomId: string, ws: any): void {
+  addConnection(roomId: string, ws: WS): void {
     if (!this.wsConnections.has(roomId)) {
       this.wsConnections.set(roomId, new Set());
     }
     this.wsConnections.get(roomId)!.add(ws);
   }
 
-  removeConnection(roomId: string, ws: any): void {
+  removeConnection(roomId: string, ws: WS): void {
     const connections = this.wsConnections.get(roomId);
     if (connections) {
       connections.delete(ws);
@@ -398,25 +407,19 @@ export class GameManager {
     roomId: string,
     message: ServerMessageWithoutRoomState,
   ): void {
+    const room = this.getRoom(roomId);
     const connections = this.wsConnections.get(roomId);
     console.log("Broadcasting message to room:", roomId);
     console.log(message);
     if (connections) {
-      connections.forEach((ws: any) => {
+      connections.forEach((ws: WS) => {
         if (ws.readyState === 1) {
           // OPEN
-          ws.send(message);
+          ws.send({
+            ...message,
+            roomState: room.cloneForClient(),
+          });
           // Only send room state update if the message is not already a room state update
-          if (message.type !== "room_state_update") {
-            const room = this.rooms.get(roomId);
-            console.log(message);
-            if (room) {
-              ws.send({
-                type: "room_state_update",
-                roomState: room.cloneForClient(),
-              });
-            }
-          }
         }
       });
     }

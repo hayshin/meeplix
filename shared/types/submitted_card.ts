@@ -30,6 +30,12 @@ export class SubmittedCardEntity
   clone(): this {
     return new SubmittedCardEntity(this.playerId, this.card) as this;
   }
+  static fromType(type: SubmittedCardType): SubmittedCardEntity {
+    return new SubmittedCardEntity(
+      type.playerId,
+      CardEntity.fromType(type.card),
+    );
+  }
 
   // Static validation
   static validate(obj: unknown): obj is SubmittedCardType {
@@ -100,5 +106,11 @@ export class SubmittedCardCollection
 
   hasPlayer(playerId: string): boolean {
     return this.some((pair) => pair.playerId === playerId);
+  }
+
+  static fromType(type: SubmittedCardCollectionType): SubmittedCardCollection {
+    return new SubmittedCardCollection(
+      type.items.map((item) => SubmittedCardEntity.fromType(item)),
+    );
   }
 }

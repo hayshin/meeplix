@@ -100,4 +100,10 @@ export class CardCollection
     }
     return drawnCards;
   }
+
+  static fromType(type: CardCollectionType): CardCollection {
+    return new CardCollection(
+      type.items.map((item) => CardEntity.fromType(item)),
+    );
+  }
 }

@@ -9,18 +9,18 @@ export const gameRoutes = new Elysia({ prefix: "game" })
   .post(
     "/create",
     async () => {
-      const roomId = await gameManager.createRoom();
+      const roomId = await gameManager.addRoom();
       return roomId;
     },
     {
       response: t.String(),
-    }
+    },
   )
 
   .get(
     "/:id",
     async ({ params, status }) => {
-      const game = await gameManager.getRoom(params.id);
+      const game = gameManager.getRoom(params.id);
       return game ?? status(404, "Game not found");
     },
     {
@@ -31,7 +31,7 @@ export const gameRoutes = new Elysia({ prefix: "game" })
         200: RoomStateSchema,
         404: t.String(),
       },
-    }
+    },
   )
 
   .post(
@@ -44,7 +44,7 @@ export const gameRoutes = new Elysia({ prefix: "game" })
 
       const player = await gameManager.addPlayerToRoom(
         params.id,
-        nickname.trim()
+        nickname.trim(),
       );
       if (!player) {
         return status(400, "Could not join game");
@@ -66,7 +66,7 @@ export const gameRoutes = new Elysia({ prefix: "game" })
         200: PlayerSchema,
         400: t.String(),
       },
-    }
+    },
   )
 
   .post(
@@ -80,5 +80,5 @@ export const gameRoutes = new Elysia({ prefix: "game" })
       params: t.Object({
         id: t.String(),
       }),
-    }
+    },
   );

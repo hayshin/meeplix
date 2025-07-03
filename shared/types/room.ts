@@ -224,6 +224,20 @@ export class RoomStateEntity extends BaseEntity implements RoomStateType {
     return this.votedPairs.size === this.getActivePlayers().size - 1;
   }
 
+  static fromType(type: RoomStateType): RoomStateEntity {
+    return new RoomStateEntity(
+      type.id,
+      PlayerCollection.fromType(type.players),
+      CardCollection.fromType(type.deck),
+      type.roundNumber,
+      type.leaderId,
+      type.currentDescription,
+      SubmittedCardCollection.fromType(type.submittedCards),
+      type.stage,
+      VoteCollection.fromType(type.votedPairs),
+    ) as RoomStateEntity;
+  }
+
   cloneForClient(): RoomStateEntity {
     return new RoomStateEntity(
       this.id,

@@ -31,6 +31,14 @@ export class VoteEntity extends BaseEntity implements VoteType {
     this.choiceCard = choiceCard;
   }
 
+  static fromType(type: VoteType): VoteEntity {
+    return new VoteEntity(
+      type.voterPlayerId,
+      type.choicePlayerId,
+      CardEntity.fromType(type.choiceCard),
+    );
+  }
+
   clone(): this {
     return new VoteEntity(
       this.voterPlayerId,
@@ -96,6 +104,12 @@ export class VoteCollection
       (vote) =>
         vote.voterPlayerId === voterPlayerId &&
         vote.choicePlayerId === leaderId,
+    );
+  }
+
+  static fromType(type: VoteCollectionType): VoteCollection {
+    return new VoteCollection(
+      type.items.map((item) => VoteEntity.fromType(item)),
     );
   }
 }

@@ -2,7 +2,13 @@ import type { Static } from "elysia";
 import { t } from "elysia";
 
 import { BaseEntitySchema } from "./entity";
-import { CardSchema, type CardType, CardEntity, CardCollection } from "./card";
+import {
+  CardSchema,
+  type CardType,
+  CardEntity,
+  CardCollection,
+  CardCollectionSchema,
+} from "./card";
 import { CollectionSchema, Collection } from "./collection";
 import { BaseEntity } from "./entity";
 // Schema definitions
@@ -12,7 +18,7 @@ export const PlayerSchema = t.Composite([
   t.Object({
     nickname: t.String(),
     score: t.Number(),
-    hand: CollectionSchema,
+    hand: CardCollectionSchema,
     isConnected: t.Boolean(),
     joinedAt: t.Date(),
     isReady: t.Boolean(),
@@ -54,6 +60,18 @@ export class PlayerEntity extends BaseEntity implements PlayerType {
     } catch {
       return false;
     }
+  }
+
+  static fromType(type: PlayerType): PlayerEntity {
+    return new PlayerEntity(
+      type.id,
+      type.nickname,
+      type.score,
+      CardCollection.fromType(type.hand),
+      type.isConnected,
+      type.joinedAt,
+      type.isReady,
+    );
   }
 
   clone(): this {
@@ -173,5 +191,10 @@ export class PlayerCollection
     let clone = this.clone();
     clone.forEach((player) => player.replaceCards(new CardCollection([])));
     return clone;
+  }
+  static fromType(type: PlayerCollectionType): PlayerCollection {
+    return new PlayerCollection(
+      type.items.map((item) => PlayerEntity.fromType(item)),
+    );
   }
 }

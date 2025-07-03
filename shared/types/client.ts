@@ -5,11 +5,22 @@ import { CardSchema } from "./card";
 
 // Define the base properties for all client messages
 export const BaseClientMessageSchema = t.Object({
-  // roomId: t.String(),
+  roomId: t.String(),
+  playerId: t.String(),
+});
+
+export const CreateRoomMessageSchema = t.Object({
+  type: t.Literal("create_room"),
+  name: t.String(),
+});
+
+export const JoinRoomMessageSchema = t.Object({
+  type: t.Literal("join_room"),
+  roomId: t.String(),
+  name: t.String(),
 });
 
 // Use spread of BaseClientMessageSchema.properties for each message schema
-
 export const StartGameMessageSchema = t.Object({
   ...BaseClientMessageSchema.properties,
   type: t.Literal("start_game"),
@@ -18,19 +29,6 @@ export const StartGameMessageSchema = t.Object({
 export const ReadyMessageSchema = t.Object({
   ...BaseClientMessageSchema.properties,
   type: t.Literal("ready"),
-});
-
-export const JoinRoomMessageSchema = t.Object({
-  ...BaseClientMessageSchema.properties,
-  type: t.Literal("join_room"),
-  roomId: t.String(),
-  name: t.String(),
-});
-
-export const CreateRoomMessageSchema = t.Object({
-  ...BaseClientMessageSchema.properties,
-  type: t.Literal("create_room"),
-  name: t.String(),
 });
 
 export const LeaderPlayerChooseCardMessageSchema = t.Object({
@@ -63,6 +61,8 @@ export const ClientMessageSchema = t.Union([
 ]);
 
 // Type exports
+
+export type StartGameMessage = Static<typeof StartGameMessageSchema>;
 export type ReadyMessage = Static<typeof ReadyMessageSchema>;
 export type JoinRoomMessage = Static<typeof JoinRoomMessageSchema>;
 export type CreateRoomMessage = Static<typeof CreateRoomMessageSchema>;
@@ -72,3 +72,9 @@ export type LeaderPlayerChooseCardMessage = Static<
 export type PlayerVoteMessage = Static<typeof VoteMessageSchema>;
 export type PlayerChooseCardMessage = Static<typeof SubmitCardMessageSchema>;
 export type ClientMessage = Static<typeof ClientMessageSchema>;
+
+export type ClientMessageWithoutRoomState = ClientMessage extends infer M
+  ? M extends { roomId: string; playerId: string }
+    ? Omit<M, "roomId" | "playerId">
+    : M
+  : never;

@@ -29,7 +29,7 @@
   import GameCard from "$lib/components/GameCard.svelte";
   import ScoreTable from "$lib/components/ScoreTable.svelte";
 
-  const gameId = $page.params.id;
+  const roomId = $page.params.id;
   let nickname = $state("");
   let showNicknameModal = $state(false);
   let associationInput = $state("");
@@ -37,7 +37,9 @@
   let selectedVoteCardId = $state<string | null>(null);
   let enlargedCardId = $state<string | null>(null);
 
-  onMount(() => {
+  $effect(() => {
+    console.log(roomId);
+    gameActions.setRoomId(roomId);
     const savedNickname = storage.getNickname();
     if (savedNickname) {
       nickname = savedNickname;
@@ -51,7 +53,7 @@
     if (!nickname.trim()) return;
 
     storage.saveNickname(nickname.trim());
-    gameActions.joinRoom(gameId, nickname.trim());
+    gameActions.joinRoom(roomId, nickname.trim());
     showNicknameModal = false;
   };
 
@@ -179,7 +181,7 @@
 
           <div class="flex items-center gap-2 text-slate-300">
             <Sparkles size={20} class="text-purple-400" />
-            <span class="text-sm">Realm ID: {gameId}</span>
+            <span class="text-sm">Realm ID: {roomId}</span>
           </div>
         </div>
 

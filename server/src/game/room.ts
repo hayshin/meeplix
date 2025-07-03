@@ -4,6 +4,7 @@ import { SubmittedCardCollection } from "$shared/types/submitted_card";
 import { CardCollection } from "$types/card";
 import { RoomStateEntity } from "$types/room";
 import { loadCardsFromAssets } from "./cards";
+import { VoteCollection } from "$shared/types/vote";
 
 export async function createRoom(deckId?: string): Promise<RoomStateEntity> {
   const id = uuidv4();
@@ -22,7 +23,7 @@ export async function createRoom(deckId?: string): Promise<RoomStateEntity> {
     "",
     new SubmittedCardCollection([]),
     "joining",
-    new SubmittedCardCollection([]),
+    new VoteCollection([]),
   );
 
   return room;
