@@ -138,7 +138,14 @@
           <Stars size={30} class="text-blue-400" />
         </div>
 
-        <h1 class="text-5xl font-bold mb-4 text-white">Narrari</h1>
+        <!-- Title image -->
+        <div class="mb-4">
+          <img
+            src="/title.png"
+            alt="Narrari"
+            class="mx-auto max-w-full h-auto max-h-24 md:max-h-32 object-contain"
+          />
+        </div>
 
         <p class="text-xl mb-3 text-slate-300 font-light">
           AI-Enhanced Storytelling Adventure
