@@ -50,6 +50,11 @@ export const SubmitCardMessageSchema = t.Object({
   card: CardSchema,
 });
 
+export const NextRoundMessageSchema = t.Object({
+  ...BaseClientMessageSchema.properties,
+  type: t.Literal("next_round"),
+});
+
 export const ClientMessageSchema = t.Union([
   ReadyMessageSchema,
   JoinRoomMessageSchema,
@@ -58,6 +63,7 @@ export const ClientMessageSchema = t.Union([
   LeaderPlayerChooseCardMessageSchema,
   VoteMessageSchema,
   SubmitCardMessageSchema,
+  NextRoundMessageSchema,
 ]);
 
 // Type exports
@@ -71,6 +77,7 @@ export type LeaderPlayerChooseCardMessage = Static<
 >;
 export type PlayerVoteMessage = Static<typeof VoteMessageSchema>;
 export type PlayerChooseCardMessage = Static<typeof SubmitCardMessageSchema>;
+export type NextRoundMessage = Static<typeof NextRoundMessageSchema>;
 export type ClientMessage = Static<typeof ClientMessageSchema>;
 
 export type ClientMessageWithoutRoomState = ClientMessage extends infer M

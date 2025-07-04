@@ -34,10 +34,25 @@ export const RoomJoinedMessageSchema = t.Object({
   playerId: t.String(),
 });
 
+export const PlayerConnectedMessageSchema = t.Object({
+  ...BaseServerMessageSchema.properties,
+  type: t.Literal("player_connected"),
+  roomId: t.String(),
+  playerId: t.String(),
+});
+
+export const PlayerDisconnectedMessageSchema = t.Object({
+  ...BaseServerMessageSchema.properties,
+  type: t.Literal("player_disconnected"),
+  roomId: t.String(),
+  playerId: t.String(),
+});
+
 export const RoomCreatedMessageSchema = t.Object({
   ...BaseServerMessageSchema.properties,
   type: t.Literal("room_created"),
   roomId: t.String(),
+  playerId: t.Optional(t.String()),
 });
 
 export const PlayersChooseCardMessageSchema = t.Object({
@@ -81,6 +96,8 @@ export const ServerMessageSchema = t.Union([
   EndGameMessageSchema,
   RoomCreatedMessageSchema,
   RoomJoinedMessageSchema,
+  PlayerConnectedMessageSchema,
+  PlayerDisconnectedMessageSchema,
 ]);
 
 export type BaseServerMessage = Static<typeof BaseServerMessageSchema>;
@@ -95,6 +112,12 @@ export type ErrorMessage = Static<typeof ErrorMessageSchema>;
 export type EndGameMessage = Static<typeof EndGameMessageSchema>;
 export type RoomCreatedMessage = Static<typeof RoomCreatedMessageSchema>;
 export type RoomJoinedMessage = Static<typeof RoomJoinedMessageSchema>;
+export type PlayerConnectedMessage = Static<
+  typeof PlayerConnectedMessageSchema
+>;
+export type PlayerDisconnectedMessage = Static<
+  typeof PlayerDisconnectedMessageSchema
+>;
 export type ServerMessage = Static<typeof ServerMessageSchema>;
 
 // // Server message without room state updates (schema)

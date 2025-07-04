@@ -1,0 +1,105 @@
+name: Deploy to Azure VM
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: client/package-lock.json
+
+      - name: Install server dependencies
+        run: |
+          cd server
+          bun install
+
+      - name: Install client dependencies
+        run: |
+          cd client
+          npm ci
+
+      - name: Build server
+        run: |
+          cd server
+          bun build src/index.ts --outdir ./dist --target bun
+
+      - name: Build client
+        run: |
+          cd client
+          npm run build
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to Azure VM
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          # Create deployment directory
+          ssh -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST "mkdir -p /home/$SSH_USER/narrari-deploy"
+
+          # Copy deployment scripts
+          scp scripts/deploy-server.sh $SSH_USER@$SSH_HOST:/home/$SSH_USER/narrari-deploy/
+          scp scripts/verify-deployment.sh $SSH_USER@$SSH_HOST:/home/$SSH_USER/narrari-deploy/
+          ssh -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST "chmod +x /home/$SSH_USER/narrari-deploy/deploy-server.sh"
+          ssh -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST "chmod +x /home/$SSH_USER/narrari-deploy/verify-deployment.sh"
+
+          # Copy server build
+          scp -r server/dist/* $SSH_USER@$SSH_HOST:/home/$SSH_USER/narrari-deploy/
+          scp server/package.json $SSH_USER@$SSH_HOST:/home/$SSH_USER/narrari-deploy/
+          scp server/bun.lock $SSH_USER@$SSH_HOST:/home/$SSH_USER/narrari-deploy/
+
+          # Copy client build
+          scp -r client/build/* $SSH_USER@$SSH_HOST:/tmp/narrari-client-build/
+
+          # Deploy server using deployment script
+          ssh -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST << 'EOF'
+            # Deploy server
+            /home/$USER/narrari-deploy/deploy-server.sh deploy
+
+            # Deploy client to nginx
+            sudo rm -rf /var/www/hayshin.dev/html/*
+            sudo cp -r /tmp/narrari-client-build/* /var/www/hayshin.dev/html/
+            sudo chown -R www-data:www-data /var/www/hayshin.dev/html
+            sudo chmod -R 755 /var/www/hayshin.dev/html
+
+            # Clean up temp files
+            rm -rf /tmp/narrari-client-build
+
+            # Restart nginx to ensure changes take effect
+            sudo systemctl reload nginx
+
+            echo "Deployment completed successfully!"
+          EOF
+
+      - name: Verify deployment
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          ssh -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST << 'EOF'
+            # Run comprehensive deployment verification
+            /home/$USER/narrari-deploy/verify-deployment.sh verify
+          EOF

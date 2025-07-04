@@ -124,9 +124,11 @@ export class RoomStateEntity extends BaseEntity implements RoomStateType {
 
   getPlayer(playerId: string): PlayerEntity {
     try {
-      const player = this.getPlayer(playerId);
+      const player = this.players.get(playerId);
+      if (!player) throw new Error(`Player with id ${playerId} not found`);
       return player;
     } catch (error) {
+      console.log();
       throw new Error(`Player with id ${playerId} not found`);
     }
   }
@@ -212,8 +214,16 @@ export class RoomStateEntity extends BaseEntity implements RoomStateType {
     );
   }
 
+  getReadyPlayers(): PlayerCollection {
+    return this.players.filter((player) => player.isReady);
+  }
+
   getActivePlayers(): PlayerCollection {
     return this.players.filter((player) => player.isConnected);
+  }
+
+  allPlayersReady(): boolean {
+    return this.players.every((player) => player.isReady);
   }
 
   allPlayersSubmitted(): boolean {
