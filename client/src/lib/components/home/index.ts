@@ -5,3 +5,4 @@ export { default as GameActionButtons } from "./GameActionButtons.svelte";
 export { default as HowToPlaySection } from "./HowToPlaySection.svelte";
 export { default as MainGameCard } from "./MainGameCard.svelte";
 export { default as MagicalCursor } from "./MagicalCursor.svelte";
+export { default as StarryOverlage } from "./StarryOverlage.svelte";

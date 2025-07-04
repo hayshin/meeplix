@@ -8,7 +8,7 @@
     loading?: boolean;
     fullWidth?: boolean;
     children?: any;
-    onClick?: () => void;
+    onclick?: () => void;
   }
 
   let {
@@ -18,7 +18,7 @@
     loading = false,
     fullWidth = false,
     children,
-    onClick = () => {},
+    onclick = () => {},
   }: Props = $props();
 
   const dispatch = createEventDispatcher();
@@ -26,7 +26,7 @@
   const handleClick = () => {
     if (!disabled && !loading) {
       dispatch("click");
-      onClick();
+      onclick();
     }
   };
 

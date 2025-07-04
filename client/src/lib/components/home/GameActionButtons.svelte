@@ -21,7 +21,7 @@
     fullWidth={true}
     disabled={isLoading || !nickname.trim()}
     loading={isLoading}
-    onClick={onCreateGame}
+    onclick={onCreateGame}
   >
     {#snippet children()}
       <Play size={20} />
@@ -35,7 +35,7 @@
     size="md"
     fullWidth={true}
     disabled={isLoading || !nickname.trim()}
-    onClick={onJoinGame}
+    onclick={onJoinGame}
   >
     {#snippet children()}
       <Users size={20} />
