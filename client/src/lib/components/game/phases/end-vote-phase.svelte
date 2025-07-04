@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Stars, AlertCircle, Sparkles, Wand2, Play } from "lucide-svelte";
-  import GameCard from "$lib/components/GameCard.svelte";
+  import GameCard from "$lib/components/game/game-card.svelte";
 
   import { CardEntity } from "$types/card";
   import { PlayerEntity } from "$types/player";
