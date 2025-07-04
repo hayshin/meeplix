@@ -10,100 +10,171 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
-        with:
-          bun-version: latest
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "npm"
-          cache-dependency-path: client/package-lock.json
-
-      - name: Install shared dependencies
-        run: |
-          bun install
-
-      - name: Install server dependencies
-        run: |
-          cd server
-          bun install
-
-      - name: Install client dependencies
-        run: |
-          cd client
-          npm ci
-
-      - name: Build server
-        run: |
-          cd server
-          bun build src/index.ts --outdir ./dist --target bun
-
-      - name: Build client
-        run: |
-          cd client
-          npm run build
-
-      - name: Setup SSH key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
-
       - name: Deploy to Azure VM
-        env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_USER: ${{ secrets.SSH_USER }}
-        run: |
-          # Create deployment directory
-          ssh -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST "mkdir -p /home/$SSH_USER/narrari-deploy"
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
 
-          # Copy deployment scripts
-          scp scripts/deploy-server.sh $SSH_USER@$SSH_HOST:/home/$SSH_USER/narrari-deploy/
-          scp scripts/verify-deployment.sh $SSH_USER@$SSH_HOST:/home/$SSH_USER/narrari-deploy/
-          ssh -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST "chmod +x /home/$SSH_USER/narrari-deploy/deploy-server.sh"
-          ssh -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST "chmod +x /home/$SSH_USER/narrari-deploy/verify-deployment.sh"
+            # Colors for output
+            RED='\033[0;31m'
+            GREEN='\033[0;32m'
+            YELLOW='\033[1;33m'
+            NC='\033[0m'
 
-          # Copy server build
-          scp -r server/dist/* $SSH_USER@$SSH_HOST:/home/$SSH_USER/narrari-deploy/
-          scp server/package.json $SSH_USER@$SSH_HOST:/home/$SSH_USER/narrari-deploy/
-          scp server/bun.lock $SSH_USER@$SSH_HOST:/home/$SSH_USER/narrari-deploy/
+            log() {
+                echo -e "${GREEN}[$(date +'%H:%M:%S')] $1${NC}"
+            }
 
-          # Copy client build
-          scp -r client/build/* $SSH_USER@$SSH_HOST:/tmp/narrari-client-build/
+            warn() {
+                echo -e "${YELLOW}[$(date +'%H:%M:%S')] $1${NC}"
+            }
 
-          # Deploy server using deployment script
-          ssh -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST << 'EOF'
-            # Deploy server
-            /home/$USER/narrari-deploy/deploy-server.sh deploy
+            error() {
+                echo -e "${RED}[$(date +'%H:%M:%S')] $1${NC}"
+            }
 
-            # Deploy client to nginx
-            sudo rm -rf /var/www/hayshin.dev/html/*
-            sudo cp -r /tmp/narrari-client-build/* /var/www/hayshin.dev/html/
-            sudo chown -R www-data:www-data /var/www/hayshin.dev/html
-            sudo chmod -R 755 /var/www/hayshin.dev/html
+            # Configuration
+            REPO_DIR="/home/$USER/narrari"
+            DEPLOY_DIR="/home/$USER/narrari-deploy"
+            WEB_ROOT="/var/www/hayshin.dev/html"
+            SERVER_PORT=3000
 
-            # Clean up temp files
-            rm -rf /tmp/narrari-client-build
+            log "🚀 Starting deployment process..."
 
-            # Restart nginx to ensure changes take effect
+            # Step 1: Clone or pull repository
+            if [ -d "$REPO_DIR" ]; then
+                log "📥 Pulling latest changes..."
+                cd "$REPO_DIR"
+                git fetch origin
+                git reset --hard origin/main
+                git clean -fd
+            else
+                log "📥 Cloning repository..."
+                git clone https://github.com/${{ github.repository }} "$REPO_DIR"
+                cd "$REPO_DIR"
+            fi
+
+            # Step 2: Stop existing server
+            log "🛑 Stopping existing server..."
+            pkill -f "narrari.*index.js" || true
+            pkill -f "bun.*index.js" || true
+
+            # Wait for processes to stop
+            sleep 3
+
+            # Force kill if still running
+            if lsof -Pi :$SERVER_PORT -sTCP:LISTEN -t >/dev/null 2>&1; then
+                warn "Force killing process on port $SERVER_PORT"
+                kill -9 $(lsof -ti :$SERVER_PORT) || true
+            fi
+
+            # Step 3: Install server dependencies and build
+            log "🔧 Building server..."
+            cd "$REPO_DIR/server"
+
+            # Install dependencies
+            bun install
+
+            # Build server
+            bun build src/index.ts --outdir ../build/server --target bun
+
+            # Step 4: Install client dependencies and build
+            log "🎨 Building client..."
+            cd "$REPO_DIR/client"
+
+            # Install dependencies
+            npm ci
+
+            # Build client
+            npm run build
+
+            # Step 5: Deploy server
+            log "📦 Deploying server..."
+            mkdir -p "$DEPLOY_DIR"
+            cp -r "$REPO_DIR/build/server"/* "$DEPLOY_DIR/"
+            cp "$REPO_DIR/server/package.json" "$DEPLOY_DIR/"
+            cp "$REPO_DIR/server/bun.lock" "$DEPLOY_DIR/"
+
+            # Create .env file if it doesn't exist
+            if [ ! -f "$DEPLOY_DIR/.env" ]; then
+                log "📝 Creating production .env file..."
+                cat > "$DEPLOY_DIR/.env" << 'EOF'
+            NODE_ENV=production
+            PORT=3000
+            HOST=0.0.0.0
+            DATABASE_URL=postgresql://narrari_user:password@localhost:5432/narrari
+            LOG_LEVEL=info
+            EOF
+                chmod 600 "$DEPLOY_DIR/.env"
+                warn "Please update .env file with your actual configuration"
+            fi
+
+            # Install production dependencies
+            cd "$DEPLOY_DIR"
+            bun install --production
+
+            # Step 6: Deploy client
+            log "🌐 Deploying client..."
+            sudo rm -rf "$WEB_ROOT"/*
+            sudo cp -r "$REPO_DIR/client/build"/* "$WEB_ROOT/"
+            sudo chown -R www-data:www-data "$WEB_ROOT"
+            sudo chmod -R 755 "$WEB_ROOT"
+
+            # Step 7: Start server
+            log "🚀 Starting server..."
+            cd "$DEPLOY_DIR"
+            nohup bun run index.js > server.log 2>&1 &
+            SERVER_PID=$!
+            echo $SERVER_PID > server.pid
+
+            # Step 8: Restart nginx
+            log "🔄 Restarting nginx..."
             sudo systemctl reload nginx
 
-            echo "Deployment completed successfully!"
-          EOF
+            # Step 9: Verify deployment
+            log "✅ Verifying deployment..."
+            sleep 5
 
-      - name: Verify deployment
-        env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_USER: ${{ secrets.SSH_USER }}
-        run: |
-          ssh -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST << 'EOF'
-            # Run comprehensive deployment verification
-            /home/$USER/narrari-deploy/verify-deployment.sh verify
-          EOF
+            # Check server
+            if kill -0 $SERVER_PID 2>/dev/null; then
+                log "✅ Server is running (PID: $SERVER_PID)"
+            else
+                error "❌ Server failed to start"
+                tail -n 20 server.log
+                exit 1
+            fi
+
+            # Check server HTTP response
+            if curl -f -s --max-time 10 http://localhost:$SERVER_PORT/ >/dev/null; then
+                log "✅ Server is responding"
+            else
+                error "❌ Server not responding"
+                exit 1
+            fi
+
+            # Check client files
+            if [ -f "$WEB_ROOT/index.html" ]; then
+                log "✅ Client files deployed"
+            else
+                error "❌ Client files not found"
+                exit 1
+            fi
+
+            # Check client HTTP response
+            if curl -f -s --max-time 10 http://localhost/ >/dev/null; then
+                log "✅ Client is accessible"
+            else
+                warn "⚠️  Client may not be accessible via HTTP"
+            fi
+
+            log "🎉 Deployment completed successfully!"
+            log "📊 Deployment summary:"
+            log "   Server PID: $SERVER_PID"
+            log "   Server Port: $SERVER_PORT"
+            log "   Client Path: $WEB_ROOT"
+            log "   Repository: $REPO_DIR"
+            log "   Deployment: $DEPLOY_DIR"

@@ -1,42 +1,83 @@
-# CI/CD Setup Documentation
+# CI/CD Setup Documentation - Git-Based Deployment
 
-This document provides step-by-step instructions for setting up automated deployment of your Narrari application using GitHub Actions.
+This document provides step-by-step instructions for setting up automated deployment of your Narrari application using GitHub Actions with a git-based approach.
 
 ## Overview
 
-The CI/CD pipeline automatically deploys your application when you push to the main branch. It builds both the ElysiaJS server and SvelteKit client, then deploys them to your Azure VM.
+The CI/CD pipeline uses a simplified, efficient approach:
+1. **GitHub Actions** triggers on push to main branch
+2. **SSH into your VM** using the `appleboy/ssh-action`
+3. **Git pull** the latest code directly on the VM
+4. **Build** both server and client on the VM
+5. **Deploy** and restart services
+
+This approach is much faster and more efficient than building locally and transferring files.
 
 ## Prerequisites
 
 Before setting up the CI/CD pipeline, ensure you have:
 
 1. **Azure VM** with Ubuntu/Linux running
-2. **SSH access** to the VM
-3. **Bun runtime** installed on the VM
-4. **Node.js** installed on the VM
-5. **Nginx** configured to serve from `/var/www/hayshin.dev/html`
-6. **sudo privileges** for the deployment user
+2. **SSH access** to the VM with key-based authentication
+3. **Git** installed on the VM
+4. **Bun runtime** installed on the VM
+5. **Node.js** installed on the VM
+6. **Nginx** configured to serve from `/var/www/hayshin.dev/html`
+7. **sudo privileges** for the deployment user
 
 ## Server Setup
 
 ### 1. Install Required Software on Azure VM
 
 ```bash
+# Update system
+sudo apt-get update
+
+# Install Git
+sudo apt-get install -y git
+
 # Install Bun
 curl -fsSL https://bun.sh/install | bash
+source ~/.bashrc
 
-# Install Node.js (if not already installed)
+# Install Node.js
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt-get install -y nodejs
 
 # Install additional tools
-sudo apt-get update
-sudo apt-get install -y lsof curl
+sudo apt-get install -y lsof curl bc nginx
 ```
 
-### 2. Configure Nginx
+### 2. Configure SSH Key Access
 
-Ensure your Nginx configuration serves the SvelteKit static files:
+```bash
+# On your local machine, generate SSH key if you don't have one
+ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
+
+# Copy public key to Azure VM
+ssh-copy-id -i ~/.ssh/id_rsa.pub azureuser@20.153.200.5
+
+# Test SSH connection
+ssh -i ~/.ssh/id_rsa azureuser@20.153.200.5
+```
+
+### 3. Clone Repository on VM
+
+```bash
+# SSH into your VM
+ssh -i ~/.ssh/id_rsa azureuser@20.153.200.5
+
+# Clone your repository
+git clone https://github.com/your-username/narrari.git /home/azureuser/narrari
+
+# Set up Git credentials if needed
+git config --global user.name "Your Name"
+git config --global user.email "your_email@example.com"
+```
+
+### 4. Configure Nginx
+
+Create or update `/etc/nginx/sites-available/hayshin.dev`:
 
 ```nginx
 server {
@@ -66,80 +107,77 @@ server {
 }
 ```
 
-### 3. Set Up Directories
+Enable the site:
+```bash
+sudo ln -s /etc/nginx/sites-available/hayshin.dev /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+### 5. Set Up Directories
 
 ```bash
-# Create deployment directory
+# Create necessary directories
 mkdir -p /home/azureuser/narrari-deploy
-
-# Ensure web directory exists with correct permissions
 sudo mkdir -p /var/www/hayshin.dev/html
 sudo chown -R azureuser:www-data /var/www/hayshin.dev/html
 sudo chmod -R 755 /var/www/hayshin.dev/html
 ```
 
-## GitHub Secrets Configuration
+## GitHub Configuration
 
-You need to configure the following secrets in your GitHub repository:
+### 1. Repository Settings
 
-### 1. Go to Repository Settings
-
-1. Navigate to your GitHub repository
-2. Go to **Settings** > **Secrets and variables** > **Actions**
+1. Go to your GitHub repository
+2. Navigate to **Settings** → **Secrets and variables** → **Actions**
 3. Click **New repository secret**
 
-### 2. Add Required Secrets
+### 2. Required Secrets
 
-Add these secrets one by one:
+Add these three secrets:
 
 #### `SSH_HOST`
 - **Value**: Your Azure VM's public IP address
 - **Example**: `20.153.200.5`
 
-#### `SSH_USER` 
+#### `SSH_USER`
 - **Value**: Your SSH username
 - **Example**: `azureuser`
 
 #### `SSH_PRIVATE_KEY`
-- **Value**: Your private SSH key content
-- **How to get**: Run `cat ~/.ssh/id_rsa` on your local machine and copy the entire output
-- **Format**: Should start with `-----BEGIN OPENSSH PRIVATE KEY-----` and end with `-----END OPENSSH PRIVATE KEY-----`
+- **Value**: Your complete private SSH key
+- **How to get**: Run `cat ~/.ssh/id_rsa` and copy the entire output
+- **Format**: Must include the header and footer lines:
+  ```
+  -----BEGIN OPENSSH PRIVATE KEY-----
+  [key content]
+  -----END OPENSSH PRIVATE KEY-----
+  ```
 
-### 3. Generate SSH Key (if needed)
+### 3. Workflow File
 
-If you don't have an SSH key pair:
+The workflow file `.github/workflows/deploy.yml` uses the `appleboy/ssh-action` to:
+- SSH into your VM
+- Pull the latest code
+- Build server and client
+- Deploy and restart services
+- Verify the deployment
 
-```bash
-# Generate new SSH key
-ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
+## Database Configuration (Optional)
 
-# Copy public key to Azure VM
-ssh-copy-id -i ~/.ssh/id_rsa.pub azureuser@20.153.200.5
-
-# Get private key for GitHub secret
-cat ~/.ssh/id_rsa
-```
-
-## Database Configuration
-
-If your application uses PostgreSQL, ensure it's configured on your Azure VM:
+If using PostgreSQL:
 
 ```bash
 # Install PostgreSQL
 sudo apt-get install -y postgresql postgresql-contrib
 
 # Create database and user
-sudo -u postgres psql -c "CREATE DATABASE narrari;"
-sudo -u postgres psql -c "CREATE USER narrari_user WITH PASSWORD 'your_password';"
-sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE narrari TO narrari_user;"
-```
-
-Add database environment variables to your server by creating `/home/azureuser/narrari-deploy/.env`:
-
-```env
-DATABASE_URL=postgresql://narrari_user:your_password@localhost:5432/narrari
-PORT=3000
-NODE_ENV=production
+sudo -u postgres psql << EOF
+CREATE DATABASE narrari;
+CREATE USER narrari_user WITH PASSWORD 'your_secure_password';
+GRANT ALL PRIVILEGES ON DATABASE narrari TO narrari_user;
+\q
+EOF
 ```
 
 ## Deployment Process
@@ -147,130 +185,224 @@ NODE_ENV=production
 ### Automatic Deployment
 
 The deployment happens automatically when you:
-1. Push to the `main` or `master` branch
-2. Manually trigger the workflow from GitHub Actions tab
+1. Push to the `main` branch
+2. The GitHub Action will:
+   - SSH into your VM
+   - Pull latest code from git
+   - Build server with Bun
+   - Build client with npm
+   - Deploy server to `/home/azureuser/narrari-deploy`
+   - Deploy client to `/var/www/hayshin.dev/html`
+   - Restart services and verify
 
 ### Manual Deployment
 
-You can also manually deploy using the deployment script on your server:
+You can also deploy manually using the deployment script:
 
 ```bash
 # SSH into your server
 ssh -i ~/.ssh/id_rsa azureuser@20.153.200.5
 
-# Navigate to deployment directory
-cd /home/azureuser/narrari-deploy
+# Use the deployment script
+cd /home/azureuser/narrari
+chmod +x scripts/deploy.sh
 
-# Use deployment script
-./deploy-server.sh deploy    # Full deployment
-./deploy-server.sh restart   # Restart server
-./deploy-server.sh status    # Check status
-./deploy-server.sh logs      # View logs
+# Full deployment
+./scripts/deploy.sh deploy
+
+# Other commands
+./scripts/deploy.sh status    # Check status
+./scripts/deploy.sh restart   # Restart server
+./scripts/deploy.sh logs      # View logs
+./scripts/deploy.sh verify    # Verify deployment
 ```
 
 ## Monitoring and Troubleshooting
 
 ### Check Deployment Status
 
-Monitor your deployments in the GitHub Actions tab of your repository. Each deployment will show:
-- ✅ Build successful
-- ✅ Server deployed
-- ✅ Client deployed
-- ✅ Verification passed
+Monitor deployments in the **Actions** tab of your GitHub repository.
 
 ### Common Issues
 
 #### 1. SSH Connection Failed
-- Verify SSH_HOST and SSH_USER secrets are correct
-- Ensure SSH_PRIVATE_KEY is the complete private key
-- Check that your public key is in `~/.ssh/authorized_keys` on the server
+**Symptoms**: `Permission denied (publickey)`
+**Solutions**:
+- Verify `SSH_HOST` and `SSH_USER` secrets
+- Ensure `SSH_PRIVATE_KEY` includes header/footer lines
+- Test SSH connection manually: `ssh -i ~/.ssh/id_rsa azureuser@20.153.200.5`
 
-#### 2. Server Not Starting
+#### 2. Git Pull Failed
+**Symptoms**: `fatal: could not read from remote repository`
+**Solutions**:
+- Ensure repository is public or SSH keys are configured for git
+- Check repository URL in the deployment script
+- Verify git credentials on VM
+
+#### 3. Build Failed
+**Symptoms**: `bun: command not found` or `npm: command not found`
+**Solutions**:
+- Ensure Bun and Node.js are installed and in PATH
+- Check if `source ~/.bashrc` is needed
+- Verify dependencies can be installed
+
+#### 4. Server Not Starting
+**Symptoms**: Server process exits immediately
+**Solutions**:
 ```bash
 # Check server logs
 ssh azureuser@20.153.200.5
+tail -f /home/azureuser/narrari-deploy/server.log
+
+# Check environment variables
+cat /home/azureuser/narrari-deploy/.env
+
+# Manually test server
 cd /home/azureuser/narrari-deploy
-./deploy-server.sh logs
+bun run index.js
 ```
 
-#### 3. Client Not Accessible
-- Check Nginx configuration
+#### 5. Client Not Accessible
+**Symptoms**: 404 errors or blank page
+**Solutions**:
+- Check nginx status: `sudo systemctl status nginx`
 - Verify file permissions: `ls -la /var/www/hayshin.dev/html`
-- Restart Nginx: `sudo systemctl restart nginx`
+- Test nginx config: `sudo nginx -t`
+- Check nginx logs: `sudo tail -f /var/log/nginx/error.log`
 
-#### 4. Port Already in Use
+### Debugging Commands
+
 ```bash
-# Find process using port 3000
-lsof -ti :3000
-
-# Kill process if needed
-kill -9 $(lsof -ti :3000)
-```
-
-### Server Monitoring
-
-Check server status:
-```bash
-# Server process
-ps aux | grep narrari-deploy
-
-# Port usage
+# Check server status
+ps aux | grep narrari
 netstat -tlnp | grep :3000
 
-# System resources
+# Check nginx
+sudo systemctl status nginx
+sudo nginx -t
+
+# Check logs
+tail -f /home/azureuser/narrari-deploy/server.log
+sudo tail -f /var/log/nginx/error.log
+
+# Check disk space
+df -h
+
+# Check system resources
 htop
 ```
 
-## Environment Variables
+## Environment Configuration
 
-Create environment-specific configurations:
+### Production Environment Variables
 
-### Production Environment (.env)
+Create `/home/azureuser/narrari-deploy/.env`:
+
 ```env
 NODE_ENV=production
 PORT=3000
-DATABASE_URL=postgresql://user:password@localhost:5432/narrari
+HOST=0.0.0.0
+DATABASE_URL=postgresql://narrari_user:your_password@localhost:5432/narrari
+LOG_LEVEL=info
+CORS_ORIGIN=https://hayshin.dev
 ```
 
-### Development Environment
-Keep sensitive data in GitHub Secrets and reference them in your workflow if needed.
+### Secure Environment Variables
+
+For sensitive data like API keys:
+1. Add them to GitHub Secrets
+2. Reference them in the workflow
+3. Create them on the server during deployment
 
 ## Security Considerations
 
-1. **SSH Keys**: Never commit SSH keys to your repository
-2. **Database Credentials**: Use environment variables
-3. **API Keys**: Store in GitHub Secrets
-4. **File Permissions**: Ensure proper permissions on deployed files
-5. **Firewall**: Configure firewall rules to allow only necessary ports
-
-## Workflow Customization
-
-You can customize the deployment workflow by editing `.github/workflows/deploy.yml`:
-
-- **Change branches**: Modify the `branches` array
-- **Add tests**: Include testing steps before deployment
-- **Environment-specific deployments**: Add conditional logic
-- **Notification**: Add Slack/Discord notifications
+1. **SSH Keys**: Never commit private keys to repository
+2. **File Permissions**: Ensure proper permissions on deployed files
+3. **Database**: Use strong passwords and limit access
+4. **Firewall**: Configure UFW or similar:
+   ```bash
+   sudo ufw allow ssh
+   sudo ufw allow 80
+   sudo ufw allow 443
+   sudo ufw enable
+   ```
+5. **SSL**: Configure SSL certificates for HTTPS
 
 ## Performance Optimization
 
-1. **Build Caching**: The workflow caches dependencies for faster builds
-2. **Parallel Jobs**: Consider splitting client/server builds
-3. **Deployment Scripts**: Use the robust deployment script for better reliability
+1. **Build Caching**: Dependencies are cached between deployments
+2. **Process Management**: Server is properly stopped before restart
+3. **Nginx**: Serves static files efficiently
+4. **Database**: Use connection pooling and proper indexes
 
-## Backup Strategy
+## Advanced Configuration
 
-Consider implementing:
-1. **Database backups** before deployments
-2. **Rolling deployments** with health checks
-3. **Rollback procedures** for failed deployments
+### Custom Deployment Script
 
-## Support
+You can customize the deployment by modifying `scripts/deploy.sh`:
+
+```bash
+# Add custom build steps
+# Add database migrations
+# Add custom health checks
+# Add rollback procedures
+```
+
+### Multiple Environments
+
+For staging/production environments:
+1. Create separate branches
+2. Use different domain names
+3. Configure environment-specific secrets
+4. Modify workflow to trigger on different branches
+
+## Backup and Recovery
+
+### Database Backup
+
+```bash
+# Create backup script
+cat > /home/azureuser/backup-db.sh << 'EOF'
+#!/bin/bash
+BACKUP_DIR="/home/azureuser/backups"
+DATE=$(date +%Y%m%d_%H%M%S)
+mkdir -p $BACKUP_DIR
+pg_dump narrari > $BACKUP_DIR/narrari_$DATE.sql
+# Keep only last 7 days
+find $BACKUP_DIR -name "narrari_*.sql" -mtime +7 -delete
+EOF
+
+chmod +x /home/azureuser/backup-db.sh
+
+# Add to crontab
+echo "0 2 * * * /home/azureuser/backup-db.sh" | crontab -
+```
+
+### Code Rollback
+
+```bash
+# Rollback to previous commit
+cd /home/azureuser/narrari
+git log --oneline -n 10  # See recent commits
+git reset --hard <commit-hash>
+./scripts/deploy.sh deploy
+```
+
+## Support and Maintenance
+
+### Regular Maintenance
+
+1. **System Updates**: Keep VM updated
+2. **Log Rotation**: Configure log rotation
+3. **Monitoring**: Set up monitoring and alerts
+4. **SSL Renewal**: Automate SSL certificate renewal
+
+### Getting Help
 
 If you encounter issues:
-1. Check GitHub Actions logs
+1. Check the GitHub Actions logs
 2. Review server logs using the deployment script
 3. Verify all prerequisites are met
-4. Ensure all secrets are correctly configured
+4. Test components individually
 
-The deployment system includes comprehensive logging and status checking to help diagnose issues quickly.
+The simplified git-based approach provides better debugging capabilities and faster deployments while maintaining reliability and security.
