@@ -40,8 +40,7 @@ jobs:
             fi
 
             # Start the server and immediately disown it
-            nohup ./server > /dev/null 2>&1 & disown # <--- THE KEY LINE
-
+            nohup ./server > stdout.log 2> stderr.log & disown
 
             cd ../client && bun install
             bun run build

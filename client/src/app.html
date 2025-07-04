@@ -1,25 +1,47 @@
 <!doctype html>
 <html lang="%paraglide.lang%">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="%sveltekit.assets%/favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-<head>
-  <meta charset="utf-8" />
-  <link rel="icon" href="%sveltekit.assets%/favicon.png" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=G-M17JL53R1J"
+    ></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
 
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-M17JL53R1J"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag() {dataLayer.push(arguments);}
-    gtag('js', new Date());
+      gtag("config", "G-M17JL53R1J");
+    </script>
+    <script src="Gradient.js"></script>
+    %sveltekit.head%
+  </head>
 
-    gtag('config', 'G-M17JL53R1J');
-  </script>
-  %sveltekit.head%
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+    }
 
-</head>
+    #gradient-canvas {
+      --gradient-color-1: #a24fdf;
+      --gradient-color-2: #fa7719;
+      --gradient-color-3: #ce2b70;
+      --gradient-color-4: #ba4fa7;
+    }
+  </style>
 
-<body data-sveltekit-preload-data="hover">
-  <div style="display: contents">%sveltekit.body%</div>
-</body>
-
+  <body data-sveltekit-preload-data="hover">
+    <div style="display: contents">%sveltekit.body%</div>
+    <canvas id="gradient-canvas" style="width: 100vw; height: 100vh"></canvas>
+    <script>
+      var gradient = new Gradient();
+      gradient.initGradient("#gradient-canvas");
+    </script>
+  </body>
 </html>

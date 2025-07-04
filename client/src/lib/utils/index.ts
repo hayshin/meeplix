@@ -17,7 +17,8 @@ const getProtocol = () => {
 };
 
 export const PUBLIC_API_URL = `${getProtocol()}://${api_ip}`;
-export const api = treaty<App>(PUBLIC_API_URL);
+const native_api = treaty<App>(PUBLIC_API_URL);
+export const api = native_api.api;
 
 export const storage = {
   // Сохранить никнейм
