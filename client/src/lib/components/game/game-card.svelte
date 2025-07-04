@@ -37,7 +37,9 @@
     }
   };
   const getImageUrl = (card: CardEntity): string => {
-    let imageUrl = card.title ? `${PUBLIC_API_URL}/cards/${card.title}` : "";
+    let imageUrl = card.title
+      ? `${PUBLIC_API_URL}/api/cards/${card.title}`
+      : "";
     return imageUrl;
   };
 
