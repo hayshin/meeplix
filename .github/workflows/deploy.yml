@@ -32,7 +32,16 @@ jobs:
 
             pkill server
             chmod +x server
-            nohup ./server &
+            # --- IMPORTANT: Stop existing server process first ---
+            if lsof -i :3000 -t > /dev/null 2>&1; then
+                echo "Killing existing process on port 3000..."
+                kill -9 $(lsof -ti :3000)
+                sleep 2 # Give it a moment to release the port
+            fi
+
+            # Start the server and immediately disown it
+            nohup ./server > /dev/null 2>&1 & disown # <--- THE KEY LINE
+
 
             cd ../client && bun install
             bun run build
