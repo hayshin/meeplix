@@ -46,6 +46,5 @@ jobs:
             cd ../client && bun install
             bun run build
             mkdir -p /var/www/hayshin.dev/html || true
-            chown -R ***:*** /var/www/hayshin.dev/html
             cp -r build/* /var/www/hayshin.dev/html/
             sudo systemctl restart nginx
