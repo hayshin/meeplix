@@ -6,7 +6,7 @@ import { swagger } from "@elysiajs/swagger";
 import { cardsRoutes } from "./routes/cards";
 const app = new Elysia({
   // Add WebSocket configuration
-  prefix: "api",
+  prefix: "/api",
   websocket: {
     idleTimeout: 60,
     maxPayloadLength: 1024 * 1024, // 1MB

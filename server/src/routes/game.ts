@@ -3,7 +3,7 @@ import { gameManager } from "$/ws/handlers";
 import { t } from "elysia";
 import { RoomStateSchema } from "$shared/types/room";
 
-export const gameRoutes = new Elysia({ prefix: "game" }).get(
+export const gameRoutes = new Elysia({ prefix: "/game" }).get(
   "/:id",
   async ({ params, status }) => {
     try {
