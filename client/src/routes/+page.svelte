@@ -8,6 +8,7 @@
     GradientBackground,
     PageHeader,
     MainGameCard,
+    MagicalCursor,
   } from "$lib/components/home";
 
   let nickname = $state("");
@@ -120,6 +121,7 @@
 </svelte:head>
 
 <GradientBackground />
+<MagicalCursor />
 
 <!-- Language selector in top-right corner -->
 <div class="fixed top-4 right-4 z-50">
