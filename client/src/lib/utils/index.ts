@@ -1,10 +1,24 @@
 import type { App } from "$server/src";
 import { treaty } from "@elysiajs/eden";
-import {PUBLIC_API} from '$env/static/public'
+import { PUBLIC_API } from "$env/static/public";
+
+import { browser } from "$app/environment";
 
 let api_ip = PUBLIC_API ?? "localhost:3000";
-export const PUBLIC_API_URL = `http://${api_ip}`;
+
+// Determine protocol based on environment
+const getProtocol = () => {
+  if (browser) {
+    // In browser, use the same protocol as the current page
+    return window.location.protocol === "https:" ? "https" : "http";
+  }
+  // Server-side fallback
+  return "http";
+};
+
+export const PUBLIC_API_URL = `${getProtocol()}://${api_ip}`;
 export const api = treaty<App>(PUBLIC_API_URL);
+
 export const storage = {
   // Сохранить никнейм
   saveNickname: (nickname: string): void => {
