@@ -17,6 +17,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            export PATH="$HOME/.bun/bin:$PATH"
             cd /home/azureuser/narrari/
             git pull
             bun install
@@ -29,12 +30,13 @@ jobs:
              	--outfile server \
              	./src/index.ts
 
+            pkill server
             chmod +x server
             nohup ./server &
 
             cd ../client && bun install
             bun run build
-            sudo mkdir /var/www/hayshin.dev/html
-            sudo chown -R azureuser:azureuser /var/www/hayshin.dev/html
-            sudo cp -r build/* /var/www/hayshin.dev/html/
+            mkdir -p /var/www/hayshin.dev/html || true
+            chown -R ***:*** /var/www/hayshin.dev/html
+            cp -r build/* /var/www/hayshin.dev/html/
             sudo systemctl restart nginx
