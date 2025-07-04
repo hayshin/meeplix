@@ -1,1 +1,35 @@
-@import 'tailwindcss';
+@import "tailwindcss";
+
+/* Global font settings */
+* {
+  font-family: "Nunito", sans-serif;
+}
+
+/* Override for button components to use Silkscreen */
+.pixel-button {
+  font-family: "Silkscreen", monospace !important;
+}
+
+/* Ensure proper font inheritance */
+body {
+  font-family: "Nunito", sans-serif;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: "Nunito", sans-serif;
+}
+
+p,
+span,
+div,
+a,
+li,
+td,
+th {
+  font-family: "Nunito", sans-serif;
+}

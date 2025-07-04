@@ -26,8 +26,9 @@
   } from "lucide-svelte";
   import StatusBar from "$lib/components/StatusBar.svelte";
   import PlayersList from "$lib/components/PlayersList.svelte";
-  import GameCard from "$lib/components/GameCard.svelte";
+  import GameCard from "$lib/components/game/game-card.svelte";
   import ScoreTable from "$lib/components/ScoreTable.svelte";
+  import PixelButton from "$lib/components/ui/PixelButton.svelte";
   import NicknameModal from "$lib/components/game/nickname-modal.svelte";
   import GamePhases from "$lib/components/game/game-phases.svelte";
 
@@ -189,13 +190,12 @@
     <div class="mx-auto max-w-7xl px-4 py-6">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-4">
-          <button
-            onclick={leaveGame}
-            class="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors"
-          >
-            <Home size={20} />
-            Leave Game
-          </button>
+          <PixelButton variant="danger" size="sm" onClick={leaveGame}>
+            {#snippet children()}
+              <Home size={20} />
+              Leave Game
+            {/snippet}
+          </PixelButton>
           <div class="flex items-center gap-2 text-slate-300">
             <Sparkles size={20} class="text-purple-400" />
             <span class="text-sm">Room: {roomId}</span>
@@ -203,22 +203,20 @@
         </div>
         <div class="flex items-center gap-3">
           {#if $gameState.roomState?.stage === "joining"}
-            <button
-              onclick={toggleReady}
-              class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
-            >
-              <Users size={16} />
-              Toggle Ready
-            </button>
+            <PixelButton variant="secondary" size="sm" onClick={toggleReady}>
+              {#snippet children()}
+                <Users size={16} />
+                Toggle Ready
+              {/snippet}
+            </PixelButton>
           {/if}
           {#if $gameState.roomState?.stage === "joining" && $canStartGame && $allPlayersReady}
-            <button
-              onclick={startGame}
-              class="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
-            >
-              <Play size={16} />
-              Start Game
-            </button>
+            <PixelButton variant="success" size="sm" onClick={startGame}>
+              {#snippet children()}
+                <Play size={16} />
+                Start Game
+              {/snippet}
+            </PixelButton>
           {/if}
         </div>
       </div>
@@ -294,18 +292,16 @@
           </div>
           <p class="text-red-200 mb-6 text-lg">{$gameState.error}</p>
           <div class="flex gap-4 justify-center">
-            <button
-              onclick={connectToGame}
-              class="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
-            >
-              Try Again
-            </button>
-            <button
-              onclick={leaveGame}
-              class="px-6 py-3 bg-slate-600 hover:bg-slate-700 text-white rounded-lg transition-colors"
-            >
-              Leave Game
-            </button>
+            <PixelButton variant="danger" size="md" onClick={connectToGame}>
+              {#snippet children()}
+                Try Again
+              {/snippet}
+            </PixelButton>
+            <PixelButton variant="secondary" size="md" onClick={leaveGame}>
+              {#snippet children()}
+                Leave Game
+              {/snippet}
+            </PixelButton>
           </div>
         </div>
       </div>
