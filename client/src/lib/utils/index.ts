@@ -2,8 +2,21 @@ import type { App } from "$server/src";
 import { treaty } from "@elysiajs/eden";
 import { PUBLIC_API } from "$env/static/public";
 
-import { browser } from "$app/environment";
+import { browser, dev } from "$app/environment";
+import { isProduction } from "elysia/error";
 
+// Environment check utilities
+export const env = {
+  // Check if in production environment
+  isProduction: !dev,
+
+  // Check if in development environment
+  isDevelopment: dev,
+
+  // Check NODE_ENV (fallback method)
+  isNodeProduction:
+    typeof process !== "undefined" && process.env.NODE_ENV === "production",
+};
 let api_ip = PUBLIC_API ?? "localhost:3000";
 
 // Determine protocol based on environment
@@ -18,7 +31,11 @@ const getProtocol = () => {
 
 export const PUBLIC_API_URL = `${getProtocol()}://${api_ip}`;
 const native_api = treaty<App>(PUBLIC_API_URL);
-export const api = native_api.api;
+export let api = native_api.api;
+// if (env.isProduction) {
+//   // In browser, use the same protocol as the current page
+//   api = native_api.api;
+// }
 
 export const storage = {
   // Сохранить никнейм
