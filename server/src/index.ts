@@ -4,15 +4,31 @@ import { gameRoutes } from "./routes/game";
 import { cors } from "@elysiajs/cors";
 import { swagger } from "@elysiajs/swagger";
 import { cardsRoutes } from "./routes/cards";
-const app = new Elysia()
+const app = new Elysia({
+  // Add WebSocket configuration
+  websocket: {
+    idleTimeout: 60,
+    maxPayloadLength: 1024 * 1024, // 1MB
+    perMessageDeflate: false,
+  },
+})
   .get("/", () => "Hello Elysia")
-  .use(cors())
+  .use(
+    cors({
+      origin: true,
+      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+      allowedHeaders: ["Content-Type", "Authorization"],
+      credentials: true,
+    }),
+  )
   .use(swagger())
   .use(websocket)
   .use(gameRoutes)
   .use(cardsRoutes)
-  .listen(3000);
-
+  .listen({
+    port: 3000,
+    hostname: "0.0.0.0", // Listen on all interfaces
+  });
 console.log(
   `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`,
 );
