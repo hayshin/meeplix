@@ -51,9 +51,9 @@ export class GameManager {
     }
 
     // Check that nickname is unique in this room
-    // if (room.players.some((p) => p.nickname === nickname)) {
-    //   throw new Error("Nickname already taken");
-    // }
+    if (room.players.some((p) => p.nickname === nickname)) {
+      throw new Error("Nickname already taken");
+    }
 
     console.log(`Creating new player with nickname: ${nickname}`);
     const newPlayer = createPlayer(nickname);
@@ -73,46 +73,25 @@ export class GameManager {
     return newPlayer;
   }
 
-  async sendMessage(
-    ws: WS,
-    message: ServerMessageWithoutRoomState,
-    room: RoomStateEntity,
-  ) {
-    const newMessage = {
-      ...message,
-      room: room.cloneForClient(),
-    };
-    ws.send(message);
-  }
   async connectPlayer(ws: WS, roomId: string, playerId: string): Promise<void> {
     console.log(`Connecting player ${playerId} to room ${roomId}`);
 
     // Store player ID in WebSocket data for later identification
-    if (!ws.data.query) {
-      ws.data.query = {};
+    if (!ws.data) {
+      ws.data = {};
     }
-    ws.data.query.playerId = playerId;
-    ws.data.query.roomId = roomId;
+    ws.data.playerId = playerId;
+    ws.data.roomId = roomId;
 
     this.addConnection(roomId, ws);
     console.log(`WebSocket connection added for player ${playerId}`);
 
     // Broadcast to room that player joined
-
-    // this.broadcastToRoom(roomId, {
-    //   type: "player_joined",
-    //   roomId: roomId,
-    //   playerId: playerId,
-    // });
-    this.sendMessage(
-      ws,
-      {
-        type: "player_joined",
-        roomId: roomId,
-        playerId: playerId,
-      },
-      this.getRoom(roomId),
-    );
+    this.broadcastToRoom(roomId, {
+      type: "player_joined",
+      roomId: roomId,
+      playerId: playerId,
+    });
 
     console.log(`Player ${playerId} successfully connected to room ${roomId}`);
   }
@@ -344,6 +323,8 @@ export class GameManager {
       points: player.score,
     }));
 
+    room.stage = "results";
+
     console.log(`Broadcasting end_vote...`);
     this.broadcastToRoom(room.id, {
       type: "end_vote",
@@ -418,13 +399,7 @@ export class GameManager {
     );
     player.isReady = isReady;
 
-    console.log(room.getReadyPlayers().size);
-    console.log(room.getActivePlayers().size);
-    console.log(room.allPlayersReady());
     this.broadcastToRoom(roomId, { type: "player_ready", roomId, playerId });
-    if (room.allPlayersReady()) {
-      room.startRound(room.leaderId);
-    }
   }
 
   // WebSocket connection management
@@ -481,7 +456,7 @@ export class GameManager {
     const room = this.getRoom(roomId);
     const connections = this.wsConnections.get(roomId);
     if (connections) {
-      connections.forEach((ws: any) => {
+      connections.forEach((ws: WS) => {
         if (ws.readyState === 1 && ws.data?.playerId === playerId) {
           // OPEN
           ws.send({
