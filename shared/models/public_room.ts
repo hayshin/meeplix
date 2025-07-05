@@ -1,7 +1,7 @@
 import { Static, t } from "elysia";
-import { PlayersDTO } from "./player";
+import { PlayerDTO } from "./player";
 import { PublicCardsDTO } from "./public_card";
-import { VotesDTO } from "./vote";
+import { VoteDTO } from "./vote";
 
 export const RoomPhaseDTO = t.Union([
   t.Literal("joining"),
@@ -14,14 +14,14 @@ export const RoomPhaseDTO = t.Union([
 
 export const PublicRoomStateDTO = t.Object({
   id: t.String(),
-  players: PlayersDTO,
+  players: t.Array(PlayerDTO),
   roundNumber: t.Number(),
   leaderId: t.String(),
   currentDescription: t.String(),
   // for the active player, this is the active card; for other players, this is the card they chose
   submittedCards: PublicCardsDTO,
   stage: RoomPhaseDTO,
-  votes: VotesDTO,
+  votes: t.Array(VoteDTO),
 });
 
 export type PublicRoomState = Static<typeof PublicRoomStateDTO>;

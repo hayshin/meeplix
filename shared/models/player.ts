@@ -18,5 +18,3 @@ export const PlayerDTO = t.Object({
 });
 
 export type Player = Static<typeof PlayerDTO>;
-
-export const PlayersDTO = t.Array(PlayerDTO);

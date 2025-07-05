@@ -12,8 +12,6 @@ export const CardDTO = t.Object({
 
 export type Card = Static<typeof CardDTO>;
 
-export const CardsDTO = t.Array(CardDTO);
-
 export function serializeCardForClient(card: Card): PublicCard {
   return {
     id: card.id,
