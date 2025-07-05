@@ -3,7 +3,6 @@ import { t } from "elysia";
 import { BaseEntity, BaseEntitySchema } from "./entity";
 import { Collection } from "./collection";
 import { PlayerCollection } from "./player";
-
 export const CardSchema = t.Composite([
   BaseEntitySchema,
   t.Object({

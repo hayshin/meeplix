@@ -4,6 +4,7 @@ import { gameRoutes } from "./routes/game";
 import { cors } from "@elysiajs/cors";
 import { swagger } from "@elysiajs/swagger";
 import { cardsRoutes } from "./routes/cards";
+import { logger } from "@bogeychan/elysia-logger";
 const app = new Elysia({
   // Add WebSocket configuration
   prefix: "/api",
@@ -23,6 +24,17 @@ const app = new Elysia({
     }),
   )
   .use(swagger())
+  .use(
+    logger({
+      autoLogging: true,
+      transport: {
+        target: "pino-pretty",
+        options: {
+          colorize: true,
+        },
+      },
+    }),
+  )
   .use(websocket)
   .use(gameRoutes)
   .use(cardsRoutes)

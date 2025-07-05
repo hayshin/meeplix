@@ -18,7 +18,6 @@ export const PlayerSchema = t.Composite([
   t.Object({
     nickname: t.String(),
     score: t.Number(),
-    hand: CardCollectionSchema,
     isConnected: t.Boolean(),
     joinedAt: t.Date(),
     isReady: t.Boolean(),
@@ -30,7 +29,6 @@ export type PlayerType = Static<typeof PlayerSchema>;
 export class PlayerEntity extends BaseEntity implements PlayerType {
   nickname: string;
   score: number;
-  hand: CardCollection;
   isConnected: boolean;
   joinedAt: Date;
   isReady: boolean;
@@ -39,7 +37,6 @@ export class PlayerEntity extends BaseEntity implements PlayerType {
     id: string,
     nickname: string,
     score: number,
-    cards: CardCollection,
     isConnected: boolean,
     joinedAt: Date,
     isReady: boolean,
@@ -47,7 +44,6 @@ export class PlayerEntity extends BaseEntity implements PlayerType {
     super(id);
     this.nickname = nickname;
     this.score = score;
-    this.hand = cards;
     this.isConnected = isConnected;
     this.joinedAt = joinedAt;
     this.isReady = isReady;

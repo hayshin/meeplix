@@ -1,5 +1,5 @@
 import type { Static } from "elysia";
-import { t } from "elysia";
+import { t, TSchema } from "elysia";
 import { SubmittedCardSchema } from "./submitted_card";
 import { CardSchema } from "./card";
 
