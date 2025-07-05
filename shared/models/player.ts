@@ -11,10 +11,12 @@ export type PlayerStatus = Static<typeof PlayerStatusDTO>;
 export const PlayerDTO = t.Object({
   id: t.String({ uuid: true }),
   nickname: t.String({ minLength: 2, maxLength: 32 }),
-  score: t.Number(),
+  score: t.Number({ minimum: 0 }),
   socketId: t.String(),
   status: PlayerStatusDTO,
   joinedAt: t.Date(),
 });
 
 export type Player = Static<typeof PlayerDTO>;
+
+export const PlayersDTO = t.Array(PlayerDTO);

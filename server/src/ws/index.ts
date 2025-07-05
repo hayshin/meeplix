@@ -1,19 +1,8 @@
 import Elysia from "elysia";
 import { ElysiaWS } from "elysia/dist/ws";
 import { t } from "elysia";
-import {
-  ClientMessageSchema,
-  type ClientMessage,
-  type JoinRoomMessage,
-  type CreateRoomMessage,
-  type LeaderPlayerChooseCardMessage,
-  type PlayerChooseCardMessage,
-  type PlayerVoteMessage,
-  type ReadyMessage,
-  type NextRoundMessage,
-  StartGameMessage,
-} from "$shared/types/client";
-
+import { ClientMessage } from "$messages/client_message";
+import * as Handlers from "./handlers/index";
 const WSDataSchema = t.Object({
   roomId: t.Optional(t.String()),
   playerId: t.Optional(t.String()),
@@ -28,7 +17,7 @@ export type WS = ElysiaWS<{
 };
 
 export const websocket = new Elysia().ws("/ws", {
-  body: t.Object({ message: ClientMessageSchema }),
+  body: t.Object({ message: ClientMessage }),
 
   open: (ws: WS) => {
     console.log("WebSocket connection opened");
@@ -70,3 +59,43 @@ export const websocket = new Elysia().ws("/ws", {
     }
   },
 });
+
+async function handleMessage(ws: WS, message: ClientMessage) {
+  console.log("Received message:", message);
+  switch (message.type) {
+    case "READY":
+      await Handlers.handlePlayerReady(message);
+      break;
+    case "CREATE_ROOM":
+      await Handlers.handleCreateRoom(ws, message);
+      break;
+    case "JOIN_ROOM":
+      await Handlers.handleJoinRoom(ws, message);
+      break;
+    case "START_GAME":
+      await Handlers.handleStartGame(ws, message);
+      break;
+    case "LEADER_SUBMIT_CARD":
+      await Handlers.handleLeaderSubmitCard(ws, message);
+      break;
+    case "SUBMIT_CARD":
+      await Handlers.handlePlayerSubmitCard(ws, message);
+      break;
+    case "VOTE":
+      await Handlers.handlePlayerVote(ws, message);
+      break;
+    case "NEXT_ROUND":
+      await Handlers.handleNextRound(ws, message);
+      break;
+    default:
+      sendError(ws, "Unknown message type");
+  }
+}
+export async function sendError(ws: WS, message: string) {
+  console.log("=== SENDING ERROR ===");
+  console.log("Error message:", message);
+  ws.send({
+    type: "error",
+    message,
+  });
+}

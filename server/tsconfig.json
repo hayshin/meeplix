@@ -32,6 +32,8 @@
     "paths": {
       "$/*": ["./src/*"] /* @/components/Header */,
       "$shared/*": ["../shared/*"] /* @shared/types */,
+      "$messages/*": ["../shared/messages/*"] /* @types (single file) */,
+      "$models/*": ["../shared/models/*"] /* @types (single file) */,
       "$types/*": ["../shared/types/*"] /* @types (single file) */,
       "$utils/*": ["./src/utils/*"] /* @utils/helpers */,
       "$db/*": ["./src/db/*"] /* @utils/helpers */,
