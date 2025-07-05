@@ -1,6 +1,8 @@
 import Elysia from "elysia";
 import { ElysiaWS } from "elysia/dist/ws";
-import { t } from "elysia";
+import { t, RouteSchema } from "elysia";
+
+import { ServerMessage } from "$messages/server_message";
 import { ClientMessage } from "$messages/client_message";
 import * as Handlers from "./handlers/index";
 const WSDataSchema = t.Object({
@@ -9,15 +11,19 @@ const WSDataSchema = t.Object({
 });
 
 type WSData = typeof WSDataSchema.static;
+// interface WSRouteSchema extends RouteSchema {
+//   // body: { message: ClientMessage };
+// }
 
-export type WS = ElysiaWS<{
-  body: { message: ClientMessage };
-}> & {
-  data: WSData;
-};
+export type WS = ElysiaWS<
+  { body: { message: ClientMessage } },
+  { response: { message: ServerMessage } }
+>;
 
 export const websocket = new Elysia().ws("/ws", {
   body: t.Object({ message: ClientMessage }),
+  // data: t.Object({ message: ClientMessage }),
+  response: { message: ServerMessage },
 
   open: (ws: WS) => {
     console.log("WebSocket connection opened");
@@ -43,20 +49,20 @@ export const websocket = new Elysia().ws("/ws", {
     console.log("WebSocket connection closed");
 
     // Clean up connection from gameManager
-    if (ws.data?.roomId) {
-      console.log(`Cleaning up connection for room ${ws.data.roomId}`);
-      gameManager.removeConnection(ws.data.roomId, ws);
+    // if (ws.data?.roomId) {
+    //   console.log(`Cleaning up connection for room ${ws.data.roomId}`);
+    //   gameManager.removeConnection(ws.data.roomId, ws);
 
-      // Broadcast player disconnection
-      if (ws.data.playerId) {
-        console.log(`Broadcasting player disconnect for ${ws.data.playerId}`);
-        gameManager.broadcastToRoom(ws.data.roomId, {
-          type: "player_disconnected",
-          roomId: ws.data.roomId,
-          playerId: ws.data.playerId,
-        });
-      }
-    }
+    //   // Broadcast player disconnection
+    //   if (ws.data.playerId) {
+    //     console.log(`Broadcasting player disconnect for ${ws.data.playerId}`);
+    //     gameManager.broadcastToRoom(ws.data.roomId, {
+    //       type: "player_disconnected",
+    //       roomId: ws.data.roomId,
+    //       playerId: ws.data.playerId,
+    //     });
+    //   }
+    // }
   },
 });
 

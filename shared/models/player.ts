@@ -1,4 +1,6 @@
 import type { Static } from "elysia";
+import { v4 as uuidv4 } from "uuid";
+
 import { t } from "elysia";
 
 export const PlayerStatusDTO = t.Union([
@@ -18,3 +20,12 @@ export const PlayerDTO = t.Object({
 });
 
 export type Player = Static<typeof PlayerDTO>;
+
+export const createPlayer = (nickname: string): Player => ({
+  id: uuidv4(),
+  nickname,
+  score: 0,
+  socketId: "",
+  status: "offline",
+  joinedAt: new Date(),
+});

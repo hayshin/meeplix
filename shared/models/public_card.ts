@@ -10,7 +10,3 @@ export const PublicCardDTO = t.Object({
 });
 
 export type PublicCard = Static<typeof PublicCardDTO>;
-
-export const PublicCardsDTO = t.Array(PublicCardDTO);
-
-export type PublicCards = Static<typeof PublicCardsDTO>;

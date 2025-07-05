@@ -22,8 +22,8 @@ import { BaseEntity } from "./entity";
 
 export const RoomStageSchema = t.Union([
   t.Literal("joining"),
-  t.Literal("leader_choosing"),
-  t.Literal("players_choosing"),
+  t.Literal("leader_submitting"),
+  t.Literal("players_submitting"),
   t.Literal("voting"),
   t.Literal("results"),
   t.Literal("finished"),

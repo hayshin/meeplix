@@ -1,29 +1,16 @@
 import { Static, t } from "elysia";
 import { v4 as uuidv4 } from "uuid";
 import { PlayerDTO, Player } from "$shared/models/player";
-import { CardDTO, Card, serializeCardForClient } from "./card";
-import { HandDTO, Hand } from "./hand";
+import { CardDTO, Card, serializeCardForClient } from "./card.model";
+import { HandDTO, Hand } from "./hand.model";
 import { VoteDTO, Vote } from "$shared/models/vote";
 import { PublicRoomState } from "$shared/models/public_room";
-import { PublicCards } from "$shared/models/public_card";
-
-export const SubmittedCardDTO = t.Object({
-  playerId: t.String(),
-  card: CardDTO,
-});
-
-export type SubmittedCard = Static<typeof SubmittedCardDTO>;
-
-export function serializeSubmittedCards(submits: SubmittedCard[]): PublicCards {
-  return submits.map((card) => {
-    return serializeCardForClient(card.card);
-  });
-}
+import { Submit, SubmitDTO, serializeSubmittedCards } from "./submit.model";
 
 export const RoomPhaseDTO = t.Union([
   t.Literal("joining"),
-  t.Literal("leader_choosing"),
-  t.Literal("players_choosing"),
+  t.Literal("leader_submitting"),
+  t.Literal("players_submitting"),
   t.Literal("voting"),
   t.Literal("results"),
   t.Literal("finished"),
@@ -38,8 +25,8 @@ export const RoomStateDTO = t.Object({
   leaderId: t.String(),
   currentDescription: t.String(),
   // for the active player, this is the active card; for other players, this is the card they chose
-  submittedCards: t.Array(SubmittedCardDTO),
-  stage: RoomPhaseDTO,
+  submittedCards: t.Array(SubmitDTO),
+  phase: RoomPhaseDTO,
   votes: t.Array(VoteDTO),
   hands: t.Array(HandDTO),
 });
@@ -52,7 +39,7 @@ export function createRoomState(
   roundNumber: number,
   leaderId: string,
   currentDescription: string,
-  submittedCards: SubmittedCard[],
+  submittedCards: Submit[],
   stage: RoomPhase,
   votes: Vote[],
   hands: Hand[],
@@ -65,7 +52,7 @@ export function createRoomState(
     leaderId,
     currentDescription,
     submittedCards,
-    stage,
+    phase: stage,
     votes,
     hands,
   };
@@ -79,7 +66,7 @@ export function createEmptyRoomState(): RoomState {
     leaderId: "",
     currentDescription: "",
     submittedCards: [],
-    stage: "joining",
+    phase: "joining",
     votes: [],
     hands: [],
   };
@@ -93,7 +80,7 @@ export function serializeRoomState(roomState: RoomState): PublicRoomState {
     leaderId: roomState.leaderId,
     currentDescription: roomState.currentDescription,
     submittedCards: serializeSubmittedCards(roomState.submittedCards),
-    stage: roomState.stage,
+    stage: roomState.phase,
     votes: roomState.votes,
   };
 }

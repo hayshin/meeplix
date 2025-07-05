@@ -1,5 +1,5 @@
-import { Card } from "../models/card";
-import { Hand } from "../models/hand";
+import { Card } from "$/ws/models/card";
+import { Hand } from "$/ws/models/hand";
 import { shuffleDeck } from "./card.service";
 
 export function hasCard(hand: Hand, card: Card): boolean {

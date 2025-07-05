@@ -9,7 +9,7 @@ export const RoomJoinedMessage = messageSchema("ROOM_JOINED", {
 });
 
 export const RoomCreatedMessage = messageSchema("ROOM_CREATED", {
-  player: PlayerDTO,
+  // player: PlayerDTO,
   roomId: t.String(),
 });
 
