@@ -1,14 +1,20 @@
-import { VoteMessage } from "$messages/client_message";
+import { VoteMessage } from "$messages/client.message";
+import { WS, broadcastMessage, sendError } from "..";
+import { playerVote } from "../services/room.service";
+
 export async function handlePlayerVote(ws: WS, message: VoteMessage) {
   try {
-    const { roomId, playerId } = await getIds(message);
-    const { card } = message;
+    const { roomId, playerId, cardId } = message.payload;
 
     console.log(
       `Handling player vote for room ${roomId} by player ${playerId}`,
     );
 
-    await gameManager.playerVote(roomId, playerId, CardEntity.fromType(card));
+    playerVote(roomId, playerId, cardId);
+    broadcastMessage(roomId, {
+      type: "player_vote",
+      payload: { playerId, cardId },
+    });
     // await gameManager.broadcastRoomUpdate(roomId);
   } catch (error) {
     console.error(

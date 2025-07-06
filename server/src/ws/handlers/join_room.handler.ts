@@ -1,30 +1,38 @@
-import { JoinRoomMessage } from "$messages/client_message";
+import { JoinRoomMessage } from "$messages/index";
+import { createPlayer } from "$shared/models/player";
+import { WS, sendError, sendMessage } from "..";
+import { addPlayerConnection } from "../stores/connection.store";
+import {
+  addPlayerToRoom,
+  getPlayersIDsInRoom,
+  getRoomById,
+} from "../stores/room.store";
 
 export async function handleJoinRoom(ws: WS, message: JoinRoomMessage) {
   console.log("=== HANDLING JOIN ROOM ===");
-  console.log("Room ID:", message.roomId);
-  console.log("Player name:", message.name);
 
   try {
-    const { roomId, name } = message;
-    console.log(`Player ${name} attempting to join room: ${roomId}`);
+    const { username, roomId } = message.payload;
+    console.log(`Player ${username} attempting to join room: ${roomId}`);
 
     // Validate room exists
-    const room = gameManager.getRoom(roomId);
-    if (!room) {
-      throw new Error("Room not found");
-    }
-    console.log(`Room found with ${room.players.size} players`);
+    const room = getRoomById(roomId);
+    console.log(
+      `Room found with ${getPlayersIDsInRoom(roomId).length} players`,
+    );
 
     // Add player to room
-    const player = await gameManager.addPlayerToRoom(roomId, name);
-    console.log(`Player ${name} added to room ${roomId} with ID: ${player.id}`);
+    const player = createPlayer(username, roomId);
+    addPlayerToRoom(roomId, player.id);
+    console.log(
+      `Player ${username} added to room ${roomId} with ID: ${player.id}`,
+    );
 
     // Connect player via WebSocket
-    await gameManager.connectPlayer(ws, roomId, player.id);
+    addPlayerConnection(ws, player.id);
 
     console.log(
-      `Player ${name} (${player.id}) successfully joined room ${roomId}`,
+      `Player ${username} (${player.id}) successfully joined room ${roomId}`,
     );
   } catch (error) {
     console.error("=== ERROR IN JOIN ROOM ===");

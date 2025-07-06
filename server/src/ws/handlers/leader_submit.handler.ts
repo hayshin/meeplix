@@ -1,18 +1,16 @@
-import { LeaderSubmitCardMessage } from "$messages/client_message";
+import { LeaderSubmitCardMessage } from "$messages/client.message";
+import { WS, sendError } from "..";
+import { leaderSubmitCard } from "../services/room.service";
 
 export async function handleLeaderSubmitCard(
   ws: WS,
   message: LeaderSubmitCardMessage,
 ) {
   try {
-    const { roomId, playerId } = await getIds(message);
-    const { card, description } = message;
+    const { roomId, playerId, cardId, description } = message.payload;
 
-    await gameManager.leaderSubmitCard(roomId, playerId, card.id, description);
+    leaderSubmitCard(roomId, playerId, cardId, description);
   } catch (error) {
-    sendError(
-      ws,
-      error instanceof Error ? error.message : "Failed to select leader card",
-    );
+    sendError(ws, "Failed to select leader card", error);
   }
 }

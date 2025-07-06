@@ -1,21 +1,20 @@
-import { PlayerSubmitCardMessage as PlayerSubmitCardMessage } from "$messages/client_message";
+import { PlayerSubmitCardMessage as PlayerSubmitCardMessage } from "$messages/client.message";
+import { playerSubmitCard } from "../services/room.service";
+import { WS, broadcastMessage, sendError } from "..";
 
 export async function handlePlayerSubmitCard(
   ws: WS,
   message: PlayerSubmitCardMessage,
 ) {
   try {
-    const { roomId, playerId } = await getIds(message);
-    const { card } = message;
+    const { roomId, playerId, cardId } = message.payload;
 
-    await gameManager.playerSubmitCard(
-      roomId,
-      new SubmittedCardEntity(playerId, CardEntity.fromType(card)),
-    );
+    playerSubmitCard(roomId, playerId, cardId);
+    broadcastMessage(roomId, {
+      type: "PLAYER_SUBMIT_CARD",
+      payload: { roomId, playerId, cardId },
+    });
   } catch (error) {
-    sendError(
-      ws,
-      error instanceof Error ? error.message : "Failed to select card",
-    );
+    sendError(ws, "Failed to select card", error);
   }
 }

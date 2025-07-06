@@ -2,9 +2,12 @@ import Elysia from "elysia";
 import { ElysiaWS } from "elysia/dist/ws";
 import { t, RouteSchema } from "elysia";
 
-import { ServerMessage } from "$messages/server_message";
-import { ClientMessage } from "$messages/client_message";
+import { ServerMessage } from "$messages/server.message";
+import { ClientMessage } from "$messages/client.message";
 import * as Handlers from "./handlers/index";
+import { getPlayersIDsInRoom, getRoomById } from "./stores/room.store";
+import { getPlayersInRoom } from "./services/room.service";
+import { getPlayerConnection } from "./stores/connection.store";
 const WSDataSchema = t.Object({
   roomId: t.Optional(t.String()),
   playerId: t.Optional(t.String()),
@@ -66,6 +69,32 @@ export const websocket = new Elysia().ws("/ws", {
   },
 });
 
+export function sendMessage(ws: WS, message: ServerMessage) {
+  console.log("Sending message:", message);
+  ws.send(message);
+}
+
+export function sendError(ws: WS, message: string, error?: unknown) {
+  const errorMessage = error instanceof Error ? error.message : "";
+  const response: ServerMessage = {
+    type: "ERROR",
+    payload: {
+      message: message + "\n" + errorMessage,
+    },
+  };
+  console.error("Sending error response:", response);
+  ws.send(response);
+}
+
+export function broadcastMessage(roomId: string, message: ServerMessage) {
+  const players = getPlayersIDsInRoom(roomId);
+
+  players.forEach((playerId) => {
+    const ws = getPlayerConnection(playerId);
+    sendMessage(ws, message);
+  });
+}
+
 async function handleMessage(ws: WS, message: ClientMessage) {
   console.log("Received message:", message);
   switch (message.type) {
@@ -94,14 +123,6 @@ async function handleMessage(ws: WS, message: ClientMessage) {
       await Handlers.handleNextRound(ws, message);
       break;
     default:
-      sendError(ws, "Unknown message type");
+      sendError(ws, "Unknown message type:", message);
   }
-}
-export async function sendError(ws: WS, message: string) {
-  console.log("=== SENDING ERROR ===");
-  console.log("Error message:", message);
-  ws.send({
-    type: "error",
-    message,
-  });
 }

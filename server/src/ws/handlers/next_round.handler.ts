@@ -1,4 +1,4 @@
-import { NextRoundMessage } from "$messages/client_message";
+import { NextRoundMessage } from "$messages/client.message";
 
 export async function handleNextRound(ws: WS, message: NextRoundMessage) {
   try {

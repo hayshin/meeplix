@@ -12,36 +12,36 @@ export const JoinRoomMessage = messageSchema("JOIN_ROOM", {
 });
 
 export const StartGameMessage = messageSchema("START_GAME", {
-  username: t.String(),
+  playerId: t.String(),
   roomId: t.String(),
 });
 
 export const ReadyMessage = messageSchema("READY", {
-  username: t.String(),
+  playerId: t.String(),
   roomId: t.String(),
 });
 
 export const LeaderSubmitCardMessage = messageSchema("LEADER_SUBMIT_CARD", {
-  username: t.String(),
+  playerId: t.String(),
   cardId: t.String(),
   roomId: t.String(),
   description: t.String(),
 });
 
 export const PlayerSubmitCardMessage = messageSchema("SUBMIT_CARD", {
-  username: t.String(),
+  playerId: t.String(),
   cardId: t.String(),
   roomId: t.String(),
 });
 
 export const VoteMessage = messageSchema("VOTE", {
-  username: t.String(),
+  playerId: t.String(),
   roomId: t.String(),
   cardId: t.String(),
 });
 
 export const NextRoundMessage = messageSchema("NEXT_ROUND", {
-  username: t.String(),
+  playerId: t.String(),
   roomId: t.String(),
 });
 

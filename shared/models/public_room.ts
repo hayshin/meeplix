@@ -14,7 +14,6 @@ export const RoomPhaseDTO = t.Union([
 
 export const PublicRoomStateDTO = t.Object({
   id: t.String(),
-  players: t.Array(PlayerDTO),
   roundNumber: t.Number(),
   leaderId: t.String(),
   currentDescription: t.String(),

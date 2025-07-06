@@ -15,17 +15,19 @@ export const PlayerDTO = t.Object({
   nickname: t.String({ minLength: 2, maxLength: 32 }),
   score: t.Number({ minimum: 0 }),
   socketId: t.String(),
+  roomId: t.String(),
   status: PlayerStatusDTO,
   joinedAt: t.Date(),
 });
 
 export type Player = Static<typeof PlayerDTO>;
 
-export const createPlayer = (nickname: string): Player => ({
+export const createPlayer = (nickname: string, roomId: string): Player => ({
   id: uuidv4(),
   nickname,
   score: 0,
   socketId: "",
+  roomId: roomId,
   status: "offline",
   joinedAt: new Date(),
 });

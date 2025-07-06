@@ -15,8 +15,6 @@ import {
   ServerMessageWithoutRoomState,
 } from "$shared/types/server";
 import { ClientMessage } from "$shared/types/client";
-import { createPlayer } from "./player";
-import { createRoom } from "./room";
 import { sendMessage, WS } from "$/ws/handlers";
 
 export class GameManager {

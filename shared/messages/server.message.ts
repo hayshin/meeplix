@@ -13,16 +13,18 @@ export const RoomCreatedMessage = messageSchema("ROOM_CREATED", {
   roomId: t.String(),
 });
 
-export const NextRoundMessage = messageSchema("NEXT_ROUND", {});
-
 export const StartRoundMessage = messageSchema("START_ROUND", {
   player: PlayerDTO,
   roundNumber: t.Number(),
   currentHand: t.Array(t.String()),
 });
 
+export const PlayerVotedMessage = messageSchema("PLAYER_VOTED", {
+  player: t.String(),
+});
+
 export const PlayerReadyMessage = messageSchema("PLAYER_READY", {
-  player: PlayerDTO,
+  player: t.String(),
 });
 
 export const PlayerConnectedMessage = messageSchema("PLAYER_CONNECTED", {
@@ -30,7 +32,7 @@ export const PlayerConnectedMessage = messageSchema("PLAYER_CONNECTED", {
 });
 
 export const PlayerDisconnectedMessage = messageSchema("PLAYER_DISCONNECTED", {
-  player: PlayerDTO,
+  player: t.String(),
 });
 
 export const PhaseChooseCardMessage = messageSchema("PHASE_CHOOSE_CARD", {
@@ -59,22 +61,27 @@ export const EndGameMessage = messageSchema("END_GAME", {
   winner: t.String(),
 });
 
+export const ErrorMessage = messageSchema("ERROR", {
+  message: t.String(),
+});
+
 export const ServerMessage = t.Union([
   RoomJoinedMessage,
+  RoomCreatedMessage,
   PlayerReadyMessage,
-  NextRoundMessage,
+  PlayerVotedMessage,
   PlayerConnectedMessage,
   PlayerDisconnectedMessage,
   PhaseChooseCardMessage,
   PhaseBeginVoteMessage,
   PhaseEndVoteMessage,
   EndGameMessage,
+  ErrorMessage,
 ]);
 
 // Type exports for TypeScript
 export type RoomJoinedMessage = Static<typeof RoomJoinedMessage>;
 export type PlayerReadyMessage = Static<typeof PlayerReadyMessage>;
-export type NextRoundMessage = Static<typeof NextRoundMessage>;
 export type PlayerConnectedMessage = Static<typeof PlayerConnectedMessage>;
 export type PlayerDisconnectedMessage = Static<
   typeof PlayerDisconnectedMessage

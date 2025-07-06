@@ -19,7 +19,6 @@ export type RoomPhase = Static<typeof RoomPhaseDTO>;
 
 export const RoomStateDTO = t.Object({
   id: t.String(),
-  players: t.Array(PlayerDTO),
   deck: t.Array(CardDTO),
   roundNumber: t.Number(),
   leaderId: t.String(),
@@ -34,7 +33,6 @@ export type RoomState = Static<typeof RoomStateDTO>;
 
 export function createRoomState(
   id: string,
-  players: Player[],
   deck: Card[],
   roundNumber: number,
   leaderId: string,
@@ -46,7 +44,6 @@ export function createRoomState(
 ): RoomState {
   return {
     id,
-    players,
     deck,
     roundNumber,
     leaderId,
@@ -60,7 +57,6 @@ export function createRoomState(
 export function createEmptyRoomState(): RoomState {
   return {
     id: uuidv4(),
-    players: [],
     deck: [],
     roundNumber: 0,
     leaderId: "",
@@ -75,7 +71,6 @@ export function createEmptyRoomState(): RoomState {
 export function serializeRoomState(roomState: RoomState): PublicRoomState {
   return {
     id: roomState.id,
-    players: roomState.players,
     roundNumber: roomState.roundNumber,
     leaderId: roomState.leaderId,
     currentDescription: roomState.currentDescription,

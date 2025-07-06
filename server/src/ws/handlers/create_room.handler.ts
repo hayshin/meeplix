@@ -1,6 +1,7 @@
-import { CreateRoomMessage } from "$messages/client_message";
-import { WS } from "../index";
-import { addConnection } from "../stores/connection.store";
+import { CreateRoomMessage } from "$messages/index";
+import { ServerMessage } from "$messages/index";
+import { WS, sendError, sendMessage } from "../index";
+import { addPlayerConnection } from "../stores/connection.store";
 import { addRoom } from "../stores/room.store";
 
 export async function handleCreateRoom(ws: WS, message: CreateRoomMessage) {
@@ -20,23 +21,20 @@ export async function handleCreateRoom(ws: WS, message: CreateRoomMessage) {
     // const player = await gameManager.addPlayerToRoom(roomId, username);
     // console.log(`Player created with ID: ${player.id}`);
     // Connect the creator via WebSocket
-    addConnection(room.id, ws);
-    console.log(`Player connected to WebSocket`);
+    // addConnection(room.id, ws);
+    // console.log(`Player connected to WebSocket`);
 
     // Send confirmation to creator
-    const response = {
+    const response: ServerMessage = {
       type: "ROOM_CREATED",
-      roomId: room.id,
+      payload: {
+        roomId: room.id,
+      },
       // playerId: player.id,
     };
-    console.log("Sending room_created response:", response);
-    ws.send(response);
+    sendMessage(ws, response);
   } catch (error) {
     console.error("=== ERROR IN CREATE ROOM ===");
-    console.error("Error creating room:", error);
-    sendError(
-      ws,
-      error instanceof Error ? error.message : "Failed to create room",
-    );
+    sendError(ws, "Failed to create room", error);
   }
 }

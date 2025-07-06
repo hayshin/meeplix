@@ -3,6 +3,12 @@ import { Player } from "$shared/models/player";
 import { Card } from "../models/card.model";
 import { Submit } from "../models/submit.model";
 import { GAME_CONFIG } from "$shared/constants";
+import {
+  getPlayersIDsInRoom,
+  getRoomById,
+  updateRoom,
+} from "../stores/room.store";
+import { getPlayerById, getPlayersByIds } from "../stores/player.store";
 
 export function startRound(room: RoomState, leaderId: string) {
   room.roundNumber += 1;
@@ -22,21 +28,110 @@ export function getNextLeader(room: RoomState): Player {
   return room.players[nextIndex];
 }
 
-export function getPlayer(room: RoomState, playerId: string): Player {
-  const player = room.players.find((player) => player.id === playerId);
+// export function getPlayer(roomId: roomId, playerId: string): Player {
+//   const room = getRoom(roomId);
+//   const player = room.players.find((player) => player.id === playerId);
+//   if (!player) {
+//     throw new Error(`Player with id ${playerId} not found`);
+//   }
+//   return player;
+// }
+
+// export function addPlayer(room: RoomState, player: Player): void {
+//   room.players.push(player);
+// }
+
+// export function getNonLeaderPlayers(room: RoomState): Player[] {
+//   const leaderId = room.leaderId;
+//   return room.players.filter((player) => player.id !== leaderId);
+// }
+//
+
+export function getPlayerInRoom(roomId: string, playerId: string): Player {
+  const player = getPlayerById(playerId);
+  const roomOfPlayer = player.roomId;
   if (!player) {
     throw new Error(`Player with id ${playerId} not found`);
+  } else if (roomOfPlayer !== roomId) {
+    throw new Error(`Player with id ${playerId} is not in room ${roomId}`);
   }
   return player;
 }
 
-export function addPlayer(room: RoomState, player: Player): void {
-  room.players.push(player);
+export function getPlayersInRoom(roomId: string): Player[] {
+  const playerIds = getPlayersIDsInRoom(roomId);
+  const players = getPlayersByIds(playerIds);
+  return players;
 }
 
-export function getNonLeaderPlayers(room: RoomState): Player[] {
+export function getCardsOfPlayer(roomId: string, playerId: string): Card[] {
+  const room = getRoomById(roomId);
+  const player = getPlayerInRoom(roomId, playerId);
+  const hands = room.hands;
+  const hand = hands.find((hand) => hand.playerId === playerId);
+  if (!hand) {
+    throw new Error(`Hand not found for player ${playerId}`);
+  }
+  return hand.cards;
+}
+
+export function getCardOfPlayer(
+  roomId: string,
+  playerId: string,
+  cardId: string,
+) {
+  const cards = getCardsOfPlayer(roomId, playerId);
+  const card = cards.find((card) => card.id === cardId);
+  if (!card) {
+    throw new Error(`Card with id ${cardId} not found`);
+  }
+  return card;
+}
+
+export function getCardsOfRoom(roomId: string): Card[] {
+  const room = getRoomById(roomId);
+  const hands = room.hands;
+  const cards = hands.flatMap((hand) => hand.cards);
+  return cards;
+}
+
+export function getCardById(roomId: string, cardId: string): Card {
+  const cards = getCardsOfRoom(roomId);
+  const card = cards.find((card) => card.id === cardId);
+  if (!card) {
+    throw new Error(`Card with id ${cardId} not found`);
+  }
+  return card;
+}
+
+export function playerSubmitCard(
+  roomId: string,
+  playerId: string,
+  cardId: string,
+): void {
+  const room = getRoomById(roomId);
   const leaderId = room.leaderId;
-  return room.players.filter((player) => player.id !== leaderId);
+  if (playerId === leaderId) {
+    throw new Error(`Player ${playerId} is the leader ${leaderId}`);
+  }
+  const card = getCardOfPlayer(room.id, leaderId, cardId);
+  room.submittedCards.push({ playerId: leaderId, card });
+  updateRoom(roomId, room);
+}
+
+export function playerVote(
+  roomId: string,
+  playerId: string,
+  cardId: string,
+): void {
+  const room = getRoomById(roomId);
+  const leaderId = room.leaderId;
+  if (playerId === leaderId) {
+    throw new Error(`Player ${playerId} is the leader ${leaderId}`);
+  }
+  const card = getCardById(room.id, cardId);
+  room.votes.push({ playerId, card });
+  updateRoom(roomId, room);
 }
 
 export function getSubmittedLeaderCard(room: RoomState): Card {
@@ -61,7 +156,7 @@ export function calculatePoints(room: RoomState): void {
   const totalVotes = room.votes.length;
 
   // Points for leader
-  const leaderPlayer = getPlayer(room, leaderId);
+  const leaderPlayer = getPlayerInRoom(room, leaderId);
   if (votesForLeader > 0 && votesForLeader < totalVotes) {
     leaderPlayer.score += GAME_CONFIG.pointsForLeaderSuccess;
   }

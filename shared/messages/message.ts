@@ -1,4 +1,11 @@
-import { TLiteral, TObject, TAny, TSchema, TUnion } from "@sinclair/typebox";
+import {
+  TLiteral,
+  TObject,
+  TAny,
+  TSchema,
+  TUnion,
+  TOptional,
+} from "@sinclair/typebox";
 import { Type as t } from "@sinclair/typebox";
 
 /**
@@ -18,7 +25,7 @@ export const MessageMetadataSchema = t.Object({
  */
 export const MessageSchema = t.Object({
   type: t.String(),
-  meta: MessageMetadataSchema,
+  meta: t.Optional(MessageMetadataSchema),
 });
 
 /**
@@ -64,7 +71,7 @@ export const ErrorMessage = messageSchema("ERROR", {
  */
 export type BaseMessageSchema<T extends string> = TObject<{
   type: TLiteral<T>;
-  meta: typeof MessageMetadataSchema;
+  meta: TOptional<typeof MessageMetadataSchema>;
 }>;
 
 /**
@@ -75,7 +82,7 @@ export type PayloadMessageSchema<
   P extends TSchema,
 > = TObject<{
   type: TLiteral<T>;
-  meta: typeof MessageMetadataSchema;
+  meta: TOptional<typeof MessageMetadataSchema>;
   payload: P;
 }>;
 
@@ -87,7 +94,7 @@ export type MessageSchemaWithCustomMeta<
   M extends Record<string, TSchema>,
 > = TObject<{
   type: TLiteral<T>;
-  meta: TObject<typeof MessageMetadataSchema.properties & M>;
+  meta: TOptional<TObject<typeof MessageMetadataSchema.properties & M>>;
 }>;
 
 /**
@@ -99,7 +106,7 @@ export type PayloadMessageSchemaWithCustomMeta<
   M extends Record<string, TSchema>,
 > = TObject<{
   type: TLiteral<T>;
-  meta: TObject<typeof MessageMetadataSchema.properties & M>;
+  meta: TOptional<TObject<typeof MessageMetadataSchema.properties & M>>;
   payload: P;
 }>;
 
@@ -208,7 +215,7 @@ export function messageSchema<
 
   const baseSchema = t.Object({
     type: t.Literal(messageType),
-    meta: baseMetaSchema,
+    meta: t.Optional(baseMetaSchema),
   });
 
   // If no payload schema provided, return without payload
