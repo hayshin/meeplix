@@ -81,6 +81,38 @@ export class GameStore {
     });
   };
 
+  reconnect = (roomId: string, playerId: string, username: string) => {
+    if (this.state.isConnecting) return;
+
+    this.connectionManager.setConnecting(true);
+    this.connectionManager.clearError();
+
+    const room = this.connectionManager.createConnection();
+    this.connectionManager.setupConnectionHandlers(room, {
+      onOpen: () => {
+        this.connectionManager.clearConnectionTimeout();
+        this.connectionManager.setConnected(true);
+        this.connectionManager.setConnecting(false);
+        this.actionsManager.reconnectToRoom(roomId, playerId, username);
+      },
+      onMessage: (data) => {
+        this.messageHandlers.handleServerMessage(data as ServerMessage);
+      },
+      onClose: () => {
+        this.connectionManager.clearConnectionTimeout();
+        this.connectionManager.setConnected(false);
+        this.connectionManager.setConnecting(false);
+      },
+      onError: (error) => {
+        this.connectionManager.handleConnectionError("Connection error");
+      },
+    });
+
+    this.connectionManager.setConnectionTimeout(() => {
+      this.connectionManager.handleConnectionError("Connection timeout");
+    });
+  };
+
   joinRoom = (roomId: string, username: string) => {
     if (this._state.isConnecting) return;
 
@@ -121,6 +153,7 @@ export class GameStore {
   submitVote = this.actionsManager.submitVote;
   startNextRound = this.actionsManager.startNextRound;
   clearError = this.actionsManager.clearError;
+  reconnectToRoom = this.actionsManager.reconnectToRoom;
 
   // Disconnect with proper cleanup
   disconnect = () => {

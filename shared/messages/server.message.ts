@@ -71,6 +71,15 @@ export const ErrorMessage = messageSchema("ERROR", {
   message: t.String(),
 });
 
+export const ReconnectSuccessMessage = messageSchema("RECONNECT_SUCCESS", {
+  player: PlayerDTO,
+  room: PublicRoomStateDTO,
+});
+
+export const ReconnectFailedMessage = messageSchema("RECONNECT_FAILED", {
+  message: t.String(),
+});
+
 export const ServerMessage = t.Union([
   RoomJoinedMessage,
   RoomStateMessage,
@@ -86,6 +95,8 @@ export const ServerMessage = t.Union([
   PhaseEndVoteMessage,
   EndGameMessage,
   ErrorMessage,
+  ReconnectSuccessMessage,
+  ReconnectFailedMessage,
 ]);
 
 // Type exports for TypeScript
@@ -99,4 +110,6 @@ export type PhaseChooseCardMessage = Static<typeof PhaseChooseCardMessage>;
 export type PhaseBeginVoteMessage = Static<typeof PhaseBeginVoteMessage>;
 export type PhaseEndVoteMessage = Static<typeof PhaseEndVoteMessage>;
 export type EndGameMessage = Static<typeof EndGameMessage>;
+export type ReconnectSuccessMessage = Static<typeof ReconnectSuccessMessage>;
+export type ReconnectFailedMessage = Static<typeof ReconnectFailedMessage>;
 export type ServerMessage = Static<typeof ServerMessage>;

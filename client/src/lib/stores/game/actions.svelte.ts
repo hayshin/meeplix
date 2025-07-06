@@ -8,8 +8,10 @@ import type {
   PlayerSubmitCardMessage,
   VoteMessage,
   NextRoundMessage,
+  ReconnectMessage,
 } from "$shared/messages";
 import type { GameState, GameActions } from "./types";
+import { storage } from "$lib/utils";
 
 export class GameActionsManager implements GameActions {
   constructor(private state: GameState) {}
@@ -141,6 +143,20 @@ export class GameActionsManager implements GameActions {
     this.state.error = null;
   };
 
+  reconnectToRoom = (roomId: string, playerId: string, username: string) => {
+    if (this.state.isConnecting || this.state.isJoining) return;
+
+    this.state.roomId = roomId;
+    this.state.isJoining = true;
+
+    const message: ReconnectMessage = {
+      type: "RECONNECT",
+      payload: { roomId, playerId, username },
+    };
+
+    this.sendMessage(message);
+  };
+
   private sendMessage = (message: ClientMessage) => {
     if (!this.state.room || !this.state.isConnected) {
       console.error("WebSocket not connected");
@@ -157,6 +173,11 @@ export class GameActionsManager implements GameActions {
   };
 
   private resetGameState = () => {
+    // Clear current game session from storage
+    if (this.state.roomId) {
+      storage.removeGameSession(this.state.roomId);
+    }
+
     this.state.roomId = null;
     this.state.currentPlayer = null;
     this.state.players = [];

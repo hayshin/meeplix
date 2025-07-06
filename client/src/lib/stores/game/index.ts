@@ -39,6 +39,7 @@ export const useGameStore = () => {
     // Connection actions
     createRoom: gameStore.createRoom,
     joinRoom: gameStore.joinRoom,
+    reconnect: gameStore.reconnect,
     disconnect: gameStore.disconnect,
 
     // Game actions
@@ -96,6 +97,7 @@ export const useGameState = () => gameStore.state;
 export const useGameActions = () => ({
   createRoom: gameStore.createRoom,
   joinRoom: gameStore.joinRoom,
+  reconnect: gameStore.reconnect,
   startGame: gameStore.startGame,
   setReady: gameStore.setReady,
   submitLeaderCard: gameStore.submitLeaderCard,
@@ -121,6 +123,7 @@ export const gameState = gameStore.state;
 export const gameActions = {
   createRoom: gameStore.createRoom,
   joinRoom: gameStore.joinRoom,
+  reconnect: gameStore.reconnect,
   startGame: gameStore.startGame,
   setReady: gameStore.setReady,
   submitLeaderCard: gameStore.submitLeaderCard,

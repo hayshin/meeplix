@@ -6,3 +6,4 @@ export { handlePlayerVote } from "./player_vote.handler";
 export { handlePlayerSubmitCard } from "./player_submit.handler";
 export { handleLeaderSubmitCard } from "./leader_submit.handler";
 export { handleNextRound } from "./next_round.handler";
+export { handleReconnect } from "./reconnect.handler";

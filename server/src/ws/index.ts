@@ -118,6 +118,9 @@ async function handleMessage(ws: WS, message: ClientMessage) {
     case "NEXT_ROUND":
       await Handlers.handleNextRound(ws, message);
       break;
+    case "RECONNECT":
+      await Handlers.handleReconnect(ws, message);
+      break;
     default:
       sendError(ws, "Unknown message type:", message);
   }

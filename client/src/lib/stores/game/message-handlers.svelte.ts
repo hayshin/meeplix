@@ -4,6 +4,7 @@ import type { PublicCard } from "$shared/models/public_card";
 import type { Vote } from "$shared/models/vote";
 import type { PublicRoomState } from "$shared/models/public_room";
 import type { GameState, MessageHandlers } from "./types";
+import { storage } from "$lib/utils";
 
 export class MessageHandlersManager implements MessageHandlers {
   constructor(private state: GameState) {}
@@ -74,6 +75,17 @@ export class MessageHandlersManager implements MessageHandlers {
         this.handleEndGame(message.payload.winner);
         break;
 
+      case "RECONNECT_SUCCESS":
+        this.handleReconnectSuccess(
+          message.payload.player,
+          message.payload.room,
+        );
+        break;
+
+      case "RECONNECT_FAILED":
+        this.handleReconnectFailed(message.payload.message);
+        break;
+
       case "ERROR":
         this.state.error = message.payload.message;
         // Clear joining flag on error
@@ -102,6 +114,18 @@ export class MessageHandlersManager implements MessageHandlers {
       console.log("Setting current player:", player);
       this.state.currentPlayer = player;
       this.state.isJoining = false;
+
+      // Save game session when we successfully join
+      if (this.state.roomId) {
+        storage.addGameSession({
+          roomId: this.state.roomId,
+          playerId: player.id,
+          playerName: player.username,
+          lastActive: Date.now(),
+          gamePhase: this.state.phase,
+          joinedAt: Date.now(),
+        });
+      }
     }
   };
 
@@ -132,6 +156,11 @@ export class MessageHandlersManager implements MessageHandlers {
     this.state.votes = [];
     this.state.cardsForVoting = [];
     this.state.currentDescription = "";
+
+    // Update game session phase
+    if (this.state.roomId) {
+      storage.updateGameSessionPhase(this.state.roomId, this.state.phase);
+    }
   };
 
   handlePhaseChooseCard = (player: Player) => {
@@ -154,6 +183,11 @@ export class MessageHandlersManager implements MessageHandlers {
   handlePhaseBeginVote = (cardsForVoting: PublicCard[]) => {
     this.state.phase = "voting";
     this.state.cardsForVoting = cardsForVoting;
+
+    // Update game session phase
+    if (this.state.roomId) {
+      storage.updateGameSessionPhase(this.state.roomId, this.state.phase);
+    }
   };
 
   handlePlayerVoted = (playerId: string) => {
@@ -166,12 +200,28 @@ export class MessageHandlersManager implements MessageHandlers {
     this.state.phase = "results";
     this.state.votes = votes;
     // Update player scores here if needed
+
+    // Update game session phase
+    if (this.state.roomId) {
+      storage.updateGameSessionPhase(this.state.roomId, this.state.phase);
+    }
   };
 
   handleEndGame = (winnerId: string) => {
     this.state.phase = "game_finished";
     this.state.winner =
       this.state.players.find((p) => p.id === winnerId) || null;
+
+    // Update game session phase and remove it since game is finished
+    if (this.state.roomId) {
+      storage.updateGameSessionPhase(this.state.roomId, this.state.phase);
+      // Remove the session after a delay to let players see the results
+      setTimeout(() => {
+        if (this.state.roomId) {
+          storage.removeGameSession(this.state.roomId);
+        }
+      }, 30000); // 30 seconds
+    }
   };
 
   handleRoomState = (player: Player, room: PublicRoomState) => {
@@ -226,6 +276,16 @@ export class MessageHandlersManager implements MessageHandlers {
     } else {
       this.state.players[existingIndex] = player;
     }
+
+    // Update or save game session with current room state
+    storage.addGameSession({
+      roomId: room.id,
+      playerId: player.id,
+      playerName: player.username,
+      lastActive: Date.now(),
+      gamePhase: room.stage,
+      joinedAt: Date.now(),
+    });
   };
 
   private autoJoinRoom = () => {
@@ -273,5 +333,49 @@ export class MessageHandlersManager implements MessageHandlers {
         this.state.isJoining = false;
       }
     }
+  };
+
+  handleReconnectSuccess = (player: Player, room: PublicRoomState) => {
+    console.log("Reconnect successful:", player, room);
+
+    // Clear joining flag
+    this.state.isJoining = false;
+
+    // Handle the reconnection the same way as room state
+    this.handleRoomState(player, room);
+
+    // Update the stored game session
+    storage.addGameSession({
+      roomId: room.id,
+      playerId: player.id,
+      playerName: player.username,
+      lastActive: Date.now(),
+      gamePhase: room.stage,
+      joinedAt: Date.now(),
+    });
+
+    console.log("Successfully reconnected to game");
+  };
+
+  handleReconnectFailed = (message: string) => {
+    console.log("Reconnect failed:", message);
+
+    // Clear joining flag
+    this.state.isJoining = false;
+
+    // Set error message
+    this.state.error = `Reconnection failed: ${message}`;
+
+    // Clear stored session for this room if it exists
+    if (this.state.roomId) {
+      storage.removeGameSession(this.state.roomId);
+    }
+
+    // Reset room state
+    this.state.roomId = null;
+    this.state.currentPlayer = null;
+    this.state.phase = "joining";
+
+    console.log("Reconnection failed, cleared stored session");
   };
 }
