@@ -38,21 +38,9 @@
     * {
       font-family: "Nunito", sans-serif;
     }
-
-    #gradient-canvas {
-      --gradient-color-1: #a24fdf;
-      --gradient-color-2: #fa7719;
-      --gradient-color-3: #ce2b70;
-      --gradient-color-4: #ba4fa7;
-    }
   </style>
 
   <body data-sveltekit-preload-data="hover">
     <div style="display: contents">%sveltekit.body%</div>
-    <canvas id="gradient-canvas" style="width: 100vw; height: 100vh"></canvas>
-    <script>
-      var gradient = new Gradient();
-      gradient.initGradient("#gradient-canvas");
-    </script>
   </body>
 </html>

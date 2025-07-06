@@ -23,19 +23,19 @@
 
   // Effect to handle navigation after room creation
   $effect(() => {
-    if ($gameState.roomId && $gameState.playerId && isLoading) {
+    if (gameState.roomId && gameState.currentPlayer && isLoading) {
       // Room was created successfully, navigate to game
-      storage.saveLastGameId($gameState.roomId);
-      goto(`/game/${$gameState.roomId}`);
+      storage.saveLastGameId(gameState.roomId);
+      goto(`/game/${gameState.roomId}`);
       isLoading = false;
     }
   });
 
   // Effect to handle errors
   $effect(() => {
-    if ($gameState.error && isLoading) {
+    if (gameState.error && isLoading) {
       // Error occurred during room creation
-      clientError = $gameState.error;
+      clientError = gameState.error;
       isLoading = false;
       gameActions.clearError();
     }

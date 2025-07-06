@@ -1,4 +1,4 @@
-import { Static, t } from "elysia";
+import { type Static, t } from "elysia";
 import { PlayerDTO } from "./player";
 import { PublicCardDTO } from "./public_card";
 import { VoteDTO } from "./vote";

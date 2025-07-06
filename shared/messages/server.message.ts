@@ -2,9 +2,8 @@ import type { Static } from "elysia";
 import { t } from "elysia";
 import { messageSchema } from "./message";
 import { PlayerDTO } from "../models/player";
-import { CardDTO } from "$/ws/models/card.model";
-import { PublicCardDTO } from "$shared/models/public_card";
-import { VoteDTO } from "$shared/models/vote";
+import { PublicCardDTO } from "../models/public_card";
+import { VoteDTO } from "../models/vote";
 
 export const RoomJoinedMessage = messageSchema("PLAYER_JOINED", {
   player: PlayerDTO,
