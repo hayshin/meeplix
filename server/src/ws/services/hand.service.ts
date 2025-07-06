@@ -1,6 +1,6 @@
 import { Card } from "../models/card.model";
 import { Hand } from "../models/hand.model";
-import { shuffleDeck } from "./card.service";
+import { shuffle } from "./card.service";
 
 export function hasCard(hand: Hand, card: Card): boolean {
   return hand.cards.includes(card);

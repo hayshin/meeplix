@@ -74,6 +74,11 @@ export function sendMessage(ws: WS, message: ServerMessage) {
   ws.send(message);
 }
 
+export function sendMessageToPlayer(playerId: string, message: ServerMessage) {
+  const ws = getPlayerConnection(playerId);
+  sendMessage(ws, message);
+}
+
 export function sendError(ws: WS, message: string, error?: unknown) {
   const errorMessage = error instanceof Error ? error.message : "";
   const response: ServerMessage = {
@@ -99,7 +104,7 @@ async function handleMessage(ws: WS, message: ClientMessage) {
   console.log("Received message:", message);
   switch (message.type) {
     case "READY":
-      await Handlers.handlePlayerReady(message);
+      await Handlers.handlePlayerReady(ws, message);
       break;
     case "CREATE_ROOM":
       await Handlers.handleCreateRoom(ws, message);

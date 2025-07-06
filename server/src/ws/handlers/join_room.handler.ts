@@ -1,6 +1,6 @@
 import { JoinRoomMessage } from "$messages/index";
 import { createPlayer } from "$shared/models/player";
-import { WS, sendError, sendMessage } from "..";
+import { WS, sendError, sendMessage, broadcastMessage } from "..";
 import { addPlayerConnection } from "../stores/connection.store";
 import {
   addPlayerToRoom,
@@ -34,12 +34,16 @@ export async function handleJoinRoom(ws: WS, message: JoinRoomMessage) {
     console.log(
       `Player ${username} (${player.id}) successfully joined room ${roomId}`,
     );
+
+    broadcastMessage(roomId, {
+      type: "PLAYER_JOINED",
+      payload: {
+        player,
+      },
+    });
   } catch (error) {
     console.error("=== ERROR IN JOIN ROOM ===");
     console.error("Error joining room:", error);
-    sendError(
-      ws,
-      error instanceof Error ? error.message : "Failed to join room",
-    );
+    sendError(ws, "Failed to join room", error);
   }
 }

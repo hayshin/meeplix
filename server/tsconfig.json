@@ -35,7 +35,9 @@
       "$messages/*": ["../shared/messages/*"] /* @types (single file) */,
       "$models/*": ["../shared/models/*"] /* @types (single file) */,
       "$types/*": ["../shared/types/*"] /* @types (single file) */,
+
       "$utils/*": ["./src/utils/*"] /* @utils/helpers */,
+      "$ws/*": ["./src/ws/*"] /* @utils/helpers */,
       "$db/*": ["./src/db/*"] /* @utils/helpers */,
       "$services/*": ["./src/services/*"] /* @services/gameService */,
       "$routes/*": ["./src/routes/*"] /* @routes/api */,

@@ -1,6 +1,5 @@
 import { Elysia } from "elysia";
 import { t } from "elysia";
-import { CardSchema, CardEntity } from "$shared/types/card";
 import path from "node:path";
 import fs from "node:fs";
 export const cardsRoutes = new Elysia({ prefix: "cards" }).get(

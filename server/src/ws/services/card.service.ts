@@ -1,8 +1,8 @@
-import { Card } from "../models/card";
+import { Card } from "../models/card.model";
 
 export function getImageUrl(card: Card) {
   const STORAGE_URL = "http://localhost:3000";
-  return `${STORAGE_URL}/cards/${card.id}.png`;
+  return `${STORAGE_URL}/cards/${card.id}`;
 }
 
 export function drawFromDeck(deck: Card[], amount: number): Card[] {
@@ -13,10 +13,10 @@ export function drawFromDeck(deck: Card[], amount: number): Card[] {
   return drawnCards;
 }
 
-export function shuffleDeck(deck: Card[]) {
-  for (let i = deck.length - 1; i > 0; i--) {
+export function shuffle<T>(array: T[]) {
+  for (let i = array.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [deck[i], deck[j]] = [deck[j], deck[i]];
+    [array[i], array[j]] = [array[j], array[i]];
   }
-  return deck;
+  return array;
 }

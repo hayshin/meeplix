@@ -1,14 +1,26 @@
-import { WS } from "..";
-import { StartGameMessageSchema } from "$shared/types/client";
+import {
+  WS,
+  sendError,
+  broadcastMessage,
+  sendMessage,
+  sendMessageToPlayer,
+} from "..";
+import { StartGameMessage } from "$shared/messages";
+import { startGame } from "../services/room.service";
 
 export async function handleStartGame(ws: WS, message: StartGameMessage) {
   try {
-    const { roomId, playerId } = await getIds(message);
-    await gameManager.startGame(roomId);
+    const { roomId, playerId } = message.payload;
+    const hands = startGame(roomId, playerId);
+    hands.forEach((hand) => {
+      sendMessageToPlayer(hand.playerId, {
+        type: "START_ROUND",
+        payload: {
+          currentHand: hand.cards,
+        },
+      });
+    });
   } catch (error) {
-    sendError(
-      ws,
-      error instanceof Error ? error.message : "Failed to start game",
-    );
+    sendError(ws, "Failed to start game", error);
   }
 }

@@ -1,6 +1,6 @@
 import { LeaderSubmitCardMessage } from "$messages/client.message";
-import { WS, sendError } from "..";
-import { leaderSubmitCard } from "../services/room.service";
+import { WS, broadcastMessage, sendError, sendMessageToPlayer } from "..";
+import { getPlayersInRoom, leaderSubmitCard } from "../services/room.service";
 
 export async function handleLeaderSubmitCard(
   ws: WS,
@@ -10,6 +10,16 @@ export async function handleLeaderSubmitCard(
     const { roomId, playerId, cardId, description } = message.payload;
 
     leaderSubmitCard(roomId, playerId, cardId, description);
+    const players = getPlayersInRoom(roomId);
+    players.forEach((player) => {
+      sendMessageToPlayer(player.id, {
+        type: "PHASE_CHOOSE_CARD",
+        payload: {
+          // hand: hand.cards,
+          player,
+        },
+      });
+    });
   } catch (error) {
     sendError(ws, "Failed to select leader card", error);
   }

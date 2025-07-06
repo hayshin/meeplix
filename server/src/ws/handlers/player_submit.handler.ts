@@ -1,6 +1,7 @@
 import { PlayerSubmitCardMessage as PlayerSubmitCardMessage } from "$messages/client.message";
 import { playerSubmitCard } from "../services/room.service";
 import { WS, broadcastMessage, sendError } from "..";
+import { ServerMessage } from "$shared/messages";
 
 export async function handlePlayerSubmitCard(
   ws: WS,
@@ -10,10 +11,11 @@ export async function handlePlayerSubmitCard(
     const { roomId, playerId, cardId } = message.payload;
 
     playerSubmitCard(roomId, playerId, cardId);
-    broadcastMessage(roomId, {
+    const response: ServerMessage = {
       type: "PLAYER_SUBMIT_CARD",
-      payload: { roomId, playerId, cardId },
-    });
+      payload: { playerId },
+    };
+    broadcastMessage(roomId, response);
   } catch (error) {
     sendError(ws, "Failed to select card", error);
   }

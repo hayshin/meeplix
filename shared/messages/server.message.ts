@@ -2,10 +2,12 @@ import type { Static } from "elysia";
 import { t } from "elysia";
 import { messageSchema } from "./message";
 import { PlayerDTO } from "../models/player";
+import { CardDTO } from "$/ws/models/card.model";
+import { PublicCardDTO } from "$shared/models/public_card";
+import { VoteDTO } from "$shared/models/vote";
 
-export const RoomJoinedMessage = messageSchema("ROOM_JOINED", {
+export const RoomJoinedMessage = messageSchema("PLAYER_JOINED", {
   player: PlayerDTO,
-  roomId: t.String(),
 });
 
 export const RoomCreatedMessage = messageSchema("ROOM_CREATED", {
@@ -14,17 +16,20 @@ export const RoomCreatedMessage = messageSchema("ROOM_CREATED", {
 });
 
 export const StartRoundMessage = messageSchema("START_ROUND", {
-  player: PlayerDTO,
-  roundNumber: t.Number(),
-  currentHand: t.Array(t.String()),
+  // hand: Card[],
+  // roundNumber: t.Number(),
+  currentHand: t.Array(PublicCardDTO),
 });
 
 export const PlayerVotedMessage = messageSchema("PLAYER_VOTED", {
-  player: t.String(),
+  playerId: t.String(),
 });
 
 export const PlayerReadyMessage = messageSchema("PLAYER_READY", {
-  player: t.String(),
+  playerId: t.String(),
+});
+export const PlayerSubmitMessage = messageSchema("PLAYER_SUBMIT_CARD", {
+  playerId: t.String(),
 });
 
 export const PlayerConnectedMessage = messageSchema("PLAYER_CONNECTED", {
@@ -32,24 +37,21 @@ export const PlayerConnectedMessage = messageSchema("PLAYER_CONNECTED", {
 });
 
 export const PlayerDisconnectedMessage = messageSchema("PLAYER_DISCONNECTED", {
-  player: t.String(),
+  playerId: t.String(),
 });
 
 export const PhaseChooseCardMessage = messageSchema("PHASE_CHOOSE_CARD", {
   player: PlayerDTO,
-  hand: t.Array(t.String()),
+  // hand: t.Array(t.String()),
 });
 
-export const VotesDTO = t.Record(t.String(), t.String()); // Record<string, string>
-export type Votes = Static<typeof VotesDTO>;
-
 export const PhaseBeginVoteMessage = messageSchema("PHASE_BEGIN_VOTE", {
-  cardsForVoting: t.Array(t.String()),
+  cardsForVoting: t.Array(PublicCardDTO),
 });
 
 export const PhaseEndVoteMessage = messageSchema("PHASE_END_VOTE", {
-  votes: VotesDTO,
-  leaderCard: t.String(),
+  votes: t.Array(VoteDTO),
+  leaderCardId: t.String(),
 });
 
 // const votes: Votes = { "1": "2", "2": "3" };
@@ -68,7 +70,9 @@ export const ErrorMessage = messageSchema("ERROR", {
 export const ServerMessage = t.Union([
   RoomJoinedMessage,
   RoomCreatedMessage,
+  StartRoundMessage,
   PlayerReadyMessage,
+  PlayerSubmitMessage,
   PlayerVotedMessage,
   PlayerConnectedMessage,
   PlayerDisconnectedMessage,

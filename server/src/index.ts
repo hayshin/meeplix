@@ -1,5 +1,5 @@
 import { Elysia } from "elysia";
-import { websocket } from "./ws/handlers";
+import { websocket } from "./ws/index";
 import { gameRoutes } from "./routes/game";
 import { cors } from "@elysiajs/cors";
 import { swagger } from "@elysiajs/swagger";

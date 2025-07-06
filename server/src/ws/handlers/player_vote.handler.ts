@@ -12,8 +12,8 @@ export async function handlePlayerVote(ws: WS, message: VoteMessage) {
 
     playerVote(roomId, playerId, cardId);
     broadcastMessage(roomId, {
-      type: "player_vote",
-      payload: { playerId, cardId },
+      type: "PLAYER_VOTED",
+      payload: { playerId },
     });
     // await gameManager.broadcastRoomUpdate(roomId);
   } catch (error) {
