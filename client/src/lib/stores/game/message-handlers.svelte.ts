@@ -188,7 +188,10 @@ export class MessageHandlersManager implements MessageHandlers {
     this.state.leaderId = room.leaderId;
     this.state.currentDescription = room.currentDescription;
     this.state.votes = room.votes;
-    this.state.players = room.players;
+
+    // Clear existing players and add new ones to maintain reactivity
+    this.state.players.length = 0;
+    this.state.players.push(...room.players);
 
     // Map room stage to game phase
     switch (room.stage) {
