@@ -26,9 +26,15 @@ export class GameActionsManager implements GameActions {
   };
 
   joinRoom = (roomId: string, username: string) => {
-    if (this.state.isConnecting) return;
+    if (
+      this.state.isConnecting ||
+      this.state.isJoining ||
+      this.state.currentPlayer
+    )
+      return;
 
     this.state.roomId = roomId;
+    this.state.isJoining = true;
 
     const message: JoinRoomMessage = {
       type: "JOIN_ROOM",
@@ -142,6 +148,7 @@ export class GameActionsManager implements GameActions {
     }
 
     try {
+      console.log("Sending message:", message);
       this.state.room.send({ message });
     } catch (error) {
       console.error("Error sending message:", error);
@@ -164,5 +171,6 @@ export class GameActionsManager implements GameActions {
     this.state.hasSubmittedCard = false;
     this.state.error = null;
     this.state.winner = null;
+    this.state.isJoining = false;
   };
 }

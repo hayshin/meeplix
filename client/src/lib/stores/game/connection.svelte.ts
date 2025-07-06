@@ -15,7 +15,7 @@ export class ConnectionManager {
 
   setupConnectionHandlers = (
     room: ReturnType<typeof api.ws.subscribe>,
-    handlers: ConnectionHandlers
+    handlers: ConnectionHandlers,
   ) => {
     room.on("message", ({ data }) => {
       try {
@@ -59,6 +59,7 @@ export class ConnectionManager {
     this.state.error = message;
     this.state.isConnected = false;
     this.state.isConnecting = false;
+    this.state.isJoining = false;
 
     if (this.state.room) {
       this.state.room.close();
@@ -88,5 +89,6 @@ export class ConnectionManager {
 
     this.state.isConnected = false;
     this.state.isConnecting = false;
+    this.state.isJoining = false;
   };
 }

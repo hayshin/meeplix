@@ -13,13 +13,23 @@
   let selectedCardId = $state<string | null>(null);
   let selectedVoteCardId = $state<string | null>(null);
   let enlargedCardId = $state<string | null>(null);
+  let initialized = $state(false);
 
   $effect(() => {
+    if (initialized) return;
+    initialized = true;
     console.log(roomId);
     const savedNickname = storage.getNickname();
     if (savedNickname) {
       nickname = savedNickname;
-      connectToGame();
+      // Only connect if we don't already have a current player AND we're not already in this room
+      if (
+        !game.state.currentPlayer &&
+        game.state.roomId !== roomId &&
+        !game.state.isJoining
+      ) {
+        connectToGame();
+      }
     } else {
       showNicknameModal = true;
     }
@@ -27,6 +37,16 @@
 
   const connectToGame = async () => {
     if (!nickname.trim()) return;
+
+    // Prevent multiple connection attempts
+    if (
+      game.state.isJoining ||
+      game.state.isConnecting ||
+      (game.state.currentPlayer && game.state.roomId === roomId)
+    ) {
+      console.log("Already connecting or connected to this room");
+      return;
+    }
 
     storage.saveNickname(nickname.trim());
     game.joinRoom(roomId, nickname.trim());

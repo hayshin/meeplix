@@ -76,6 +76,8 @@ export class MessageHandlersManager implements MessageHandlers {
 
       case "ERROR":
         this.state.error = message.payload.message;
+        // Clear joining flag on error
+        this.state.isJoining = false;
         break;
 
       default:
@@ -99,6 +101,7 @@ export class MessageHandlersManager implements MessageHandlers {
     if (!this.state.currentPlayer) {
       console.log("Setting current player:", player);
       this.state.currentPlayer = player;
+      this.state.isJoining = false;
     }
   };
 
@@ -173,6 +176,9 @@ export class MessageHandlersManager implements MessageHandlers {
 
   handleRoomState = (player: Player, room: PublicRoomState) => {
     console.log("Handling room state - player:", player, "room:", room);
+    // Clear joining flag
+    this.state.isJoining = false;
+
     // Set current player
     this.state.currentPlayer = player;
 
@@ -220,6 +226,18 @@ export class MessageHandlersManager implements MessageHandlers {
   };
 
   private autoJoinRoom = () => {
+    // Prevent multiple join attempts
+    if (
+      this.state.isConnecting ||
+      this.state.isJoining ||
+      this.state.currentPlayer
+    ) {
+      console.log(
+        "Skipping auto-join - already connecting, joining, or player exists",
+      );
+      return;
+    }
+
     // Get the stored nickname to auto-join
     const nickname = localStorage.getItem("narrari_nickname");
     console.log(
@@ -230,6 +248,9 @@ export class MessageHandlersManager implements MessageHandlers {
     );
 
     if (nickname && this.state.roomId) {
+      // Set joining flag
+      this.state.isJoining = true;
+
       // Send join room message
       const message = {
         type: "JOIN_ROOM" as const,
@@ -246,6 +267,7 @@ export class MessageHandlersManager implements MessageHandlers {
         console.log(
           "Cannot send JOIN_ROOM - no room connection or not connected",
         );
+        this.state.isJoining = false;
       }
     }
   };

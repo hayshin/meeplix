@@ -17,6 +17,7 @@ export interface GameState {
   // Connection state
   isConnected: boolean;
   isConnecting: boolean;
+  isJoining: boolean;
   room: ReturnType<typeof import("$lib/utils").api.ws.subscribe> | null;
 
   // Game data
@@ -102,6 +103,7 @@ export interface MessageHandlers {
 export const createInitialGameState = (): GameState => ({
   isConnected: false,
   isConnecting: false,
+  isJoining: false,
   room: null,
 
   roomId: null,
