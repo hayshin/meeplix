@@ -37,7 +37,7 @@
         <p>Write an association for the card you selected.</p>
       {:else}
         <p>
-          {currentLeader?.nickname} is choosing an association...
+          {currentLeader?.username} is choosing an association...
         </p>
       {/if}
     </div>

@@ -6,6 +6,7 @@ import { HandDTO, Hand } from "./hand.model";
 import { VoteDTO, Vote } from "$shared/models/vote";
 import { PublicRoomState } from "$shared/models/public_room";
 import { Submit, SubmitDTO, serializeSubmittedCards } from "./submit.model";
+import { getPlayersInRoom } from "../services/room.service";
 
 export const RoomPhaseDTO = t.Union([
   t.Literal("joining"),
@@ -68,14 +69,16 @@ export function createEmptyRoomState(): RoomState {
   };
 }
 
-export function serializeRoomState(roomState: RoomState): PublicRoomState {
+export function serializeRoomState(room: RoomState): PublicRoomState {
+  const players = getPlayersInRoom(room.id);
   return {
-    id: roomState.id,
-    roundNumber: roomState.roundNumber,
-    leaderId: roomState.leaderId,
-    currentDescription: roomState.currentDescription,
-    submittedCards: serializeSubmittedCards(roomState.submittedCards),
-    stage: roomState.phase,
-    votes: roomState.votes,
+    id: room.id,
+    roundNumber: room.roundNumber,
+    leaderId: room.leaderId,
+    currentDescription: room.currentDescription,
+    submittedCards: serializeSubmittedCards(room.submittedCards),
+    players: players,
+    stage: room.phase,
+    votes: room.votes,
   };
 }

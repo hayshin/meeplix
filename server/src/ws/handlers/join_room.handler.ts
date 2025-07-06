@@ -1,7 +1,9 @@
 import { JoinRoomMessage } from "$messages/index";
-import { createPlayer } from "$shared/models/player";
 import { WS, sendError, sendMessage, broadcastMessage } from "..";
+import { serializeRoomState } from "../models/room.model";
+import { getPlayersInRoom } from "../services/room.service";
 import { addPlayerConnection } from "../stores/connection.store";
+import { addPlayer } from "../stores/player.store";
 import {
   addPlayerToRoom,
   getPlayersIDsInRoom,
@@ -20,9 +22,14 @@ export async function handleJoinRoom(ws: WS, message: JoinRoomMessage) {
     console.log(
       `Room found with ${getPlayersIDsInRoom(roomId).length} players`,
     );
+    const players = getPlayersInRoom(roomId);
+    let player = players.find((player) => player.username === username);
+    if (player) {
+      throw new Error(`Player ${username} already exists in room ${roomId}`);
+    }
 
     // Add player to room
-    const player = createPlayer(username, roomId);
+    player = addPlayer(username, roomId);
     addPlayerToRoom(roomId, player.id);
     console.log(
       `Player ${username} added to room ${roomId} with ID: ${player.id}`,
@@ -39,6 +46,13 @@ export async function handleJoinRoom(ws: WS, message: JoinRoomMessage) {
       type: "PLAYER_JOINED",
       payload: {
         player,
+      },
+    });
+    sendMessage(ws, {
+      type: "ROOM_STATE",
+      payload: {
+        player,
+        room: serializeRoomState(room),
       },
     });
   } catch (error) {

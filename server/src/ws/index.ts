@@ -86,8 +86,7 @@ export function broadcastMessage(roomId: string, message: ServerMessage) {
   const players = getPlayersIDsInRoom(roomId);
 
   players.forEach((playerId) => {
-    const ws = getPlayerConnection(playerId);
-    sendMessage(ws, message);
+    sendMessageToPlayer(playerId, message);
   });
 }
 

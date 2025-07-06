@@ -44,7 +44,7 @@
             player.id,
           )}"
         >
-          {ui.getInitials(player.nickname)}
+          {ui.getInitials(player.username)}
 
           <!-- Crown for leader -->
           {#if player.id === leaderId}
@@ -65,7 +65,7 @@
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-1">
             <span class="font-medium text-white truncate">
-              {player.nickname}
+              {player.username}
             </span>
             {#if player.id === currentPlayerId}
               <span class="text-xs text-blue-400 font-medium">(You)</span>

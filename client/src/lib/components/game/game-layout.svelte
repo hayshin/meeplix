@@ -134,7 +134,7 @@
               {#each players as player}
                 <div class="bg-white/20 rounded-lg p-4">
                   <div class="flex items-center justify-between">
-                    <span class="text-white font-medium">{player.nickname}</span
+                    <span class="text-white font-medium">{player.username}</span
                     >
                     <span
                       class="text-sm {player.status === 'ready'
@@ -221,7 +221,7 @@
         <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6 text-center">
           <h2 class="text-2xl font-bold text-white mb-4">Waiting for Leader</h2>
           <p class="text-white/80">
-            {currentLeader?.nickname} is choosing a card and description...
+            {currentLeader?.username} is choosing a card and description...
           </p>
         </div>
       {/if}
@@ -327,7 +327,7 @@
               {#each players as player}
                 <div class="bg-white/20 rounded-lg p-4">
                   <div class="flex items-center justify-between">
-                    <span class="text-white font-medium">{player.nickname}</span
+                    <span class="text-white font-medium">{player.username}</span
                     >
                     <span class="text-white">{player.score} points</span>
                   </div>
@@ -353,7 +353,7 @@
           <h2 class="text-3xl font-bold text-white mb-4">Game Over!</h2>
           {#if winner}
             <p class="text-2xl text-yellow-300 mb-4">
-              🏆 {winner.nickname} wins with {winner.score} points!
+              🏆 {winner.username} wins with {winner.score} points!
             </p>
           {/if}
 

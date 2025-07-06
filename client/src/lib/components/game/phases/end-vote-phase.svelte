@@ -75,7 +75,7 @@
               >
                 <div class="flex items-center gap-3">
                   <span class="text-blue-300 font-medium">
-                    {voter.nickname}
+                    {voter.username}
                   </span>
                   <span class="text-slate-400">voted for card:</span>
                   <span class="text-green-300 font-medium">
@@ -100,7 +100,7 @@
         {#each players as player}
           <div class="bg-white/5 rounded-lg p-4 text-center">
             <div class="text-white font-medium">
-              {player.nickname}
+              {player.username}
             </div>
             <div class="text-2xl font-bold text-yellow-400">
               {player.score}
@@ -125,7 +125,7 @@
           {#if winner}
             <p class="text-xl text-yellow-300 mb-4">
               🎉 Congratulations,
-              <span class="font-bold">{winner.nickname}</span>!
+              <span class="font-bold">{winner.username}</span>!
             </p>
           {/if}
           <p class="text-slate-300">Thanks for playing! The game has ended.</p>

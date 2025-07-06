@@ -2,6 +2,7 @@ import type { ClientMessage, ServerMessage } from "$shared/messages";
 import type { Player } from "$shared/models/player";
 import type { PublicCard } from "$shared/models/public_card";
 import type { Vote } from "$shared/models/vote";
+import type { PublicRoomState } from "$shared/models/public_room";
 
 export type GamePhase =
   | "joining"
@@ -95,6 +96,7 @@ export interface MessageHandlers {
   handlePlayerVoted: (playerId: string) => void;
   handlePhaseEndVote: (votes: Vote[], leaderCardId: string) => void;
   handleEndGame: (winnerId: string) => void;
+  handleRoomState: (player: Player, room: PublicRoomState) => void;
 }
 
 export const createInitialGameState = (): GameState => ({

@@ -14,19 +14,24 @@
     playerCount: game.totalPlayersCount,
     readyCount: game.readyPlayersCount,
     isConnected: game.state.isConnected,
-    hasError: !!game.state.error
+    hasError: !!game.state.error,
   });
 
   // Example of using helper methods
   const canAct = $derived(game.canPlayerAct());
-  const currentPlayerName = $derived(game.state.currentPlayer?.nickname || "Unknown");
+  const currentPlayerName = $derived(
+    game.state.currentPlayer?.username || "Unknown",
+  );
 
   // Example effect that reacts to phase changes
   $effect(() => {
     console.log(`Game phase changed to: ${game.state.phase}`);
 
     // Clear selections when phase changes
-    if (game.state.phase !== "leader_submitting" && game.state.phase !== "players_submitting") {
+    if (
+      game.state.phase !== "leader_submitting" &&
+      game.state.phase !== "players_submitting"
+    ) {
       selectedCard = null;
       description = "";
     }
@@ -68,7 +73,9 @@
   };
 
   // Example of checking specific conditions
-  const showJoinButton = $derived(!game.state.isConnected && !game.state.isConnecting);
+  const showJoinButton = $derived(
+    !game.state.isConnected && !game.state.isConnecting,
+  );
   const showReadyButton = $derived(game.shouldShowReadyButton());
   const showStartButton = $derived(game.shouldShowStartGameButton());
   const showLeaderSubmission = $derived(game.shouldShowLeaderCardSubmission());
@@ -80,7 +87,11 @@
   <h1 class="text-3xl font-bold mb-6">Modern Game Store Example</h1>
 
   <!-- Connection Status -->
-  <div class="mb-6 p-4 rounded-lg {game.state.isConnected ? 'bg-green-100' : 'bg-red-100'}">
+  <div
+    class="mb-6 p-4 rounded-lg {game.state.isConnected
+      ? 'bg-green-100'
+      : 'bg-red-100'}"
+  >
     <h2 class="text-xl font-semibold mb-2">Connection Status</h2>
     <div class="grid grid-cols-2 gap-4">
       <div>
@@ -96,7 +107,10 @@
       <div><strong>Room ID:</strong> {game.state.roomId || "Not in room"}</div>
       <div><strong>Player:</strong> {currentPlayerName}</div>
       <div><strong>Phase:</strong> {gameStatus.phase}</div>
-      <div><strong>Players:</strong> {gameStatus.readyCount}/{gameStatus.playerCount} ready</div>
+      <div>
+        <strong>Players:</strong>
+        {gameStatus.readyCount}/{gameStatus.playerCount} ready
+      </div>
       <div><strong>Can Act:</strong> {canAct ? "Yes" : "No"}</div>
     </div>
   </div>
@@ -106,7 +120,10 @@
     <div class="mb-6 p-4 bg-red-100 border border-red-400 rounded-lg">
       <div class="flex justify-between items-center">
         <span class="text-red-700">{game.state.error}</span>
-        <button onclick={game.clearError} class="text-red-500 hover:text-red-700">
+        <button
+          onclick={game.clearError}
+          class="text-red-500 hover:text-red-700"
+        >
           Clear
         </button>
       </div>
@@ -161,14 +178,21 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
         {#each game.state.players as player}
           <div class="flex justify-between items-center p-2 bg-white rounded">
-            <span class="font-medium">{player.nickname}</span>
+            <span class="font-medium">{player.username}</span>
             <div class="flex items-center gap-2">
               <span class="text-sm text-gray-600">{player.score} pts</span>
-              <span class="text-xs px-2 py-1 rounded {player.status === 'ready' ? 'bg-green-200 text-green-800' : 'bg-yellow-200 text-yellow-800'}">
+              <span
+                class="text-xs px-2 py-1 rounded {player.status === 'ready'
+                  ? 'bg-green-200 text-green-800'
+                  : 'bg-yellow-200 text-yellow-800'}"
+              >
                 {player.status}
               </span>
               {#if player.id === game.state.leaderId}
-                <span class="text-xs px-2 py-1 bg-purple-200 text-purple-800 rounded">Leader</span>
+                <span
+                  class="text-xs px-2 py-1 bg-purple-200 text-purple-800 rounded"
+                  >Leader</span
+                >
               {/if}
             </div>
           </div>
@@ -180,10 +204,14 @@
   <!-- Leader Card Submission -->
   {#if showLeaderSubmission}
     <div class="mb-6 p-4 bg-purple-100 rounded-lg">
-      <h2 class="text-xl font-semibold mb-4">Leader: Choose Card & Description</h2>
+      <h2 class="text-xl font-semibold mb-4">
+        Leader: Choose Card & Description
+      </h2>
 
       <div class="mb-4">
-        <label for="description" class="block text-sm font-medium mb-2">Description:</label>
+        <label for="description" class="block text-sm font-medium mb-2"
+          >Description:</label
+        >
         <input
           id="description"
           bind:value={description}
@@ -197,8 +225,11 @@
         <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
           {#each game.state.currentHand as card}
             <button
-              onclick={() => selectedCard = card.id}
-              class="p-3 border rounded text-center transition-colors {selectedCard === card.id ? 'bg-blue-200 border-blue-500' : 'bg-white hover:bg-gray-50'}"
+              onclick={() => (selectedCard = card.id)}
+              class="p-3 border rounded text-center transition-colors {selectedCard ===
+              card.id
+                ? 'bg-blue-200 border-blue-500'
+                : 'bg-white hover:bg-gray-50'}"
             >
               {card.name}
             </button>
@@ -220,14 +251,19 @@
   {#if showPlayerSubmission}
     <div class="mb-6 p-4 bg-blue-100 rounded-lg">
       <h2 class="text-xl font-semibold mb-4">Choose Your Card</h2>
-      <p class="mb-4 text-gray-700">Match this description: "{game.state.currentDescription}"</p>
+      <p class="mb-4 text-gray-700">
+        Match this description: "{game.state.currentDescription}"
+      </p>
 
       <div class="mb-4">
         <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
           {#each game.state.currentHand as card}
             <button
-              onclick={() => selectedCard = card.id}
-              class="p-3 border rounded text-center transition-colors {selectedCard === card.id ? 'bg-blue-200 border-blue-500' : 'bg-white hover:bg-gray-50'}"
+              onclick={() => (selectedCard = card.id)}
+              class="p-3 border rounded text-center transition-colors {selectedCard ===
+              card.id
+                ? 'bg-blue-200 border-blue-500'
+                : 'bg-white hover:bg-gray-50'}"
             >
               {card.name}
             </button>
@@ -249,7 +285,9 @@
   {#if showVoting}
     <div class="mb-6 p-4 bg-green-100 rounded-lg">
       <h2 class="text-xl font-semibold mb-4">Vote for the Leader's Card</h2>
-      <p class="mb-4 text-gray-700">Which card matches: "{game.state.currentDescription}"?</p>
+      <p class="mb-4 text-gray-700">
+        Which card matches: "{game.state.currentDescription}"?
+      </p>
 
       <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
         {#each game.state.cardsForVoting as card}
@@ -287,7 +325,9 @@
     <div class="mb-6 p-4 bg-gold-100 rounded-lg border border-gold-400">
       <h2 class="text-2xl font-bold mb-4">🏆 Game Over!</h2>
       {#if game.getWinner()}
-        <p class="text-xl">Winner: {game.getWinner()?.nickname} with {game.getWinner()?.score} points!</p>
+        <p class="text-xl">
+          Winner: {game.getWinner()?.username} with {game.getWinner()?.score} points!
+        </p>
       {/if}
     </div>
   {/if}
@@ -296,24 +336,32 @@
   <details class="mt-8">
     <summary class="cursor-pointer font-semibold">Debug Information</summary>
     <pre class="mt-2 p-4 bg-gray-100 rounded overflow-auto text-sm">
-{JSON.stringify({
-  state: game.state,
-  derived: {
-    isGameStarted: game.isGameStarted,
-    isCurrentPlayerLeader: game.isCurrentPlayerLeader,
-    currentLeader: game.currentLeader,
-    canStartGame: game.canStartGame,
-    allPlayersReady: game.allPlayersReady,
-    isGameFinished: game.isGameFinished,
-    readyPlayersCount: game.readyPlayersCount,
-    totalPlayersCount: game.totalPlayersCount
-  }
-}, null, 2)}
+{JSON.stringify(
+        {
+          state: game.state,
+          derived: {
+            isGameStarted: game.isGameStarted,
+            isCurrentPlayerLeader: game.isCurrentPlayerLeader,
+            currentLeader: game.currentLeader,
+            canStartGame: game.canStartGame,
+            allPlayersReady: game.allPlayersReady,
+            isGameFinished: game.isGameFinished,
+            readyPlayersCount: game.readyPlayersCount,
+            totalPlayersCount: game.totalPlayersCount,
+          },
+        },
+        null,
+        2,
+      )}
     </pre>
   </details>
 </div>
 
 <style>
-  .bg-gold-100 { background-color: #fef3c7; }
-  .border-gold-400 { border-color: #f59e0b; }
+  .bg-gold-100 {
+    background-color: #fef3c7;
+  }
+  .border-gold-400 {
+    border-color: #f59e0b;
+  }
 </style>

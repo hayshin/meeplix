@@ -13,7 +13,7 @@
 
   const getStatusMessage = () => {
     const leader = session.players.find((p) => p.id === session.leaderId);
-    const leaderName = leader?.nickname || "Unknown";
+    const leaderName = leader?.username || "Unknown";
 
     switch (session.phase) {
       case "joining":
@@ -81,7 +81,7 @@
           session.players[0]!,
         );
         return {
-          message: `Game finished! Winner: ${winner.nickname} with ${winner.score} points!`,
+          message: `Game finished! Winner: ${winner.username} with ${winner.score} points!`,
           type: "success" as const,
           icon: Info,
         };

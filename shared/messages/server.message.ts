@@ -4,11 +4,16 @@ import { messageSchema } from "./message";
 import { PlayerDTO } from "../models/player";
 import { PublicCardDTO } from "../models/public_card";
 import { VoteDTO } from "../models/vote";
+import { PublicRoomStateDTO } from "$shared/models/public_room";
 
 export const RoomJoinedMessage = messageSchema("PLAYER_JOINED", {
   player: PlayerDTO,
 });
 
+export const RoomStateMessage = messageSchema("ROOM_STATE", {
+  player: PlayerDTO,
+  room: PublicRoomStateDTO,
+});
 export const RoomCreatedMessage = messageSchema("ROOM_CREATED", {
   // player: PlayerDTO,
   roomId: t.String(),
@@ -68,6 +73,7 @@ export const ErrorMessage = messageSchema("ERROR", {
 
 export const ServerMessage = t.Union([
   RoomJoinedMessage,
+  RoomStateMessage,
   RoomCreatedMessage,
   StartRoundMessage,
   PlayerReadyMessage,

@@ -101,13 +101,13 @@
                     player.id,
                   )}"
                 >
-                  {ui.getInitials(player.nickname)}
+                  {ui.getInitials(player.username)}
                 </div>
 
                 <!-- Player Information -->
                 <div>
                   <div class="font-medium text-white">
-                    {player.nickname}
+                    {player.username}
                   </div>
                   <div class="text-xs text-slate-400">
                     {isPlayerConnected(player) ? "Online" : "Offline"}
@@ -155,7 +155,7 @@
     {#each sortedPlayers.slice(0, 3) as player}
       <div class="flex items-center gap-3">
         <div class="w-20 truncate text-sm font-medium text-slate-200">
-          {player.nickname}
+          {player.username}
         </div>
         <div class="h-2 flex-1 rounded-full bg-white/20">
           <div

@@ -18,6 +18,7 @@ export const PublicRoomStateDTO = t.Object({
   leaderId: t.String(),
   currentDescription: t.String(),
   // for the active player, this is the active card; for other players, this is the card they chose
+  players: t.Array(PlayerDTO),
   submittedCards: t.Array(PublicCardDTO),
   stage: RoomPhaseDTO,
   votes: t.Array(VoteDTO),

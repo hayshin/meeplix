@@ -133,7 +133,7 @@ export class GameHelpersManager implements GameHelpers {
 
   getPlayerNickname = (playerId: string): string | null => {
     const player = this.getPlayerById(playerId);
-    return player ? player.nickname : null;
+    return player ? player.username : null;
   };
 
   getPlayerScore = (playerId: string): number | null => {

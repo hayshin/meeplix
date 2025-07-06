@@ -2,6 +2,7 @@ import type { ServerMessage } from "$shared/messages";
 import type { Player } from "$shared/models/player";
 import type { PublicCard } from "$shared/models/public_card";
 import type { Vote } from "$shared/models/vote";
+import type { PublicRoomState } from "$shared/models/public_room";
 import type { GameState, MessageHandlers } from "./types";
 
 export class MessageHandlersManager implements MessageHandlers {
@@ -16,7 +17,12 @@ export class MessageHandlersManager implements MessageHandlers {
     switch (message.type) {
       case "ROOM_CREATED":
         this.state.roomId = message.payload.roomId;
-        // Navigation will be handled by component
+        // Auto-join the room after creation
+        this.autoJoinRoom();
+        break;
+
+      case "ROOM_STATE":
+        this.handleRoomState(message.payload.player, message.payload.room);
         break;
 
       case "PLAYER_JOINED":
@@ -159,5 +165,71 @@ export class MessageHandlersManager implements MessageHandlers {
     this.state.phase = "game_finished";
     this.state.winner =
       this.state.players.find((p) => p.id === winnerId) || null;
+  };
+
+  handleRoomState = (player: Player, room: PublicRoomState) => {
+    // Set current player
+    this.state.currentPlayer = player;
+
+    // Update room state
+    this.state.roomId = room.id;
+    this.state.roundNumber = room.roundNumber;
+    this.state.leaderId = room.leaderId;
+    this.state.currentDescription = room.currentDescription;
+    this.state.votes = room.votes;
+    this.state.players = room.players;
+
+    // Map room stage to game phase
+    switch (room.stage) {
+      case "joining":
+        this.state.phase = "joining";
+        break;
+      case "leader_submitting":
+        this.state.phase = "leader_submitting";
+        break;
+      case "players_submitting":
+        this.state.phase = "players_submitting";
+        break;
+      case "voting":
+        this.state.phase = "voting";
+        break;
+      case "results":
+        this.state.phase = "results";
+        break;
+      case "finished":
+        this.state.phase = "game_finished";
+        break;
+      default:
+        this.state.phase = "joining";
+    }
+
+    // Ensure current player is in the players list
+    const existingIndex = this.state.players.findIndex(
+      (p) => p.id === player.id,
+    );
+    if (existingIndex === -1) {
+      this.state.players.push(player);
+    } else {
+      this.state.players[existingIndex] = player;
+    }
+  };
+
+  private autoJoinRoom = () => {
+    // Get the stored nickname to auto-join
+    const nickname = localStorage.getItem("narrari_nickname");
+    if (nickname && this.state.roomId) {
+      // Send join room message
+      const message = {
+        type: "JOIN_ROOM" as const,
+        payload: {
+          username: nickname,
+          roomId: this.state.roomId,
+        },
+      };
+
+      if (this.state.room && this.state.isConnected) {
+        this.state.room.send({ message });
+      }
+    }
   };
 }
