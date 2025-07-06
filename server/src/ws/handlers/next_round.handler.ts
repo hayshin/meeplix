@@ -1,11 +1,14 @@
 import { NextRoundMessage } from "$messages/client.message";
+import { WS, sendError } from "..";
+import { startRound, getNextLeader } from "../services/room.service";
 
 export async function handleNextRound(ws: WS, message: NextRoundMessage) {
   try {
-    const { roomId, playerId } = await getIds(message);
+    const { roomId, playerId } = message.payload;
     console.log(`Starting next round for room ${roomId} by player ${playerId}`);
 
-    await gameManager.startNextRound(roomId);
+    const nextLeader = getNextLeader(roomId);
+    startRound(roomId, nextLeader.id);
   } catch (error) {
     console.error("Error starting next round:", error);
     sendError(

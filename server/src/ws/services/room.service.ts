@@ -155,7 +155,7 @@ export function startGame(roomId: string, playerId: string): Hand[] {
   if (!canStartGame(roomId)) {
     throw new Error("Game cannot be started");
   }
-  if (allPlayersReady(roomId)) {
+  if (!allPlayersReady(roomId)) {
     throw new Error("Not all players are ready");
   }
   const leader = getNextLeader(roomId);
@@ -187,8 +187,8 @@ export function playerSubmitCard(
   if (playerId === leaderId) {
     throw new Error(`Player ${playerId} is the leader ${leaderId}`);
   }
-  const card = getCardOfPlayer(room.id, leaderId, cardId);
-  room.submittedCards.push({ playerId: leaderId, card });
+  const card = getCardOfPlayer(room.id, playerId, cardId);
+  room.submittedCards.push({ playerId: playerId, card });
   removeCardFromPlayer(roomId, playerId, card);
   if (allPlayersSubmitted(roomId)) {
     startVoting(roomId);
