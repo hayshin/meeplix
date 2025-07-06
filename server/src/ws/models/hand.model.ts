@@ -1,5 +1,5 @@
 import { Static, t } from "elysia";
-import { Card, CardDTO } from "./card";
+import { Card, CardDTO } from "./card.model";
 import { shuffle } from "../services/card.service";
 
 export const HandDTO = t.Object({

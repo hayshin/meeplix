@@ -18,15 +18,13 @@ type WSData = typeof WSDataSchema.static;
 //   // body: { message: ClientMessage };
 // }
 
-export type WS = ElysiaWS<
-  { body: { message: ClientMessage } },
-  { response: { message: ServerMessage } }
->;
+export type WS = ElysiaWS<{ body: { message: ClientMessage } }>;
+// { response: { message: ServerMessage } }
 
 export const websocket = new Elysia().ws("/ws", {
   body: t.Object({ message: ClientMessage }),
   // data: t.Object({ message: ClientMessage }),
-  response: { message: ServerMessage },
+  // response: { message: ServerMessage },
 
   open: (ws: WS) => {
     console.log("WebSocket connection opened");
@@ -34,17 +32,10 @@ export const websocket = new Elysia().ws("/ws", {
 
   message: async (ws: WS, data: { message: ClientMessage }) => {
     const message = data.message;
-    console.log("=== RECEIVED WEBSOCKET MESSAGE ===");
-    console.log("Message type:", message.type);
-    console.log("Message data:", message);
     try {
       handleMessage(ws, message);
     } catch (error) {
-      console.error("WebSocket handler error:", error);
-      sendError(
-        ws,
-        error instanceof Error ? error.message : "Internal server error",
-      );
+      sendError(ws, "Internal server error", error);
     }
   },
 
@@ -101,6 +92,7 @@ export function broadcastMessage(roomId: string, message: ServerMessage) {
 }
 
 async function handleMessage(ws: WS, message: ClientMessage) {
+  console.log("=== RECEIVED WEBSOCKET MESSAGE ===");
   console.log("Received message:", message);
   switch (message.type) {
     case "READY":
