@@ -37,7 +37,7 @@
   <div
     class="absolute inset-0 bg-gradient-to-r from-transparent via-purple-500/10 to-transparent"
   ></div>
-  <div class="relative mx-auto max-w-7xl px-6 py-4">
+  <div class="relative mx-auto max-w-7xl px-6 py-4 z-10">
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-4">
         <PixelButton variant="danger" size="sm" onclick={onLeaveGame}>
@@ -100,6 +100,8 @@
       transparent
     );
     animation: rotate 8s linear infinite;
+    pointer-events: none;
+    z-index: -1;
   }
 
   :global(.magical-glow::after) {
@@ -108,7 +110,8 @@
     inset: 1px;
     background: inherit;
     border-radius: inherit;
-    z-index: 1;
+    z-index: -1;
+    pointer-events: none;
   }
 
   @keyframes rotate {
