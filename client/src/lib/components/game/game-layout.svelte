@@ -83,6 +83,15 @@
     onVoteCardSelect,
     onConnectToGame,
   }: GameLayoutProps = $props();
+
+  // Debug logging for gamePhase changes
+  $effect(() => {
+    console.log("=== GAME LAYOUT DEBUG ===");
+    console.log("gamePhase:", gamePhase);
+    console.log("isCurrentPlayerLeader:", isCurrentPlayerLeader);
+    console.log("gameState.phase:", gameState.phase);
+    console.log("========================");
+  });
 </script>
 
 <div

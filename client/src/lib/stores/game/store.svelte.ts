@@ -30,8 +30,10 @@ export class GameStore {
   //   this.helpersManager = new GameHelpersManager(this._state);
   // }
 
-  // Derived state
-  readonly state = $derived.by(() => ({ ...this._state }));
+  // Expose state directly for reactivity
+  get state() {
+    return this._state;
+  }
 
   readonly isGameStarted = $derived(this._state.phase !== "joining");
   readonly isCurrentPlayerLeader = $derived(

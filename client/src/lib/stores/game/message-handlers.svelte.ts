@@ -154,7 +154,11 @@ export class MessageHandlersManager implements MessageHandlers {
   };
 
   handleStartRound = (currentHand: PublicCard[]) => {
+    console.log("Starting round");
+    console.log("Current hand:", currentHand);
+    console.log("Phase before:", this.state.phase);
     this.state.phase = "leader_submitting";
+    console.log("Phase after:", this.state.phase);
     this.state.currentHand = currentHand;
     this.state.roundNumber += 1;
     this.state.hasSubmittedCard = false;

@@ -167,6 +167,9 @@ export function startGame(roomId: string, playerId: string): Hand[] {
 
 export function startRound(roomId: string, leaderId: string): Hand[] {
   const room = getRoomById(roomId);
+  if (room.phase == "leader_submitting") {
+    throw new Error("Round already started");
+  }
   room.leaderId = leaderId;
   room.roundNumber += 1;
   room.currentDescription = "";
