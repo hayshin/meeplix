@@ -34,6 +34,11 @@ export async function handleJoinRoom(ws: WS, message: JoinRoomMessage) {
     console.log(
       `Player ${username} added to room ${roomId} with ID: ${player.id}`,
     );
+    if (players.length === 0) {
+      // console.log(`Room ${roomId} is now full`);
+      room.leaderId = player.id;
+      console.log(`Player ${username} is now the leader of room ${roomId}`);
+    }
 
     // Connect player via WebSocket
     addPlayerConnection(ws, player.id);

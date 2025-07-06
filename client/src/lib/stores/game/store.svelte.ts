@@ -33,20 +33,27 @@ export class GameStore {
   // Derived state
   readonly state = $derived.by(() => ({ ...this._state }));
 
-  readonly isGameStarted = $derived(this.helpersManager.isGameStarted());
+  readonly isGameStarted = $derived(this._state.phase !== "joining");
   readonly isCurrentPlayerLeader = $derived(
-    this.helpersManager.isCurrentPlayerLeader(),
+    this._state.currentPlayer?.id === this._state.leaderId,
   );
-  readonly currentLeader = $derived(this.helpersManager.getCurrentLeader());
-  readonly canStartGame = $derived(this.helpersManager.canStartGame());
-  readonly allPlayersReady = $derived(this.helpersManager.allPlayersReady());
-  readonly isGameFinished = $derived(this.helpersManager.isGameFinished());
+  readonly currentLeader = $derived(
+    this._state.players.find((p) => p.id === this._state.leaderId) || null,
+  );
+  readonly canStartGame = $derived(
+    true,
+    // this._state.players.length >= 3 && this._state.players.length <= 8,
+  );
+  readonly allPlayersReady = $derived(
+    true,
+    // this._state.players.length > 0 &&
+    //   this._state.players.every((p) => p.status === "ready"),
+  );
+  readonly isGameFinished = $derived(this._state.phase === "game_finished");
   readonly readyPlayersCount = $derived(
-    this.helpersManager.getReadyPlayersCount(),
+    this._state.players.filter((p) => p.status === "ready").length,
   );
-  readonly totalPlayersCount = $derived(
-    this.helpersManager.getTotalPlayersCount(),
-  );
+  readonly totalPlayersCount = $derived(this._state.players.length);
 
   // Connection actions
   createRoom = (username: string) => {

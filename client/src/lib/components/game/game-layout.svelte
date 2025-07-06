@@ -94,6 +94,7 @@
     {gameState}
     {canStartGame}
     {allPlayersReady}
+    {isCurrentPlayerLeader}
     {onLeaveGame}
     {onToggleReady}
     {onStartGame}

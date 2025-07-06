@@ -34,12 +34,12 @@
     }
 
     // Check for other available game sessions
-    const allSessions = storage.getAllGameSessions();
-    if (allSessions.length > 0) {
-      console.log("Found existing game sessions:", allSessions);
-      showGameSessionsModal = true;
-      return;
-    }
+    // const allSessions = storage.getAllGameSessions();
+    // if (allSessions.length > 0) {
+    //   console.log("Found existing game sessions:", allSessions);
+    //   showGameSessionsModal = true;
+    //   return;
+    // }
 
     // Check for saved nickname for new connections
     const savedNickname = storage.getNickname();
@@ -208,6 +208,24 @@
   let players = $derived(game.state.players);
   let isGameFinished = $derived(game.isGameFinished);
   let winner = $derived(game.getWinner());
+
+  // Debug logging for reactivity
+  $effect(() => {
+    console.log("=== GAME STATE DEBUG ===");
+    console.log("Players:", game.state.players);
+    console.log("Players count:", game.state.players.length);
+    console.log(
+      "Ready players:",
+      game.state.players.filter((p) => p.status === "ready"),
+    );
+    console.log("Current player:", game.state.currentPlayer);
+    console.log("Leader ID:", game.state.leaderId);
+    console.log("Is current player leader:", game.isCurrentPlayerLeader);
+    console.log("Can start game:", game.canStartGame);
+    console.log("All players ready:", game.allPlayersReady);
+    console.log("Game phase:", game.state.phase);
+    console.log("========================");
+  });
 </script>
 
 <svelte:head>

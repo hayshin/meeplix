@@ -9,6 +9,7 @@
     gameState: GameState;
     canStartGame: boolean;
     allPlayersReady: boolean;
+    isCurrentPlayerLeader: boolean;
     onLeaveGame: () => void;
     onToggleReady: () => void;
     onStartGame: () => void;
@@ -19,16 +20,29 @@
     gameState,
     canStartGame,
     allPlayersReady,
+    isCurrentPlayerLeader,
     onLeaveGame,
     onToggleReady,
     onStartGame,
   }: Props = $props();
+  $effect(() => {
+    {
+      console.log(
+        "isCurrentPlayerLeader",
+        isCurrentPlayerLeader,
+        "canStartGame",
+        canStartGame,
+        gameState.phase,
+      );
+    }
+    console.log("Game state changed:", gameState);
+  });
 </script>
 
 <!-- Language selector in top-right corner -->
-<div class="fixed top-4 right-4 z-50">
+<!-- <div class="fixed top-4 right-4 z-50">
   <LanguageSelector />
-</div>
+</div> -->
 
 <!-- Magical floating header -->
 <header
@@ -64,13 +78,20 @@
             {/snippet}
           </PixelButton>
         {/if}
-        {#if gameState.phase === "joining" && canStartGame && allPlayersReady}
+        {#if gameState.phase === "joining" && canStartGame && isCurrentPlayerLeader}
           <PixelButton variant="success" size="sm" onclick={onStartGame}>
             {#snippet children()}
               <Play size={16} />
               Start Game
             {/snippet}
           </PixelButton>
+        {/if}
+
+        <!-- Debug info -->
+        {#if gameState.phase === "joining"}
+          <div class="text-xs text-white/60 ml-2">
+            Debug: Phase={gameState.phase}, CanStart={canStartGame}, IsLeader={isCurrentPlayerLeader}
+          </div>
         {/if}
       </div>
     </div>

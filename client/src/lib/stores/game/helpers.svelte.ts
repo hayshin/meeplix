@@ -41,8 +41,7 @@ export class GameHelpersManager implements GameHelpers {
 
   // Additional helper methods
   isCurrentPlayerLeader = (): boolean => {
-    // return this.state.currentPlayer?.id === this.state.leaderId;
-    return true;
+    return this.state.currentPlayer?.id === this.state.leaderId;
   };
 
   getCurrentLeader = (): Player | null => {

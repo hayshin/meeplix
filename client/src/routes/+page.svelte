@@ -137,7 +137,7 @@
 
 <!-- Language selector in top-right corner -->
 <div class="fixed top-4 right-4 z-50">
-  <LanguageSelector />
+  <!-- <LanguageSelector /> -->
 </div>
 
 <div class="min-h-screen relative z-10">

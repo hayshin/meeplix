@@ -109,6 +109,12 @@ export class MessageHandlersManager implements MessageHandlers {
       this.state.players[existingIndex] = player;
     }
 
+    // Set leader ID to first player if not already set
+    if (!this.state.leaderId && this.state.players.length === 1) {
+      this.state.leaderId = player.id;
+      console.log("Setting leader ID to first player:", player.id);
+    }
+
     // If this is our player, set as current player
     if (!this.state.currentPlayer) {
       console.log("Setting current player:", player);
