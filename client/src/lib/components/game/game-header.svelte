@@ -2,7 +2,7 @@
   import { Home, Users, Play, Sparkles } from "lucide-svelte";
   import PixelButton from "$lib/components/ui/PixelButton.svelte";
   import LanguageSelector from "$lib/components/LanguageSelector.svelte";
-  import type { GameState } from "$lib/stores/game";
+  import type { GameState } from "$lib/stores/game/types";
 
   interface Props {
     roomId: string;
@@ -56,7 +56,7 @@
         </div>
       </div>
       <div class="flex items-center gap-3">
-        {#if gameState.roomState?.stage === "joining"}
+        {#if gameState.phase === "joining"}
           <PixelButton variant="secondary" size="sm" onclick={onToggleReady}>
             {#snippet children()}
               <Users size={16} />
@@ -64,7 +64,7 @@
             {/snippet}
           </PixelButton>
         {/if}
-        {#if gameState.roomState?.stage === "joining" && canStartGame && allPlayersReady}
+        {#if gameState.phase === "joining" && canStartGame && allPlayersReady}
           <PixelButton variant="success" size="sm" onclick={onStartGame}>
             {#snippet children()}
               <Play size={16} />

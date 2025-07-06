@@ -1,6 +1,6 @@
 <script lang="ts">
   import StatusBar from "$lib/components/StatusBar.svelte";
-  import type { GameState } from "$lib/stores/game";
+  import type { GameState } from "$lib/stores/game/types";
 
   interface Props {
     gameState: GameState;
@@ -20,7 +20,7 @@
     ></div>
     <div class="relative">
       <StatusBar
-        session={gameState.roomState}
+        session={gameState}
         currentPlayer={gameState.currentPlayer}
         isLeader={isCurrentPlayerLeader}
       />

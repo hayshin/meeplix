@@ -1,20 +1,11 @@
 <script lang="ts">
-  import { onMount } from "svelte";
   import { page } from "$app/stores";
   import { goto } from "$app/navigation";
   import { storage } from "$lib/utils";
-  import {
-    gameState,
-    gameActions,
-    gamePhase,
-    currentPlayerHand,
-    isCurrentPlayerLeader,
-    canStartGame,
-    allPlayersReady,
-    cardsForVoting,
-  } from "$lib/stores/game";
+  import { useGameStore } from "$lib/stores/game";
   import GameLayout from "$lib/components/game/game-layout.svelte";
 
+  const game = useGameStore();
   const roomId = $page.params.id;
   let nickname = $state("");
   let showNicknameModal = $state(false);
@@ -25,7 +16,6 @@
 
   $effect(() => {
     console.log(roomId);
-    gameActions.setRoomId(roomId);
     const savedNickname = storage.getNickname();
     if (savedNickname) {
       nickname = savedNickname;
@@ -39,7 +29,7 @@
     if (!nickname.trim()) return;
 
     storage.saveNickname(nickname.trim());
-    gameActions.joinRoom(roomId, nickname.trim());
+    game.joinRoom(roomId, nickname.trim());
     showNicknameModal = false;
   };
 
@@ -50,51 +40,38 @@
   };
 
   const startGame = async () => {
-    gameActions.startGame();
+    game.startGame();
   };
 
   const toggleReady = async () => {
-    gameActions.sendReady();
+    game.setReady();
   };
 
   const submitLeaderChoice = async () => {
     if (!selectedCardId || !associationInput.trim()) return;
 
-    const selectedCard = $currentPlayerHand.get(selectedCardId);
-    if (selectedCard) {
-      gameActions.leaderSelectsCard(selectedCard, associationInput.trim());
-      selectedCardId = null;
-      associationInput = "";
-    }
+    game.submitLeaderCard(selectedCardId, associationInput.trim());
+    selectedCardId = null;
+    associationInput = "";
   };
 
   const submitPlayerCard = async () => {
     if (!selectedCardId) return;
 
-    const selectedCard = $currentPlayerHand.get(selectedCardId);
-    if (selectedCard) {
-      gameActions.playerSubmitsCard(selectedCard);
-      selectedCardId = null;
-    }
+    game.submitPlayerCard(selectedCardId);
+    selectedCardId = null;
   };
 
   const submitVote = async () => {
     if (!selectedVoteCardId) return;
 
-    const selectedCard = $cardsForVoting.get(selectedVoteCardId);
-    if (selectedCard) {
-      gameActions.playerVotes(selectedCard);
-      selectedVoteCardId = null;
-    }
+    game.submitVote(selectedVoteCardId);
+    selectedVoteCardId = null;
   };
 
   const leaveGame = async () => {
-    gameActions.disconnect();
+    game.disconnect();
     goto("/");
-  };
-
-  const getVotingCards = () => {
-    return $cardsForVoting.toArray() || [];
   };
 
   const handleCardSelect = (cardId: string) => {
@@ -118,35 +95,19 @@
   };
 
   const startNextRound = () => {
-    gameActions.startNextRound();
+    game.startNextRound();
   };
 
   // Derived values for the components
-  let currentLeader = $derived(
-    $gameState.roomState?.players.find(
-      (p) => p.id === $gameState.roomState?.leaderId,
-    ) || null,
-  );
-  let association = $derived($gameState.roomState?.currentDescription || "");
-  let votingCards = $derived(getVotingCards());
-  let playerHandCards = $derived($currentPlayerHand.toArray());
-  let leaderCard = $derived(
-    $gameState.roomState
-      ? (() => {
-          try {
-            return $gameState.roomState.getSubmittedLeaderCard();
-          } catch {
-            return null;
-          }
-        })()
-      : null,
-  );
-  let votedPairs = $derived($gameState.roomState?.votedPairs?.toArray() || []);
-  let players = $derived($gameState.roomState?.players?.toArray() || []);
-  let isGameFinished = $derived(
-    $gameState.roomState?.isGameFinished() || false,
-  );
-  let winner = $derived($gameState.roomState?.getWinner() || null);
+  let currentLeader = $derived(game.currentLeader);
+  let association = $derived(game.state.currentDescription);
+  let votingCards = $derived(game.state.cardsForVoting);
+  let playerHandCards = $derived(game.state.currentHand);
+  let leaderCard = $derived(null); // Will be implemented later
+  let votedPairs = $derived(game.state.votes);
+  let players = $derived(game.state.players);
+  let isGameFinished = $derived(game.isGameFinished);
+  let winner = $derived(game.getWinner());
 </script>
 
 <svelte:head>
@@ -159,13 +120,13 @@
 
 <GameLayout
   {roomId}
-  gameState={$gameState}
-  gamePhase={$gamePhase}
+  gameState={game.state}
+  gamePhase={game.state.phase}
   {showNicknameModal}
   {nickname}
-  isCurrentPlayerLeader={$isCurrentPlayerLeader}
-  canStartGame={$canStartGame}
-  allPlayersReady={$allPlayersReady}
+  isCurrentPlayerLeader={game.isCurrentPlayerLeader}
+  canStartGame={game.canStartGame}
+  allPlayersReady={game.allPlayersReady}
   {currentLeader}
   {association}
   {selectedCardId}

@@ -10,17 +10,25 @@ export class GameStore {
   private _state = $state<GameState>(createInitialGameState());
 
   // Managers
-  private connectionManager: ConnectionManager;
-  private messageHandlers: MessageHandlersManager;
-  private actionsManager: GameActionsManager;
-  private helpersManager: GameHelpersManager;
+  private connectionManager: ConnectionManager = new ConnectionManager(
+    this._state,
+  );
+  private messageHandlers: MessageHandlersManager = new MessageHandlersManager(
+    this._state,
+  );
+  private actionsManager: GameActionsManager = new GameActionsManager(
+    this._state,
+  );
+  private helpersManager: GameHelpersManager = new GameHelpersManager(
+    this._state,
+  );
 
-  constructor() {
-    this.connectionManager = new ConnectionManager(this._state);
-    this.messageHandlers = new MessageHandlersManager(this._state);
-    this.actionsManager = new GameActionsManager(this._state);
-    this.helpersManager = new GameHelpersManager(this._state);
-  }
+  // constructor() {
+  //   this.connectionManager = ;
+  //   this.messageHandlers =;
+  //   this.actionsManager = new GameActionsManager(this._state);
+  //   this.helpersManager = new GameHelpersManager(this._state);
+  // }
 
   // Derived state
   readonly state = $derived.by(() => ({ ...this._state }));
