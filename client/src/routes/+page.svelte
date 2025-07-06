@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { storage } from "$lib/utils";
-  import { gameActions, gameState } from "$lib/stores/game";
+  import { gameStore } from "$lib/stores/game";
   import * as m from "$lib/paraglide/messages.js";
   import LanguageSelector from "$lib/components/LanguageSelector.svelte";
   import {
@@ -23,21 +23,33 @@
 
   // Effect to handle navigation after room creation
   $effect(() => {
-    if (gameState.roomId && gameState.currentPlayer && isLoading) {
+    console.log("Navigation effect triggered:", {
+      roomId: gameStore.state.roomId,
+      currentPlayer: gameStore.state.currentPlayer,
+      isLoading,
+    });
+
+    if (gameStore.state.roomId && gameStore.state.currentPlayer && isLoading) {
       // Room was created successfully, navigate to game
-      storage.saveLastGameId(gameState.roomId);
-      goto(`/game/${gameState.roomId}`);
+      console.log("Navigating to game:", gameStore.state.roomId);
+      storage.saveLastGameId(gameStore.state.roomId);
+      goto(`/game/${gameStore.state.roomId}`);
       isLoading = false;
     }
   });
 
   // Effect to handle errors
   $effect(() => {
-    if (gameState.error && isLoading) {
+    console.log("Error effect triggered:", {
+      error: gameStore.state.error,
+      isLoading,
+    });
+
+    if (gameStore.state.error && isLoading) {
       // Error occurred during room creation
-      clientError = gameState.error;
+      clientError = gameStore.state.error;
       isLoading = false;
-      gameActions.clearError();
+      gameStore.clearError();
     }
   });
 
@@ -59,10 +71,10 @@
       storage.saveNickname(nickname.trim());
 
       // Clear any previous errors
-      gameActions.clearError();
+      gameStore.clearError();
 
       // Use WebSocket-based room creation
-      gameActions.createRoom(nickname.trim());
+      gameStore.createRoom(nickname.trim());
 
       // Navigation will be handled by the reactive statement
     } catch (error) {
@@ -92,10 +104,10 @@
         storage.saveNickname(nickname.trim());
 
         // Clear any previous errors
-        gameActions.clearError();
+        gameStore.clearError();
 
         // Use WebSocket-based room joining
-        gameActions.joinRoom(gameId.trim(), nickname.trim());
+        gameStore.joinRoom(gameId.trim(), nickname.trim());
 
         // Navigate to game page immediately
         storage.saveLastGameId(gameId.trim());

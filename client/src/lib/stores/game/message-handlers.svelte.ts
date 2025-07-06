@@ -16,12 +16,14 @@ export class MessageHandlersManager implements MessageHandlers {
 
     switch (message.type) {
       case "ROOM_CREATED":
+        console.log("Room created, setting roomId:", message.payload.roomId);
         this.state.roomId = message.payload.roomId;
         // Auto-join the room after creation
         this.autoJoinRoom();
         break;
 
       case "ROOM_STATE":
+        console.log("Room state received:", message.payload);
         this.handleRoomState(message.payload.player, message.payload.room);
         break;
 
@@ -82,6 +84,7 @@ export class MessageHandlersManager implements MessageHandlers {
   };
 
   handlePlayerJoined = (player: Player) => {
+    console.log("Player joined:", player);
     // Add player to list if not already present
     const existingIndex = this.state.players.findIndex(
       (p) => p.id === player.id,
@@ -94,6 +97,7 @@ export class MessageHandlersManager implements MessageHandlers {
 
     // If this is our player, set as current player
     if (!this.state.currentPlayer) {
+      console.log("Setting current player:", player);
       this.state.currentPlayer = player;
     }
   };
@@ -168,6 +172,7 @@ export class MessageHandlersManager implements MessageHandlers {
   };
 
   handleRoomState = (player: Player, room: PublicRoomState) => {
+    console.log("Handling room state - player:", player, "room:", room);
     // Set current player
     this.state.currentPlayer = player;
 
@@ -217,6 +222,13 @@ export class MessageHandlersManager implements MessageHandlers {
   private autoJoinRoom = () => {
     // Get the stored nickname to auto-join
     const nickname = localStorage.getItem("narrari_nickname");
+    console.log(
+      "Auto-joining room with nickname:",
+      nickname,
+      "roomId:",
+      this.state.roomId,
+    );
+
     if (nickname && this.state.roomId) {
       // Send join room message
       const message = {
@@ -228,7 +240,12 @@ export class MessageHandlersManager implements MessageHandlers {
       };
 
       if (this.state.room && this.state.isConnected) {
+        console.log("Sending JOIN_ROOM message:", message);
         this.state.room.send({ message });
+      } else {
+        console.log(
+          "Cannot send JOIN_ROOM - no room connection or not connected",
+        );
       }
     }
   };
