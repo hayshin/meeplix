@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { PlayerEntity } from "$shared/types/player";
-  import { RoomStateEntity } from "$shared/types/room";
+  import type { Player } from "$shared/models/player";
+  import type { GameState } from "$lib/stores/game/types";
   import { Clock, Info, AlertCircle } from "lucide-svelte";
 
   interface Props {
-    session: RoomStateEntity;
-    currentPlayer: PlayerEntity | null;
+    session: GameState;
+    currentPlayer: Player | null;
     isLeader: boolean;
   }
 
@@ -15,15 +15,15 @@
     const leader = session.players.find((p) => p.id === session.leaderId);
     const leaderName = leader?.nickname || "Unknown";
 
-    switch (session.stage) {
+    switch (session.phase) {
       case "joining":
         return {
-          message: `Waiting for players... (${session.players.size}/8)`,
+          message: `Waiting for players... (${session.players.length}/8)`,
           type: "info" as const,
           icon: Info,
         };
 
-      case "leader_choosing":
+      case "leader_submitting":
         if (isLeader) {
           return {
             message: "Choose a card and create an association for it.",
@@ -38,7 +38,7 @@
           };
         }
 
-      case "players_choosing":
+      case "players_submitting":
         if (isLeader) {
           return {
             message: `Association: "${session.currentDescription}". Waiting for other players to choose cards...`,
@@ -75,10 +75,10 @@
           icon: Info,
         };
 
-      case "finished":
+      case "game_finished":
         const winner = session.players.reduce(
           (prev, current) => (prev.score > current.score ? prev : current),
-          session.players.get(0)!,
+          session.players[0]!,
         );
         return {
           message: `Game finished! Winner: ${winner.nickname} with ${winner.score} points!`,
@@ -128,7 +128,7 @@
     <div class="flex-1">
       <p class="font-medium">{statusInfo.message}</p>
 
-      {#if session.stage !== "joining"}
+      {#if session.phase !== "joining"}
         <div class="flex items-center gap-4 mt-2 text-sm opacity-75">
           <span>Round {session.roundNumber}</span>
           {#if session.currentDescription}

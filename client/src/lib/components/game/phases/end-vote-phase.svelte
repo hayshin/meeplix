@@ -1,18 +1,17 @@
 <script lang="ts">
   import { Stars, AlertCircle, Sparkles, Wand2, Play } from "lucide-svelte";
   import GameCard from "$lib/components/game/game-card.svelte";
-
-  import { CardEntity } from "$types/card";
-  import { PlayerEntity } from "$types/player";
-  import { VoteEntity } from "$types/vote";
+  import type { PublicCard } from "$shared/models/public_card";
+  import type { Player } from "$shared/models/player";
+  import type { Vote } from "$shared/models/vote";
 
   interface EndVotePhaseProps {
-    leaderCard: CardEntity | null;
+    leaderCard: PublicCard | null;
     association: string;
-    votedPairs: VoteEntity[];
-    players: PlayerEntity[];
+    votedPairs: Vote[];
+    players: Player[];
     isGameFinished: boolean;
-    winner: PlayerEntity | null;
+    winner: Player | null;
     isCurrentPlayerLeader: boolean;
     onStartNextRound: () => void;
   }
@@ -69,9 +68,8 @@
         </h4>
         <div class="space-y-3">
           {#each votedPairs as vote}
-            {@const voter = players.find((p) => p.id === vote.voterPlayerId)}
-            {@const chosen = players.find((p) => p.id === vote.choicePlayerId)}
-            {#if voter && chosen}
+            {@const voter = players.find((p) => p.id === vote.playerId)}
+            {#if voter}
               <div
                 class="flex items-center justify-between p-3 bg-white/5 rounded-lg"
               >
@@ -79,9 +77,9 @@
                   <span class="text-blue-300 font-medium">
                     {voter.nickname}
                   </span>
-                  <span class="text-slate-400">voted for</span>
+                  <span class="text-slate-400">voted for card:</span>
                   <span class="text-green-300 font-medium">
-                    {chosen.nickname}
+                    {vote.card.name}
                   </span>
                 </div>
                 <div class="text-sm text-slate-400">Vote cast</div>

@@ -2,10 +2,10 @@
   import { Sparkles } from "lucide-svelte";
 
   import GameCard from "$lib/components/game/game-card.svelte";
-  import type { CardEntity } from "$types/card";
+  import type { PublicCard } from "$shared/models/public_card";
 
   interface PlayerHandProps {
-    cards: CardEntity[];
+    cards: PublicCard[];
     selectedCardId: string | null;
     enlargedCardId: string | null;
     onCardSelect: (cardId: string) => void;

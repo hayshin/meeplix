@@ -1,11 +1,11 @@
 <script lang="ts">
   import { AlertCircle, Clock, Send } from "lucide-svelte";
   import GameCard from "$lib/components/game/game-card.svelte";
-  import type { CardEntity } from "$types/card";
+  import type { PublicCard } from "$shared/models/public_card";
 
   interface VotingPhaseProps {
     isCurrentPlayerLeader: boolean;
-    votingCards: CardEntity[];
+    votingCards: PublicCard[];
     selectedVoteCardId: string | null;
     onCardSelect: (cardId: string) => void;
     onSubmitVote: () => void;

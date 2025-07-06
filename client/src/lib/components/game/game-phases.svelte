@@ -5,9 +5,9 @@
   import VotingPhase from "./phases/voting-phase.svelte";
   import EndVotePhase from "./phases/end-vote-phase.svelte";
   import PlayerHand from "./player-hand.svelte";
-  import type { CardEntity } from "$types/card";
-  import type { PlayerEntity } from "$types/player";
-  import type { VoteEntity } from "$types/vote";
+  import type { PublicCard } from "$shared/models/public_card";
+  import type { Player } from "$shared/models/player";
+  import type { Vote } from "$shared/models/vote";
 
   interface GamePhasesProps {
     gamePhase: string;
@@ -15,7 +15,7 @@
     allPlayersReady: boolean;
     canStartGame: boolean;
     isCurrentPlayerLeader: boolean;
-    currentLeader: PlayerEntity | null;
+    currentLeader: Player | null;
     association: string;
     // Card selection props
     selectedCardId: string | null;
@@ -34,14 +34,14 @@
     onCardEnlarge: (cardId: string | null) => void;
     onVoteCardSelect: (cardId: string) => void;
     // Game data
-    votingCards: CardEntity[];
-    currentPlayerHand: CardEntity[];
+    votingCards: PublicCard[];
+    currentPlayerHand: PublicCard[];
     // End vote phase props
-    leaderCard: CardEntity | null;
-    votedPairs: VoteEntity[];
-    players: PlayerEntity[];
+    leaderCard: PublicCard | null;
+    votedPairs: Vote[];
+    players: Player[];
     isGameFinished: boolean;
-    winner: PlayerEntity | null;
+    winner: Player | null;
   }
 
   let {
@@ -77,7 +77,7 @@
   <!-- Main Game Phase Display -->
   {#if gamePhase === "joining"}
     <JoiningPhase {allPlayersReady} {canStartGame} />
-  {:else if gamePhase === "leader_choosing"}
+  {:else if gamePhase === "leader_submitting"}
     <LeaderChoosingPhase
       {isCurrentPlayerLeader}
       {currentLeader}
@@ -85,7 +85,7 @@
       {onAssociationChange}
       {onSubmitLeaderChoice}
     />
-  {:else if gamePhase === "players_choosing"}
+  {:else if gamePhase === "players_submitting"}
     <PlayersChoosingPhase
       {isCurrentPlayerLeader}
       {currentLeader}

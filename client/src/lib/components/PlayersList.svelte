@@ -1,22 +1,25 @@
 <script lang="ts">
-  import type { PlayerEntity } from "$shared/types/player";
+  import type { Player } from "$shared/models/player";
   import { ui } from "$lib/utils";
   import { Crown, Users } from "lucide-svelte";
 
   interface Props {
-    players: PlayerEntity[];
+    players: Player[];
     leaderId?: string;
     currentPlayerId?: string;
   }
 
   let { players, leaderId, currentPlayerId }: Props = $props();
 
-  // Сортируем игроков по времени присоединения
+  // Sort players by join time
   const sortedPlayers = $derived(
     players.sort(
       (a, b) => new Date(a.joinedAt).getTime() - new Date(b.joinedAt).getTime(),
     ),
   );
+
+  // Helper to check if player is connected (online status)
+  const isPlayerConnected = (player: Player) => player.status === "online";
 </script>
 
 <div
@@ -53,8 +56,8 @@
           <!-- Connection indicator -->
           <div
             class="absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-white"
-            class:bg-green-500={player.isConnected}
-            class:bg-red-500={!player.isConnected}
+            class:bg-green-500={isPlayerConnected(player)}
+            class:bg-red-500={!isPlayerConnected(player)}
           ></div>
         </div>
 
@@ -78,7 +81,7 @@
 
         <!-- Connection Status -->
         <div class="text-xs">
-          {#if player.isConnected}
+          {#if isPlayerConnected(player)}
             <span class="text-green-400">●</span>
           {:else}
             <span class="text-red-400">●</span>

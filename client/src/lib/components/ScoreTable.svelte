@@ -1,20 +1,23 @@
 <script lang="ts">
-  import type { PlayerEntity } from "$types/player";
+  import type { Player } from "$shared/models/player";
   import { ui } from "$lib/utils";
   import { Trophy, Medal, Award } from "lucide-svelte";
 
   interface Props {
-    players: PlayerEntity[];
+    players: Player[];
     roundScores?: { [playerId: string]: number };
     showRoundScores?: boolean;
   }
 
   let { players, roundScores = {}, showRoundScores = false }: Props = $props();
 
-  // Сортируем игроков по очкам (по убыванию)
+  // Sort players by score (descending)
   const sortedPlayers = $derived(
     [...players].sort((a, b) => b.score - a.score),
   );
+
+  // Helper to check if player is connected
+  const isPlayerConnected = (player: Player) => player.status === "online";
 
   const getPositionIcon = (position: number) => {
     switch (position) {
@@ -74,7 +77,7 @@
             class:bg-gray-500={position === 2}
             class:bg-orange-500={position === 3}
           >
-            <!-- Место -->
+            <!-- Rank -->
             <td class="px-2 py-3">
               <div class="flex items-center gap-2">
                 {#if Icon}
@@ -89,10 +92,10 @@
               </div>
             </td>
 
-            <!-- Игрок -->
+            <!-- Player -->
             <td class="px-2 py-3">
               <div class="flex items-center gap-3">
-                <!-- Аватар -->
+                <!-- Avatar -->
                 <div
                   class="flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold text-white {ui.getPlayerColor(
                     player.id,
@@ -107,7 +110,7 @@
                     {player.nickname}
                   </div>
                   <div class="text-xs text-slate-400">
-                    {player.isConnected ? "Online" : "Offline"}
+                    {isPlayerConnected(player) ? "Online" : "Offline"}
                   </div>
                 </div>
               </div>

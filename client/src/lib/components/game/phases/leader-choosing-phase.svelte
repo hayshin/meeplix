@@ -1,10 +1,10 @@
 <script lang="ts">
   import { Wand2, Send } from "lucide-svelte";
-  import type { PlayerEntity } from "$types/player";
+  import type { Player } from "$shared/models/player";
 
   interface LeaderChoosingPhaseProps {
     isCurrentPlayerLeader: boolean;
-    currentLeader: PlayerEntity | null;
+    currentLeader: Player | null;
     associationInput: string;
     onAssociationChange: (value: string) => void;
     onSubmitLeaderChoice: () => void;

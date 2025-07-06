@@ -1,10 +1,10 @@
 <script lang="ts">
-  import type { CardEntity } from "$types/card";
+  import type { PublicCard } from "$shared/models/public_card";
   import { onMount } from "svelte";
   import { PUBLIC_API_URL } from "$lib/utils";
 
   interface GameCardProps {
-    card: CardEntity;
+    card: PublicCard;
     isSelected?: boolean;
     isClickable?: boolean;
     isEnlarged?: boolean;
@@ -36,10 +36,9 @@
       onEnlarge();
     }
   };
-  const getImageUrl = (card: CardEntity): string => {
-    let imageUrl = card.title
-      ? `${PUBLIC_API_URL}/api/cards/${card.title}`
-      : "";
+
+  const getImageUrl = (card: PublicCard): string => {
+    let imageUrl = card.name ? `${PUBLIC_API_URL}/api/cards/${card.name}` : "";
     return imageUrl;
   };
 
@@ -98,7 +97,7 @@
       {#if imageLoaded && !imageError}
         <img
           src={getImageUrl(card)}
-          alt={card.title}
+          alt={card.name}
           class="w-full h-full object-cover transition-transform duration-200 {isHovered &&
           isClickable
             ? 'scale-110'
@@ -179,9 +178,9 @@
     <div class="relative h-1/4 p-2 flex items-center justify-center">
       <h3
         class="text-center text-white font-medium text-sm leading-tight line-clamp-2"
-        title={card.title}
+        title={card.name}
       >
-        {card.title}
+        {card.name}
       </h3>
     </div>
   </div>
