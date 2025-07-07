@@ -58,6 +58,7 @@ export const PhaseBeginVoteMessage = messageSchema("PHASE_BEGIN_VOTE", {
 export const PhaseEndVoteMessage = messageSchema("PHASE_END_VOTE", {
   votes: t.Array(VoteDTO),
   leaderCardId: t.String(),
+  players: t.Array(PlayerDTO),
 });
 
 // const votes: Votes = { "1": "2", "2": "3" };

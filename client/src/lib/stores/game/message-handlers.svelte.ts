@@ -81,6 +81,7 @@ export class MessageHandlersManager implements MessageHandlers {
         this.handlePhaseEndVote(
           message.payload.votes,
           message.payload.leaderCardId,
+          message.payload.players,
         );
         break;
 
@@ -273,12 +274,17 @@ export class MessageHandlersManager implements MessageHandlers {
     }
   };
 
-  handlePhaseEndVote = (votes: Vote[], leaderCardId: string) => {
+  handlePhaseEndVote = (
+    votes: Vote[],
+    leaderCardId: string,
+    players: Player[],
+  ) => {
     const currentState = get(this.state);
 
     this.state.update((state) => ({
       ...state,
       phase: "results" as const,
+      players,
       votes,
     }));
 

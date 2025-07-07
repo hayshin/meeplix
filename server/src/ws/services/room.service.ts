@@ -179,6 +179,12 @@ export function startRound(roomId: string, leaderId: string): Hand[] {
   if (room.phase == "leader_submitting") {
     throw new Error("Round already started");
   }
+  room.hands.forEach((hand) => {
+    while (hand.cards.length < GAME_CONFIG.cardsPerPlayer) {
+      const card = drawFromDeck(room.deck, 1)[0];
+      hand.cards.push(card);
+    }
+  });
   room.leaderId = leaderId;
   room.roundNumber += 1;
   room.currentDescription = "";
@@ -286,6 +292,7 @@ export function endVote(roomId: string): void {
     payload: {
       leaderCardId: getSubmittedLeaderCard(room).id,
       votes: room.votes,
+      players: getPlayersInRoom(roomId),
     },
   });
 }
@@ -304,16 +311,31 @@ export function getSubmittedLeaderCard(room: RoomState): Card {
   }
   return leaderCard.card;
 }
+
+import { Vote } from "$shared/models/vote";
+
+export function getVotesForPlayer(room: RoomState, playerId: string): Vote[] {
+  const playerSubmission = room.submittedCards.find(
+    (submission) => submission.playerId === playerId,
+  );
+  if (!playerSubmission) {
+    throw new Error(`Player submission not found`);
+  }
+  const playerCard = playerSubmission.card;
+  return room.votes.filter((vote) => vote.card.id === playerCard.id);
+}
+
+export function getVotesOfPlayer(room: RoomState, playerId: string): Vote[] {
+  return room.votes.filter((vote) => vote.playerId === playerId);
+}
+
 export function calculatePoints(roomId: string): void {
   const room = getRoomById(roomId);
   const leaderId = room.leaderId;
   const leaderCard = getSubmittedLeaderCard(room);
 
   // Count votes for leader's card
-  const votesForLeader = room.votes.filter(
-    (vote) => vote.card.id === leaderCard.id,
-  ).length;
-
+  const votesForLeader = getVotesForPlayer(room, leaderId).length;
   const totalVotes = room.votes.length;
 
   // Points for leader
@@ -323,19 +345,14 @@ export function calculatePoints(roomId: string): void {
   }
 
   // Points for other players
-  const players = getPlayersInRoom(roomId).filter(
-    (player) => player.id !== leaderId,
-  );
+  const players = getPlayersInRoom(roomId);
+
   players.forEach((player) => {
     if (player.id === leaderId) return; // Leader already processed
 
     // Check if player guessed the leader's card
     const playerVote = room.votes.find(
-      (vote) =>
-        vote.card.id === leaderCard.id &&
-        // Assuming we need to identify the voter somehow - this might need adjustment
-        // based on your Vote model structure
-        player.id, // This might need to be adjusted based on how votes are structured
+      (vote) => vote.card.id === leaderCard.id && vote.playerId == player.id,
     );
 
     if (playerVote) {
@@ -347,12 +364,8 @@ export function calculatePoints(roomId: string): void {
       (submission) => submission.playerId === player.id,
     );
 
-    if (playerSubmittedCard) {
-      const votesForPlayerCard = room.votes.filter(
-        (vote) => vote.card.id === playerSubmittedCard.card.id,
-      ).length;
-      player.score += votesForPlayerCard * GAME_CONFIG.pointsPerVote;
-    }
+    const votesForPlayerCard = getVotesForPlayer(room, player.id).length;
+    player.score += votesForPlayerCard * GAME_CONFIG.pointsPerVote;
   });
 }
 

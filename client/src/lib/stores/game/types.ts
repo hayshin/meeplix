@@ -96,7 +96,11 @@ export interface MessageHandlers {
   handlePlayerSubmitCard: (playerId: string) => void;
   handlePhaseBeginVote: (cardsForVoting: PublicCard[]) => void;
   handlePlayerVoted: (playerId: string) => void;
-  handlePhaseEndVote: (votes: Vote[], leaderCardId: string) => void;
+  handlePhaseEndVote: (
+    votes: Vote[],
+    leaderCardId: string,
+    players: Player[],
+  ) => void;
   handleEndGame: (winnerId: string) => void;
   handleRoomState: (player: Player, room: PublicRoomState) => void;
 }
