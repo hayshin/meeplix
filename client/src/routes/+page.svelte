@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { storage } from "$lib/utils";
-  import { gameStore } from "$lib/stores/game";
+  import { useGameStore } from "$lib/stores/game";
   import * as m from "$lib/paraglide/messages.js";
   import LanguageSelector from "$lib/components/LanguageSelector.svelte";
   import {
@@ -11,6 +11,11 @@
     MagicalCursor,
   } from "$lib/components/home";
 
+  // Use the game store
+  const gameStore = useGameStore();
+  const { gameState, actions } = gameStore;
+
+  // Local component state
   let nickname = $state("");
   let isLoading = $state(false);
   let clientError = $state("");
@@ -21,19 +26,25 @@
     nickname = savedNickname;
   }
 
+  // Derived values from store
+  const roomState = $derived($gameState);
+  const roomId = $derived(roomState.roomId);
+  const currentPlayer = $derived(roomState.currentPlayer);
+  const error = $derived(roomState.error);
+
   // Effect to handle navigation after room creation
   $effect(() => {
     console.log("Navigation effect triggered:", {
-      roomId: gameStore.state.roomId,
-      currentPlayer: gameStore.state.currentPlayer,
+      roomId,
+      currentPlayer,
       isLoading,
     });
 
-    if (gameStore.state.roomId && gameStore.state.currentPlayer && isLoading) {
+    if (roomId && currentPlayer && isLoading) {
       // Room was created successfully, navigate to game
-      console.log("Navigating to game:", gameStore.state.roomId);
-      storage.saveLastGameId(gameStore.state.roomId);
-      goto(`/game/${gameStore.state.roomId}`);
+      console.log("Navigating to game:", roomId);
+      storage.saveLastGameId(roomId);
+      goto(`/game/${roomId}`);
       isLoading = false;
     }
   });
@@ -41,15 +52,15 @@
   // Effect to handle errors
   $effect(() => {
     console.log("Error effect triggered:", {
-      error: gameStore.state.error,
+      error,
       isLoading,
     });
 
-    if (gameStore.state.error && isLoading) {
+    if (error && isLoading) {
       // Error occurred during room creation
-      clientError = gameStore.state.error;
+      clientError = error;
       isLoading = false;
-      gameStore.clearError();
+      actions.clearError();
     }
   });
 
@@ -71,12 +82,12 @@
       storage.saveNickname(nickname.trim());
 
       // Clear any previous errors
-      gameStore.clearError();
+      actions.clearError();
 
       // Use WebSocket-based room creation
-      gameStore.createRoom(nickname.trim());
+      actions.createRoom(nickname.trim());
 
-      // Navigation will be handled by the reactive statement
+      // Navigation will be handled by the reactive effect
     } catch (error) {
       console.error("Error creating room:", error);
       clientError = "Failed to create room. Please try again.";
@@ -104,10 +115,10 @@
         storage.saveNickname(nickname.trim());
 
         // Clear any previous errors
-        gameStore.clearError();
+        actions.clearError();
 
         // Use WebSocket-based room joining
-        gameStore.joinRoom(gameId.trim(), nickname.trim());
+        actions.joinRoom(gameId.trim(), nickname.trim());
 
         // Navigate to game page immediately
         storage.saveLastGameId(gameId.trim());

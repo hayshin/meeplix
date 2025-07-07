@@ -23,6 +23,7 @@ export const StartRoundMessage = messageSchema("START_ROUND", {
   // hand: Card[],
   // roundNumber: t.Number(),
   currentHand: t.Array(PublicCardDTO),
+  leaderId: t.String(),
 });
 
 export const PlayerVotedMessage = messageSchema("PLAYER_VOTED", {
@@ -46,6 +47,7 @@ export const PlayerDisconnectedMessage = messageSchema("PLAYER_DISCONNECTED", {
 
 export const PhaseChooseCardMessage = messageSchema("PHASE_CHOOSE_CARD", {
   player: PlayerDTO,
+  description: t.String(),
   // hand: t.Array(t.String()),
 });
 

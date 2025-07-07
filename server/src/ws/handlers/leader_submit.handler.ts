@@ -11,12 +11,14 @@ export async function handleLeaderSubmitCard(
 
     leaderSubmitCard(roomId, playerId, cardId, description);
     const players = getPlayersInRoom(roomId);
+
     players.forEach((player) => {
       sendMessageToPlayer(player.id, {
         type: "PHASE_CHOOSE_CARD",
         payload: {
           // hand: hand.cards,
           player,
+          description: description,
         },
       });
     });

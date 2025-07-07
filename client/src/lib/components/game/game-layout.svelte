@@ -4,6 +4,7 @@
   import GameStatusBar from "./game-status-bar.svelte";
   import NicknameModal from "./nickname-modal.svelte";
   import PlayerHand from "./player-hand.svelte";
+  import GameCard from "./game-card.svelte";
 
   interface GameLayoutProps {
     showNicknameModal: boolean;
@@ -228,17 +229,12 @@
 
             <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {#each currentPlayerHand as card}
-                <button
+                <GameCard
+                  {card}
+                  isSelected={selectedCardId === card.id}
                   onclick={() => onCardSelect(card.id)}
-                  class="p-4 rounded-lg transition-all {selectedCardId ===
-                  card.id
-                    ? 'bg-blue-500'
-                    : 'bg-white/20 hover:bg-white/30'}"
-                >
-                  <div class="text-white text-center">
-                    {card.name}
-                  </div>
-                </button>
+                  onEnlarge={() => onCardEnlarge(card.id)}
+                />
               {/each}
             </div>
 
@@ -270,16 +266,12 @@
 
           <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {#each currentPlayerHand as card}
-              <button
+              <GameCard
+                {card}
+                isSelected={selectedCardId === card.id}
                 onclick={() => onCardSelect(card.id)}
-                class="p-4 rounded-lg transition-all {selectedCardId === card.id
-                  ? 'bg-blue-500'
-                  : 'bg-white/20 hover:bg-white/30'}"
-              >
-                <div class="text-white text-center">
-                  {card.name}
-                </div>
-              </button>
+                onEnlarge={() => onCardEnlarge(card.id)}
+              />
             {/each}
           </div>
 
@@ -313,17 +305,12 @@
 
           <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {#each votingCards as card}
-              <button
+              <GameCard
+                {card}
+                isSelected={selectedVoteCardId === card.id}
                 onclick={() => onVoteCardSelect(card.id)}
-                class="p-4 rounded-lg transition-all {selectedVoteCardId ===
-                card.id
-                  ? 'bg-blue-500'
-                  : 'bg-white/20 hover:bg-white/30'}"
-              >
-                <div class="text-white text-center">
-                  {card.name}
-                </div>
-              </button>
+                onEnlarge={() => onCardEnlarge(card.id)}
+              />
             {/each}
           </div>
 

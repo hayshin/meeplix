@@ -91,8 +91,8 @@ export interface MessageHandlers {
   handlePlayerReady: (playerId: string) => void;
   handlePlayerConnected: (player: Player) => void;
   handlePlayerDisconnected: (playerId: string) => void;
-  handleStartRound: (currentHand: PublicCard[]) => void;
-  handlePhaseChooseCard: (player: Player) => void;
+  handleStartRound: (currentHand: PublicCard[], leaderId: string) => void;
+  handlePhaseChooseCard: (player: Player, description: string) => void;
   handlePlayerSubmitCard: (playerId: string) => void;
   handlePhaseBeginVote: (cardsForVoting: PublicCard[]) => void;
   handlePlayerVoted: (playerId: string) => void;

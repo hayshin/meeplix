@@ -52,11 +52,17 @@ export class MessageHandlersManager implements MessageHandlers {
         break;
 
       case "START_ROUND":
-        this.handleStartRound(message.payload.currentHand);
+        this.handleStartRound(
+          message.payload.currentHand,
+          message.payload.leaderId,
+        );
         break;
 
       case "PHASE_CHOOSE_CARD":
-        this.handlePhaseChooseCard(message.payload.player);
+        this.handlePhaseChooseCard(
+          message.payload.player,
+          message.payload.description,
+        );
         break;
 
       case "PLAYER_SUBMIT_CARD":
@@ -187,9 +193,10 @@ export class MessageHandlersManager implements MessageHandlers {
     }));
   };
 
-  handleStartRound = (currentHand: PublicCard[]) => {
+  handleStartRound = (currentHand: PublicCard[], leaderId: string) => {
     console.log("Starting round");
     console.log("Current hand:", currentHand);
+    console.log("Current leader:", leaderId);
 
     const currentState = get(this.state);
     console.log("Phase before:", currentState.phase);
@@ -204,6 +211,7 @@ export class MessageHandlersManager implements MessageHandlers {
       votes: [],
       cardsForVoting: [],
       currentDescription: "",
+      leaderId,
     }));
 
     console.log("Phase after: leader_submitting");
@@ -214,7 +222,7 @@ export class MessageHandlersManager implements MessageHandlers {
     }
   };
 
-  handlePhaseChooseCard = (player: Player) => {
+  handlePhaseChooseCard = (player: Player, description: string) => {
     const currentState = get(this.state);
 
     // Update player in list
@@ -226,6 +234,7 @@ export class MessageHandlersManager implements MessageHandlers {
       ...state,
       phase: "players_submitting" as const,
       players: updatedPlayers,
+      currentDescription: description,
     }));
   };
 

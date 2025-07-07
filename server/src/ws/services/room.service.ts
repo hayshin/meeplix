@@ -26,6 +26,15 @@ export function getNextLeader(roomId: string): Player {
   return players[nextIndex];
 }
 
+export function getCurrentLeader(roomId: string): Player {
+  const room = getRoomById(roomId);
+  const players = getPlayersInRoom(roomId);
+  let leaderId = room.leaderId;
+  if (!leaderId) leaderId = players[0].id;
+  const leaderIndex = players.findIndex((player) => player.id === leaderId);
+  return players[leaderIndex];
+}
+
 // export function getPlayer(roomId: roomId, playerId: string): Player {
 //   const room = getRoom(roomId);
 //   const player = room.players.find((player) => player.id === playerId);
@@ -158,7 +167,7 @@ export function startGame(roomId: string, playerId: string): Hand[] {
   if (!allPlayersReady(roomId)) {
     throw new Error("Not all players are ready");
   }
-  const leader = getNextLeader(roomId);
+  const leader = getCurrentLeader(roomId);
   setDeck(roomId);
   dealCards(roomId, 6);
   updateRoom(roomId, room);
@@ -191,6 +200,9 @@ export function playerSubmitCard(
     throw new Error(`Player ${playerId} is the leader ${leaderId}`);
   }
   const card = getCardOfPlayer(room.id, playerId, cardId);
+  if (room.submittedCards.find((card) => card.playerId === playerId)) {
+    throw new Error(`Player ${playerId} has already submitted a card`);
+  }
   room.submittedCards.push({ playerId: playerId, card });
   removeCardFromPlayer(roomId, playerId, card);
   if (allPlayersSubmitted(roomId)) {
@@ -251,7 +263,12 @@ export function playerVote(
   } else if (hasVoted(roomId, playerId)) {
     throw new Error(`Player ${playerId} has already voted`);
   }
-  const card = getCardById(room.id, cardId);
+  // const card = getCardById(room.id, cardId);
+  const card = getSubmittedCards(room).find((card) => card.id === cardId);
+  if (!card) {
+    console.error(`Submitted cards: ${JSON.stringify(room.submittedCards)}`);
+    throw new Error(`Card ${cardId} not found`);
+  }
   room.votes.push({ playerId, card });
   if (allPlayersVoted(roomId)) {
     endVote(roomId);
@@ -271,6 +288,10 @@ export function endVote(roomId: string): void {
       votes: room.votes,
     },
   });
+}
+
+export function getSubmittedCards(room: RoomState): Card[] {
+  return room.submittedCards.map((card) => card.card);
 }
 
 export function getSubmittedLeaderCard(room: RoomState): Card {

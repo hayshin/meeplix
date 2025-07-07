@@ -39,6 +39,7 @@
 
   const getImageUrl = (card: PublicCard): string => {
     let imageUrl = card.name ? `${PUBLIC_API_URL}/api/cards/${card.name}` : "";
+    console.log(imageUrl);
     return imageUrl;
   };
 
