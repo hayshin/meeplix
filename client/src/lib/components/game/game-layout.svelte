@@ -44,7 +44,7 @@
 
   // Destructure individual stores
   const {
-    state,
+    gameState,
     isGameStarted,
     isCurrentPlayerLeader,
     canStartGame,
@@ -54,15 +54,15 @@
   } = gameStore;
 
   // Derived values from store using $derived
-  const gameState = $derived($state);
-  const gamePhase = $derived(gameState.phase);
-  const roomId = $derived(gameState.roomId);
-  const association = $derived(gameState.currentDescription);
-  const votingCards = $derived(gameState.cardsForVoting);
-  const currentPlayerHand = $derived(gameState.currentHand);
-  const votedPairs = $derived(gameState.votes);
-  const players = $derived(gameState.players);
-  const winner = $derived(gameState.winner);
+  const roomState = $derived($gameState);
+  const gamePhase = $derived(roomState.phase);
+  const roomId = $derived(roomState.roomId);
+  const association = $derived(roomState.currentDescription);
+  const votingCards = $derived(roomState.cardsForVoting);
+  const currentPlayerHand = $derived(roomState.currentHand);
+  const votedPairs = $derived(roomState.votes);
+  const players = $derived(roomState.players);
+  const winner = $derived(roomState.winner);
 
   // Store actions and helpers
   const actions = gameStore.actions;
@@ -108,7 +108,7 @@
     console.log("=== GAME LAYOUT DEBUG ===");
     console.log("gamePhase:", gamePhase);
     console.log("isCurrentPlayerLeader:", $isCurrentPlayerLeader);
-    console.log("gameState.phase:", gameState.phase);
+    console.log("roomState.phase:", roomState.phase);
     console.log("========================");
   });
 </script>
@@ -119,7 +119,7 @@
   <!-- Header -->
   <GameHeader
     roomId={roomId || ""}
-    {gameState}
+    gameState={roomState}
     canStartGame={$canStartGame}
     allPlayersReady={$allPlayersReady}
     isCurrentPlayerLeader={$isCurrentPlayerLeader}
@@ -131,13 +131,16 @@
   <!-- Main Content -->
   <div class="container mx-auto px-4 py-8">
     <!-- Game Status Bar -->
-    <GameStatusBar {gameState} isCurrentPlayerLeader={$isCurrentPlayerLeader} />
+    <GameStatusBar
+      gameState={roomState}
+      isCurrentPlayerLeader={$isCurrentPlayerLeader}
+    />
 
     <!-- Error Display -->
-    {#if gameState.error}
+    {#if roomState.error}
       <div class="mb-4 p-4 bg-red-500 text-white rounded-lg">
         <div class="flex justify-between items-center">
-          <span>{gameState.error}</span>
+          <span>{roomState.error}</span>
           <button
             onclick={handleClearError}
             class="text-white hover:text-red-200"
@@ -216,7 +219,8 @@
               <input
                 id="description-input"
                 bind:value={associationInput}
-                oninput={(e) => onAssociationChange(e.target.value)}
+                oninput={(e) =>
+                  onAssociationChange((e.target as HTMLInputElement).value)}
                 placeholder="Describe your card..."
                 class="w-full p-3 rounded-lg bg-white/20 text-white placeholder-white/60"
               />

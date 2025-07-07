@@ -10,27 +10,27 @@
 
   // Example of reactive derived state
   const gameStatus = $derived({
-    phase: game.state.phase,
+    phase: game.gameState.phase,
     playerCount: game.totalPlayersCount,
     readyCount: game.readyPlayersCount,
-    isConnected: game.state.isConnected,
-    hasError: !!game.state.error,
+    isConnected: game.gameState.isConnected,
+    hasError: !!game.gameState.error,
   });
 
   // Example of using helper methods
   const canAct = $derived(game.canPlayerAct());
   const currentPlayerName = $derived(
-    game.state.currentPlayer?.username || "Unknown",
+    game.gameState.currentPlayer?.username || "Unknown",
   );
 
   // Example effect that reacts to phase changes
   $effect(() => {
-    console.log(`Game phase changed to: ${game.state.phase}`);
+    console.log(`Game phase changed to: ${game.gameState.phase}`);
 
     // Clear selections when phase changes
     if (
-      game.state.phase !== "leader_submitting" &&
-      game.state.phase !== "players_submitting"
+      game.gameState.phase !== "leader_submitting" &&
+      game.gameState.phase !== "players_submitting"
     ) {
       selectedCard = null;
       description = "";
@@ -74,7 +74,7 @@
 
   // Example of checking specific conditions
   const showJoinButton = $derived(
-    !game.state.isConnected && !game.state.isConnecting,
+    !game.gameState.isConnected && !game.gameState.isConnecting,
   );
   const showReadyButton = $derived(game.shouldShowReadyButton());
   const showStartButton = $derived(game.shouldShowStartGameButton());
@@ -88,7 +88,7 @@
 
   <!-- Connection Status -->
   <div
-    class="mb-6 p-4 rounded-lg {game.state.isConnected
+    class="mb-6 p-4 rounded-lg {game.gameState.isConnected
       ? 'bg-green-100'
       : 'bg-red-100'}"
   >
@@ -96,15 +96,18 @@
     <div class="grid grid-cols-2 gap-4">
       <div>
         <strong>Status:</strong>
-        {#if game.state.isConnecting}
+        {#if game.gameState.isConnecting}
           Connecting...
-        {:else if game.state.isConnected}
+        {:else if game.gameState.isConnected}
           Connected
         {:else}
           Disconnected
         {/if}
       </div>
-      <div><strong>Room ID:</strong> {game.state.roomId || "Not in room"}</div>
+      <div>
+        <strong>Room ID:</strong>
+        {game.gameState.roomId || "Not in room"}
+      </div>
       <div><strong>Player:</strong> {currentPlayerName}</div>
       <div><strong>Phase:</strong> {gameStatus.phase}</div>
       <div>
@@ -116,10 +119,10 @@
   </div>
 
   <!-- Error Display -->
-  {#if game.state.error}
+  {#if game.gameState.error}
     <div class="mb-6 p-4 bg-red-100 border border-red-400 rounded-lg">
       <div class="flex justify-between items-center">
-        <span class="text-red-700">{game.state.error}</span>
+        <span class="text-red-700">{game.gameState.error}</span>
         <button
           onclick={game.clearError}
           class="text-red-500 hover:text-red-700"
@@ -164,7 +167,7 @@
       <button
         onclick={game.disconnect}
         class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-        disabled={!game.state.isConnected}
+        disabled={!game.gameState.isConnected}
       >
         Disconnect
       </button>
@@ -172,11 +175,11 @@
   </div>
 
   <!-- Players List -->
-  {#if game.state.players.length > 0}
+  {#if game.gameState.players.length > 0}
     <div class="mb-6 p-4 bg-gray-100 rounded-lg">
       <h2 class="text-xl font-semibold mb-4">Players</h2>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-        {#each game.state.players as player}
+        {#each game.gameState.players as player}
           <div class="flex justify-between items-center p-2 bg-white rounded">
             <span class="font-medium">{player.username}</span>
             <div class="flex items-center gap-2">
@@ -188,7 +191,7 @@
               >
                 {player.status}
               </span>
-              {#if player.id === game.state.leaderId}
+              {#if player.id === game.gameState.leaderId}
                 <span
                   class="text-xs px-2 py-1 bg-purple-200 text-purple-800 rounded"
                   >Leader</span
@@ -223,7 +226,7 @@
       <div class="mb-4">
         <h3 class="text-lg font-medium mb-2">Your Cards:</h3>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
-          {#each game.state.currentHand as card}
+          {#each game.gameState.currentHand as card}
             <button
               onclick={() => (selectedCard = card.id)}
               class="p-3 border rounded text-center transition-colors {selectedCard ===
@@ -252,12 +255,12 @@
     <div class="mb-6 p-4 bg-blue-100 rounded-lg">
       <h2 class="text-xl font-semibold mb-4">Choose Your Card</h2>
       <p class="mb-4 text-gray-700">
-        Match this description: "{game.state.currentDescription}"
+        Match this description: "{game.gameState.currentDescription}"
       </p>
 
       <div class="mb-4">
         <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
-          {#each game.state.currentHand as card}
+          {#each game.gameState.currentHand as card}
             <button
               onclick={() => (selectedCard = card.id)}
               class="p-3 border rounded text-center transition-colors {selectedCard ===
@@ -286,11 +289,11 @@
     <div class="mb-6 p-4 bg-green-100 rounded-lg">
       <h2 class="text-xl font-semibold mb-4">Vote for the Leader's Card</h2>
       <p class="mb-4 text-gray-700">
-        Which card matches: "{game.state.currentDescription}"?
+        Which card matches: "{game.gameState.currentDescription}"?
       </p>
 
       <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
-        {#each game.state.cardsForVoting as card}
+        {#each game.gameState.cardsForVoting as card}
           <button
             onclick={() => handleVote(card.id)}
             class="p-3 border rounded text-center bg-white hover:bg-gray-50 transition-colors"
@@ -306,8 +309,8 @@
   {#if game.isResultsPhase()}
     <div class="mb-6 p-4 bg-yellow-100 rounded-lg">
       <h2 class="text-xl font-semibold mb-4">Round Results</h2>
-      <p class="mb-4">Description was: "{game.state.currentDescription}"</p>
-      <p class="mb-4">Votes received: {game.state.votes.length}</p>
+      <p class="mb-4">Description was: "{game.gameState.currentDescription}"</p>
+      <p class="mb-4">Votes received: {game.gameState.votes.length}</p>
 
       {#if game.shouldShowNextRoundButton()}
         <button
@@ -338,7 +341,7 @@
     <pre class="mt-2 p-4 bg-gray-100 rounded overflow-auto text-sm">
 {JSON.stringify(
         {
-          state: game.state,
+          state: game.gameState,
           derived: {
             isGameStarted: game.isGameStarted,
             isCurrentPlayerLeader: game.isCurrentPlayerLeader,

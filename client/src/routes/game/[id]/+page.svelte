@@ -5,8 +5,20 @@
   import { useGameStore } from "$lib/stores/game";
   import GameLayout from "$lib/components/game/game-layout.svelte";
 
-  const game = useGameStore();
+  // Use the game store
+  const gameStore = useGameStore();
+  const {
+    gameState,
+    actions,
+    isCurrentPlayerLeader,
+    canStartGame,
+    allPlayersReady,
+  } = gameStore;
+
+  // Get room ID from page params
   const roomId = $page.params.id;
+
+  // Local component state (not managed by game store)
   let nickname = $state("");
   let showNicknameModal = $state(false);
   let showGameSessionsModal = $state(false);
@@ -16,6 +28,7 @@
   let enlargedCardId = $state<string | null>(null);
   let initialized = $state(false);
 
+  // Initialize the game page
   $effect(() => {
     if (initialized) return;
     initialized = true;
@@ -33,23 +46,15 @@
       return;
     }
 
-    // Check for other available game sessions
-    // const allSessions = storage.getAllGameSessions();
-    // if (allSessions.length > 0) {
-    //   console.log("Found existing game sessions:", allSessions);
-    //   showGameSessionsModal = true;
-    //   return;
-    // }
-
     // Check for saved nickname for new connections
     const savedNickname = storage.getNickname();
     if (savedNickname) {
       nickname = savedNickname;
       // Only connect if we don't already have a current player AND we're not already in this room
       if (
-        !game.state.currentPlayer &&
-        game.state.roomId !== roomId &&
-        !game.state.isJoining
+        !$gameState.currentPlayer &&
+        $gameState.roomId !== roomId &&
+        !$gameState.isJoining
       ) {
         connectToGame();
       }
@@ -58,81 +63,52 @@
     }
   });
 
+  // Reconnection logic
   const attemptReconnect = async (gameSession: any) => {
     if (
-      game.state.isConnecting ||
-      game.state.isJoining ||
-      (game.state.currentPlayer && game.state.roomId === roomId)
+      $gameState.isConnecting ||
+      $gameState.isJoining ||
+      ($gameState.currentPlayer && $gameState.roomId === roomId)
     ) {
       console.log("Already connecting or connected to this room");
       return;
     }
 
     console.log("Attempting to reconnect to game session:", gameSession);
-    game.reconnect(
+    actions.reconnect(
       gameSession.roomId,
       gameSession.playerId,
       gameSession.playerName,
     );
   };
 
+  // Connect to game
   const connectToGame = async () => {
     if (!nickname.trim()) return;
 
     // Prevent multiple connection attempts
     if (
-      game.state.isJoining ||
-      game.state.isConnecting ||
-      (game.state.currentPlayer && game.state.roomId === roomId)
+      $gameState.isJoining ||
+      $gameState.isConnecting ||
+      ($gameState.currentPlayer && $gameState.roomId === roomId)
     ) {
       console.log("Already connecting or connected to this room");
       return;
     }
 
     storage.saveNickname(nickname.trim());
-    game.joinRoom(roomId, nickname.trim());
+    actions.joinRoom(roomId, nickname.trim());
     showNicknameModal = false;
   };
 
+  // Event handlers for GameLayout
   const handleNicknameSubmit = async () => {
     if (!nickname.trim()) return;
-
     await connectToGame();
   };
 
-  const startGame = async () => {
-    game.startGame();
-  };
-
-  const toggleReady = async () => {
-    game.setReady();
-  };
-
-  const submitLeaderChoice = async () => {
-    if (!selectedCardId || !associationInput.trim())
-      throw new Error("Invalid input");
-
-    game.submitLeaderCard(selectedCardId, associationInput.trim());
-    selectedCardId = null;
-    associationInput = "";
-  };
-
-  const submitPlayerCard = async () => {
-    if (!selectedCardId) return;
-
-    game.submitPlayerCard(selectedCardId);
-    selectedCardId = null;
-  };
-
-  const submitVote = async () => {
-    if (!selectedVoteCardId) return;
-
-    game.submitVote(selectedVoteCardId);
-    selectedVoteCardId = null;
-  };
-
-  const leaveGame = async () => {
-    game.disconnect();
+  const handleLeaveGame = async () => {
+    actions.disconnect();
     goto("/");
   };
 
@@ -156,10 +132,7 @@
     nickname = value;
   };
 
-  const startNextRound = () => {
-    game.startNextRound();
-  };
-
+  // Game session modal handlers
   const handleSessionSelect = (session: any) => {
     console.log("Selected session:", session);
     if (session.roomId === roomId) {
@@ -199,32 +172,21 @@
     return date.toLocaleString();
   };
 
-  // Derived values for the components
-  let currentLeader = $derived(game.currentLeader);
-  let association = $derived(game.state.currentDescription);
-  let votingCards = $derived(game.state.cardsForVoting);
-  let playerHandCards = $derived(game.state.currentHand);
-  let leaderCard = $derived(null); // Will be implemented later
-  let votedPairs = $derived(game.state.votes);
-  let players = $derived(game.state.players);
-  let isGameFinished = $derived(game.isGameFinished);
-  let winner = $derived(game.getWinner());
-
   // Debug logging for reactivity
   $effect(() => {
     console.log("=== GAME STATE DEBUG ===");
-    console.log("Players:", game.state.players);
-    console.log("Players count:", game.state.players.length);
+    console.log("Players:", $gameState.players);
+    console.log("Players count:", $gameState.players.length);
     console.log(
       "Ready players:",
-      game.state.players.filter((p) => p.status === "ready"),
+      $gameState.players.filter((p) => p.status === "ready"),
     );
-    console.log("Current player:", game.state.currentPlayer);
-    console.log("Leader ID:", game.state.leaderId);
-    console.log("Is current player leader:", game.isCurrentPlayerLeader);
-    console.log("Can start game:", game.canStartGame);
-    console.log("All players ready:", game.allPlayersReady);
-    console.log("Game phase:", game.state.phase);
+    console.log("Current player:", $gameState.currentPlayer);
+    console.log("Leader ID:", $gameState.leaderId);
+    console.log("Is current player leader:", $isCurrentPlayerLeader);
+    console.log("Can start game:", $canStartGame);
+    console.log("All players ready:", $allPlayersReady);
+    console.log("Game phase:", $gameState.phase);
     console.log("========================");
   });
 </script>
@@ -238,37 +200,16 @@
 </svelte:head>
 
 <GameLayout
-  {roomId}
-  gameState={game.state}
-  gamePhase={game.state.phase}
   {showNicknameModal}
   {nickname}
-  isCurrentPlayerLeader={game.isCurrentPlayerLeader}
-  canStartGame={game.canStartGame}
-  allPlayersReady={game.allPlayersReady}
-  {currentLeader}
-  {association}
   {selectedCardId}
   {selectedVoteCardId}
   {enlargedCardId}
   {associationInput}
-  {votingCards}
-  currentPlayerHand={playerHandCards}
-  {leaderCard}
-  {votedPairs}
-  {players}
-  {isGameFinished}
-  {winner}
   onNicknameChange={handleNicknameChange}
   onNicknameSubmit={handleNicknameSubmit}
-  onLeaveGame={leaveGame}
-  onToggleReady={toggleReady}
-  onStartGame={startGame}
+  onLeaveGame={handleLeaveGame}
   onAssociationChange={handleAssociationChange}
-  onSubmitLeaderChoice={submitLeaderChoice}
-  onSubmitPlayerCard={submitPlayerCard}
-  onSubmitVote={submitVote}
-  onStartNextRound={startNextRound}
   onCardSelect={handleCardSelect}
   onCardEnlarge={handleCardEnlarge}
   onVoteCardSelect={handleVoteCardSelect}

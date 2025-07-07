@@ -24,7 +24,7 @@ export const gameStore = new GameStore();
 export const useGameStore = () => {
   return {
     // Core state store
-    state: gameStore.state,
+    gameState: gameStore.state,
 
     // Derived stores
     isGameStarted: gameStore.isGameStarted,
