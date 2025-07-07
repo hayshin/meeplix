@@ -1,3 +1,4 @@
+import { get, type Writable } from "svelte/store";
 import { api } from "$lib/utils";
 import type { GameState, ConnectionHandlers } from "./types";
 
@@ -5,11 +6,14 @@ export class ConnectionManager {
   private connectionTimeout: NodeJS.Timeout | null = null;
   private readonly TIMEOUT_DURATION = 10000; // 10 seconds
 
-  constructor(private state: GameState) {}
+  constructor(private state: Writable<GameState>) {}
 
   createConnection = (): ReturnType<typeof api.ws.subscribe> => {
     const room = api.ws.subscribe();
-    this.state.room = room;
+    this.state.update((state) => ({
+      ...state,
+      room: room,
+    }));
     return room;
   };
 
@@ -24,7 +28,10 @@ export class ConnectionManager {
         }
       } catch (error) {
         console.error("Error processing WebSocket message:", error);
-        this.state.error = "Error processing server message";
+        this.state.update((state) => ({
+          ...state,
+          error: "Error processing server message",
+        }));
       }
     });
 
@@ -56,39 +63,57 @@ export class ConnectionManager {
 
   handleConnectionError = (message: string) => {
     this.clearConnectionTimeout();
-    this.state.error = message;
-    this.state.isConnected = false;
-    this.state.isConnecting = false;
-    this.state.isJoining = false;
 
-    if (this.state.room) {
-      this.state.room.close();
-      this.state.room = null;
+    const currentState = get(this.state);
+    if (currentState.room) {
+      currentState.room.close();
     }
+
+    this.state.update((state) => ({
+      ...state,
+      error: message,
+      isConnected: false,
+      isConnecting: false,
+      isJoining: false,
+      room: null,
+    }));
   };
 
   setConnecting = (isConnecting: boolean) => {
-    this.state.isConnecting = isConnecting;
+    this.state.update((state) => ({
+      ...state,
+      isConnecting,
+    }));
   };
 
   setConnected = (isConnected: boolean) => {
-    this.state.isConnected = isConnected;
+    this.state.update((state) => ({
+      ...state,
+      isConnected,
+    }));
   };
 
   clearError = () => {
-    this.state.error = null;
+    this.state.update((state) => ({
+      ...state,
+      error: null,
+    }));
   };
 
   disconnect = () => {
     this.clearConnectionTimeout();
 
-    if (this.state.room) {
-      this.state.room.close();
-      this.state.room = null;
+    const currentState = get(this.state);
+    if (currentState.room) {
+      currentState.room.close();
     }
 
-    this.state.isConnected = false;
-    this.state.isConnecting = false;
-    this.state.isJoining = false;
+    this.state.update((state) => ({
+      ...state,
+      isConnected: false,
+      isConnecting: false,
+      isJoining: false,
+      room: null,
+    }));
   };
 }

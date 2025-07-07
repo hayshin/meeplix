@@ -1,3 +1,4 @@
+import { get, type Writable } from "svelte/store";
 import type {
   ClientMessage,
   CreateRoomMessage,
@@ -14,10 +15,11 @@ import type { GameState, GameActions } from "./types";
 import { storage } from "$lib/utils";
 
 export class GameActionsManager implements GameActions {
-  constructor(private state: GameState) {}
+  constructor(private state: Writable<GameState>) {}
 
   createRoom = (username: string) => {
-    if (this.state.isConnecting) return;
+    const currentState = get(this.state);
+    if (currentState.isConnecting) return;
 
     const message: CreateRoomMessage = {
       type: "CREATE_ROOM",
@@ -28,15 +30,19 @@ export class GameActionsManager implements GameActions {
   };
 
   joinRoom = (roomId: string, username: string) => {
+    const currentState = get(this.state);
     if (
-      this.state.isConnecting ||
-      this.state.isJoining ||
-      this.state.currentPlayer
+      currentState.isConnecting ||
+      currentState.isJoining ||
+      currentState.currentPlayer
     )
       return;
 
-    this.state.roomId = roomId;
-    this.state.isJoining = true;
+    this.state.update((state) => ({
+      ...state,
+      roomId,
+      isJoining: true,
+    }));
 
     const message: JoinRoomMessage = {
       type: "JOIN_ROOM",
@@ -47,13 +53,14 @@ export class GameActionsManager implements GameActions {
   };
 
   startGame = () => {
-    if (!this.state.currentPlayer || !this.state.roomId) return;
+    const currentState = get(this.state);
+    if (!currentState.currentPlayer || !currentState.roomId) return;
 
     const message: StartGameMessage = {
       type: "START_GAME",
       payload: {
-        playerId: this.state.currentPlayer.id,
-        roomId: this.state.roomId,
+        playerId: currentState.currentPlayer.id,
+        roomId: currentState.roomId,
       },
     };
 
@@ -61,13 +68,14 @@ export class GameActionsManager implements GameActions {
   };
 
   setReady = () => {
-    if (!this.state.currentPlayer || !this.state.roomId) return;
+    const currentState = get(this.state);
+    if (!currentState.currentPlayer || !currentState.roomId) return;
 
     const message: ReadyMessage = {
       type: "READY",
       payload: {
-        playerId: this.state.currentPlayer.id,
-        roomId: this.state.roomId,
+        playerId: currentState.currentPlayer.id,
+        roomId: currentState.roomId,
       },
     };
 
@@ -75,15 +83,16 @@ export class GameActionsManager implements GameActions {
   };
 
   submitLeaderCard = (cardId: string, description: string) => {
-    if (!this.state.currentPlayer || !this.state.roomId)
+    const currentState = get(this.state);
+    if (!currentState.currentPlayer || !currentState.roomId)
       throw new Error("Player or room ID not found");
 
     const message: LeaderSubmitCardMessage = {
       type: "LEADER_SUBMIT_CARD",
       payload: {
-        playerId: this.state.currentPlayer.id,
+        playerId: currentState.currentPlayer.id,
         cardId,
-        roomId: this.state.roomId,
+        roomId: currentState.roomId,
         description,
       },
     };
@@ -92,14 +101,15 @@ export class GameActionsManager implements GameActions {
   };
 
   submitPlayerCard = (cardId: string) => {
-    if (!this.state.currentPlayer || !this.state.roomId) return;
+    const currentState = get(this.state);
+    if (!currentState.currentPlayer || !currentState.roomId) return;
 
     const message: PlayerSubmitCardMessage = {
       type: "SUBMIT_CARD",
       payload: {
-        playerId: this.state.currentPlayer.id,
+        playerId: currentState.currentPlayer.id,
         cardId,
-        roomId: this.state.roomId,
+        roomId: currentState.roomId,
       },
     };
 
@@ -107,13 +117,14 @@ export class GameActionsManager implements GameActions {
   };
 
   submitVote = (cardId: string) => {
-    if (!this.state.currentPlayer || !this.state.roomId) return;
+    const currentState = get(this.state);
+    if (!currentState.currentPlayer || !currentState.roomId) return;
 
     const message: VoteMessage = {
       type: "VOTE",
       payload: {
-        playerId: this.state.currentPlayer.id,
-        roomId: this.state.roomId,
+        playerId: currentState.currentPlayer.id,
+        roomId: currentState.roomId,
         cardId,
       },
     };
@@ -122,13 +133,14 @@ export class GameActionsManager implements GameActions {
   };
 
   startNextRound = () => {
-    if (!this.state.currentPlayer || !this.state.roomId) return;
+    const currentState = get(this.state);
+    if (!currentState.currentPlayer || !currentState.roomId) return;
 
     const message: NextRoundMessage = {
       type: "NEXT_ROUND",
       payload: {
-        playerId: this.state.currentPlayer.id,
-        roomId: this.state.roomId,
+        playerId: currentState.currentPlayer.id,
+        roomId: currentState.roomId,
       },
     };
 
@@ -141,14 +153,21 @@ export class GameActionsManager implements GameActions {
   };
 
   clearError = () => {
-    this.state.error = null;
+    this.state.update((state) => ({
+      ...state,
+      error: null,
+    }));
   };
 
   reconnectToRoom = (roomId: string, playerId: string, username: string) => {
-    if (this.state.isConnecting || this.state.isJoining) return;
+    const currentState = get(this.state);
+    if (currentState.isConnecting || currentState.isJoining) return;
 
-    this.state.roomId = roomId;
-    this.state.isJoining = true;
+    this.state.update((state) => ({
+      ...state,
+      roomId,
+      isJoining: true,
+    }));
 
     const message: ReconnectMessage = {
       type: "RECONNECT",
@@ -159,40 +178,49 @@ export class GameActionsManager implements GameActions {
   };
 
   private sendMessage = (message: ClientMessage) => {
-    if (!this.state.room || !this.state.isConnected) {
+    const currentState = get(this.state);
+    if (!currentState.room || !currentState.isConnected) {
       console.error("WebSocket not connected");
       return;
     }
 
     try {
       console.log("Sending message:", message);
-      this.state.room.send({ message });
+      currentState.room.send({ message });
     } catch (error) {
       console.error("Error sending message:", error);
-      this.state.error = "Failed to send message";
+      this.state.update((state) => ({
+        ...state,
+        error: "Failed to send message",
+      }));
     }
   };
 
   private resetGameState = () => {
+    const currentState = get(this.state);
+
     // Clear current game session from storage
-    if (this.state.roomId) {
-      storage.removeGameSession(this.state.roomId);
+    if (currentState.roomId) {
+      storage.removeGameSession(currentState.roomId);
     }
 
-    this.state.roomId = null;
-    this.state.currentPlayer = null;
-    this.state.players = [];
-    this.state.phase = "joining";
-    this.state.roundNumber = 0;
-    this.state.leaderId = null;
-    this.state.currentDescription = "";
-    this.state.currentHand = [];
-    this.state.cardsForVoting = [];
-    this.state.votes = [];
-    this.state.hasVoted = false;
-    this.state.hasSubmittedCard = false;
-    this.state.error = null;
-    this.state.winner = null;
-    this.state.isJoining = false;
+    this.state.update((state) => ({
+      ...state,
+      roomId: null,
+      currentPlayer: null,
+      players: [],
+      phase: "joining" as const,
+      roundNumber: 0,
+      leaderId: null,
+      currentDescription: "",
+      currentHand: [],
+      cardsForVoting: [],
+      votes: [],
+      hasVoted: false,
+      hasSubmittedCard: false,
+      error: null,
+      winner: null,
+      isJoining: false,
+    }));
   };
 }

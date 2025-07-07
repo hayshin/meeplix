@@ -20,13 +20,13 @@ export type {
 import { GameStore } from "./store.svelte";
 export const gameStore = new GameStore();
 
-// Composable functions for easier component usage
+// Main composable for components - returns all stores
 export const useGameStore = () => {
   return {
-    // State
+    // Core state store
     state: gameStore.state,
 
-    // Derived state
+    // Derived stores
     isGameStarted: gameStore.isGameStarted,
     isCurrentPlayerLeader: gameStore.isCurrentPlayerLeader,
     currentLeader: gameStore.currentLeader,
@@ -36,105 +36,62 @@ export const useGameStore = () => {
     readyPlayersCount: gameStore.readyPlayersCount,
     totalPlayersCount: gameStore.totalPlayersCount,
 
-    // Connection actions
-    createRoom: gameStore.createRoom,
-    joinRoom: gameStore.joinRoom,
-    reconnect: gameStore.reconnect,
-    disconnect: gameStore.disconnect,
-
-    // Game actions
-    startGame: gameStore.startGame,
-    setReady: gameStore.setReady,
-    submitLeaderCard: gameStore.submitLeaderCard,
-    submitPlayerCard: gameStore.submitPlayerCard,
-    submitVote: gameStore.submitVote,
-    startNextRound: gameStore.startNextRound,
-    clearError: gameStore.clearError,
+    // Actions
+    actions: {
+      createRoom: gameStore.createRoom,
+      joinRoom: gameStore.joinRoom,
+      reconnect: gameStore.reconnect,
+      disconnect: gameStore.disconnect,
+      startGame: gameStore.startGame,
+      setReady: gameStore.setReady,
+      submitLeaderCard: gameStore.submitLeaderCard,
+      submitPlayerCard: gameStore.submitPlayerCard,
+      submitVote: gameStore.submitVote,
+      startNextRound: gameStore.startNextRound,
+      clearError: gameStore.clearError,
+    },
 
     // Helpers
-    getCardById: gameStore.getCardById,
-    getVotingCardById: gameStore.getVotingCardById,
-    getPlayerById: gameStore.getPlayerById,
-    canSubmitCard: gameStore.canSubmitCard,
-    canVote: gameStore.canVote,
-    canLeaderSubmitCard: gameStore.canLeaderSubmitCard,
-
-    // Additional helpers
-    getReadyPlayers: gameStore.getReadyPlayers,
-    getOnlinePlayers: gameStore.getOnlinePlayers,
-    hasCardInHand: gameStore.hasCardInHand,
-    getHandSize: gameStore.getHandSize,
-    getVotingCardsCount: gameStore.getVotingCardsCount,
-    canPlayerAct: gameStore.canPlayerAct,
-
-    // UI state helpers
-    shouldShowReadyButton: gameStore.shouldShowReadyButton,
-    shouldShowStartGameButton: gameStore.shouldShowStartGameButton,
-    shouldShowLeaderCardSubmission: gameStore.shouldShowLeaderCardSubmission,
-    shouldShowPlayerCardSubmission: gameStore.shouldShowPlayerCardSubmission,
-    shouldShowVoting: gameStore.shouldShowVoting,
-    shouldShowResults: gameStore.shouldShowResults,
-    shouldShowNextRoundButton: gameStore.shouldShowNextRoundButton,
-
-    // Phase checks
-    isJoiningPhase: gameStore.isJoiningPhase,
-    isLeaderSubmittingPhase: gameStore.isLeaderSubmittingPhase,
-    isPlayersSubmittingPhase: gameStore.isPlayersSubmittingPhase,
-    isVotingPhase: gameStore.isVotingPhase,
-    isResultsPhase: gameStore.isResultsPhase,
-
-    // Player info helpers
-    getPlayerStatus: gameStore.getPlayerStatus,
-    getPlayerNickname: gameStore.getPlayerNickname,
-    getPlayerScore: gameStore.getPlayerScore,
-    getWinner: gameStore.getWinner,
+    helpers: {
+      getCardById: gameStore.getCardById,
+      getVotingCardById: gameStore.getVotingCardById,
+      getPlayerById: gameStore.getPlayerById,
+      canSubmitCard: gameStore.canSubmitCard,
+      canVote: gameStore.canVote,
+      canLeaderSubmitCard: gameStore.canLeaderSubmitCard,
+      getReadyPlayers: gameStore.getReadyPlayers,
+      getOnlinePlayers: gameStore.getOnlinePlayers,
+      hasCardInHand: gameStore.hasCardInHand,
+      getHandSize: gameStore.getHandSize,
+      getVotingCardsCount: gameStore.getVotingCardsCount,
+      canPlayerAct: gameStore.canPlayerAct,
+      shouldShowReadyButton: gameStore.shouldShowReadyButton,
+      shouldShowStartGameButton: gameStore.shouldShowStartGameButton,
+      shouldShowLeaderCardSubmission: gameStore.shouldShowLeaderCardSubmission,
+      shouldShowPlayerCardSubmission: gameStore.shouldShowPlayerCardSubmission,
+      shouldShowVoting: gameStore.shouldShowVoting,
+      shouldShowResults: gameStore.shouldShowResults,
+      shouldShowNextRoundButton: gameStore.shouldShowNextRoundButton,
+      isJoiningPhase: gameStore.isJoiningPhase,
+      isLeaderSubmittingPhase: gameStore.isLeaderSubmittingPhase,
+      isPlayersSubmittingPhase: gameStore.isPlayersSubmittingPhase,
+      isVotingPhase: gameStore.isVotingPhase,
+      isResultsPhase: gameStore.isResultsPhase,
+      getPlayerStatus: gameStore.getPlayerStatus,
+      getPlayerNickname: gameStore.getPlayerNickname,
+      getPlayerScore: gameStore.getPlayerScore,
+      getWinner: gameStore.getWinner,
+    },
   };
 };
 
-// Shorthand exports for common usage patterns
+// Simplified composables for common use cases
 export const useGameState = () => gameStore.state;
+export const useGameActions = () => gameStore;
+export const useGameHelpers = () => gameStore;
 
-export const useGameActions = () => ({
-  createRoom: gameStore.createRoom,
-  joinRoom: gameStore.joinRoom,
-  reconnect: gameStore.reconnect,
-  startGame: gameStore.startGame,
-  setReady: gameStore.setReady,
-  submitLeaderCard: gameStore.submitLeaderCard,
-  submitPlayerCard: gameStore.submitPlayerCard,
-  submitVote: gameStore.submitVote,
-  startNextRound: gameStore.startNextRound,
-  disconnect: gameStore.disconnect,
-  clearError: gameStore.clearError,
-});
-
-export const useGameHelpers = () => ({
-  getCardById: gameStore.getCardById,
-  getVotingCardById: gameStore.getVotingCardById,
-  getPlayerById: gameStore.getPlayerById,
-  canSubmitCard: gameStore.canSubmitCard,
-  canVote: gameStore.canVote,
-  canLeaderSubmitCard: gameStore.canLeaderSubmitCard,
-  canPlayerAct: gameStore.canPlayerAct,
-});
-
-// Legacy compatibility (for gradual migration)
+// Direct store exports for components that want to use $store syntax
 export const gameState = gameStore.state;
-export const gameActions = {
-  createRoom: gameStore.createRoom,
-  joinRoom: gameStore.joinRoom,
-  reconnect: gameStore.reconnect,
-  startGame: gameStore.startGame,
-  setReady: gameStore.setReady,
-  submitLeaderCard: gameStore.submitLeaderCard,
-  submitPlayerCard: gameStore.submitPlayerCard,
-  submitVote: gameStore.submitVote,
-  startNextRound: gameStore.startNextRound,
-  disconnect: gameStore.disconnect,
-  clearError: gameStore.clearError,
-};
-
-// Legacy derived state
 export const isGameStarted = gameStore.isGameStarted;
 export const isCurrentPlayerLeader = gameStore.isCurrentPlayerLeader;
 export const currentLeader = gameStore.currentLeader;

@@ -1,3 +1,4 @@
+import { get, type Writable } from "svelte/store";
 import type { ServerMessage } from "$shared/messages";
 import type { Player } from "$shared/models/player";
 import type { PublicCard } from "$shared/models/public_card";
@@ -7,18 +8,24 @@ import type { GameState, MessageHandlers } from "./types";
 import { storage } from "$lib/utils";
 
 export class MessageHandlersManager implements MessageHandlers {
-  constructor(private state: GameState) {}
+  constructor(private state: Writable<GameState>) {}
 
   handleServerMessage = (message: ServerMessage) => {
     console.log("Processing server message:", message.type, message);
 
     // Clear any existing errors on successful message
-    this.state.error = null;
+    this.state.update((state) => ({
+      ...state,
+      error: null,
+    }));
 
     switch (message.type) {
       case "ROOM_CREATED":
         console.log("Room created, setting roomId:", message.payload.roomId);
-        this.state.roomId = message.payload.roomId;
+        this.state.update((state) => ({
+          ...state,
+          roomId: message.payload.roomId,
+        }));
         // Auto-join the room after creation
         this.autoJoinRoom();
         break;
@@ -87,9 +94,11 @@ export class MessageHandlersManager implements MessageHandlers {
         break;
 
       case "ERROR":
-        this.state.error = message.payload.message;
-        // Clear joining flag on error
-        this.state.isJoining = false;
+        this.state.update((state) => ({
+          ...state,
+          error: message.payload.message,
+          isJoining: false,
+        }));
         break;
 
       default:
@@ -99,47 +108,67 @@ export class MessageHandlersManager implements MessageHandlers {
 
   handlePlayerJoined = (player: Player) => {
     console.log("Player joined:", player);
+    const currentState = get(this.state);
+
     // Add player to list if not already present
-    const existingIndex = this.state.players.findIndex(
+    const existingIndex = currentState.players.findIndex(
       (p) => p.id === player.id,
     );
+
+    const updatedPlayers = [...currentState.players];
     if (existingIndex === -1) {
-      this.state.players.push(player);
+      updatedPlayers.push(player);
     } else {
-      this.state.players[existingIndex] = player;
+      updatedPlayers[existingIndex] = player;
     }
 
     // Set leader ID to first player if not already set
-    if (!this.state.leaderId && this.state.players.length === 1) {
-      this.state.leaderId = player.id;
+    let leaderId = currentState.leaderId;
+    if (!leaderId && updatedPlayers.length === 1) {
+      leaderId = player.id;
       console.log("Setting leader ID to first player:", player.id);
     }
 
     // If this is our player, set as current player
-    if (!this.state.currentPlayer) {
+    let currentPlayer = currentState.currentPlayer;
+    let isJoining = currentState.isJoining;
+    if (!currentPlayer) {
       console.log("Setting current player:", player);
-      this.state.currentPlayer = player;
-      this.state.isJoining = false;
+      currentPlayer = player;
+      isJoining = false;
 
       // Save game session when we successfully join
-      if (this.state.roomId) {
+      if (currentState.roomId) {
         storage.addGameSession({
-          roomId: this.state.roomId,
+          roomId: currentState.roomId,
           playerId: player.id,
           playerName: player.username,
           lastActive: Date.now(),
-          gamePhase: this.state.phase,
+          gamePhase: currentState.phase,
           joinedAt: Date.now(),
         });
       }
     }
+
+    this.state.update((state) => ({
+      ...state,
+      players: updatedPlayers,
+      leaderId,
+      currentPlayer,
+      isJoining,
+    }));
   };
 
   handlePlayerReady = (playerId: string) => {
-    const player = this.state.players.find((p) => p.id === playerId);
-    if (player) {
-      player.status = "ready";
-    }
+    const currentState = get(this.state);
+    const updatedPlayers = currentState.players.map((p) =>
+      p.id === playerId ? { ...p, status: "ready" as const } : p,
+    );
+
+    this.state.update((state) => ({
+      ...state,
+      players: updatedPlayers,
+    }));
   };
 
   handlePlayerConnected = (player: Player) => {
@@ -147,88 +176,126 @@ export class MessageHandlersManager implements MessageHandlers {
   };
 
   handlePlayerDisconnected = (playerId: string) => {
-    const player = this.state.players.find((p) => p.id === playerId);
-    if (player) {
-      player.status = "offline";
-    }
+    const currentState = get(this.state);
+    const updatedPlayers = currentState.players.map((p) =>
+      p.id === playerId ? { ...p, status: "offline" as const } : p,
+    );
+
+    this.state.update((state) => ({
+      ...state,
+      players: updatedPlayers,
+    }));
   };
 
   handleStartRound = (currentHand: PublicCard[]) => {
     console.log("Starting round");
     console.log("Current hand:", currentHand);
-    console.log("Phase before:", this.state.phase);
-    this.state.phase = "leader_submitting";
-    console.log("Phase after:", this.state.phase);
-    this.state.currentHand = currentHand;
-    this.state.roundNumber += 1;
-    this.state.hasSubmittedCard = false;
-    this.state.hasVoted = false;
-    this.state.votes = [];
-    this.state.cardsForVoting = [];
-    this.state.currentDescription = "";
+
+    const currentState = get(this.state);
+    console.log("Phase before:", currentState.phase);
+
+    this.state.update((state) => ({
+      ...state,
+      phase: "leader_submitting" as const,
+      currentHand,
+      roundNumber: state.roundNumber + 1,
+      hasSubmittedCard: false,
+      hasVoted: false,
+      votes: [],
+      cardsForVoting: [],
+      currentDescription: "",
+    }));
+
+    console.log("Phase after: leader_submitting");
 
     // Update game session phase
-    if (this.state.roomId) {
-      storage.updateGameSessionPhase(this.state.roomId, this.state.phase);
+    if (currentState.roomId) {
+      storage.updateGameSessionPhase(currentState.roomId, "leader_submitting");
     }
   };
 
   handlePhaseChooseCard = (player: Player) => {
-    this.state.phase = "players_submitting";
+    const currentState = get(this.state);
+
     // Update player in list
-    const existingIndex = this.state.players.findIndex(
-      (p) => p.id === player.id,
+    const updatedPlayers = currentState.players.map((p) =>
+      p.id === player.id ? player : p,
     );
-    if (existingIndex !== -1) {
-      this.state.players[existingIndex] = player;
-    }
+
+    this.state.update((state) => ({
+      ...state,
+      phase: "players_submitting" as const,
+      players: updatedPlayers,
+    }));
   };
 
   handlePlayerSubmitCard = (playerId: string) => {
-    if (playerId === this.state.currentPlayer?.id) {
-      this.state.hasSubmittedCard = true;
+    const currentState = get(this.state);
+    if (playerId === currentState.currentPlayer?.id) {
+      this.state.update((state) => ({
+        ...state,
+        hasSubmittedCard: true,
+      }));
     }
   };
 
   handlePhaseBeginVote = (cardsForVoting: PublicCard[]) => {
-    this.state.phase = "voting";
-    this.state.cardsForVoting = cardsForVoting;
+    const currentState = get(this.state);
+
+    this.state.update((state) => ({
+      ...state,
+      phase: "voting" as const,
+      cardsForVoting,
+    }));
 
     // Update game session phase
-    if (this.state.roomId) {
-      storage.updateGameSessionPhase(this.state.roomId, this.state.phase);
+    if (currentState.roomId) {
+      storage.updateGameSessionPhase(currentState.roomId, "voting");
     }
   };
 
   handlePlayerVoted = (playerId: string) => {
-    if (playerId === this.state.currentPlayer?.id) {
-      this.state.hasVoted = true;
+    const currentState = get(this.state);
+    if (playerId === currentState.currentPlayer?.id) {
+      this.state.update((state) => ({
+        ...state,
+        hasVoted: true,
+      }));
     }
   };
 
   handlePhaseEndVote = (votes: Vote[], leaderCardId: string) => {
-    this.state.phase = "results";
-    this.state.votes = votes;
-    // Update player scores here if needed
+    const currentState = get(this.state);
+
+    this.state.update((state) => ({
+      ...state,
+      phase: "results" as const,
+      votes,
+    }));
 
     // Update game session phase
-    if (this.state.roomId) {
-      storage.updateGameSessionPhase(this.state.roomId, this.state.phase);
+    if (currentState.roomId) {
+      storage.updateGameSessionPhase(currentState.roomId, "results");
     }
   };
 
   handleEndGame = (winnerId: string) => {
-    this.state.phase = "game_finished";
-    this.state.winner =
-      this.state.players.find((p) => p.id === winnerId) || null;
+    const currentState = get(this.state);
+    const winner = currentState.players.find((p) => p.id === winnerId) || null;
+
+    this.state.update((state) => ({
+      ...state,
+      phase: "game_finished" as const,
+      winner,
+    }));
 
     // Update game session phase and remove it since game is finished
-    if (this.state.roomId) {
-      storage.updateGameSessionPhase(this.state.roomId, this.state.phase);
+    if (currentState.roomId) {
+      storage.updateGameSessionPhase(currentState.roomId, "game_finished");
       // Remove the session after a delay to let players see the results
       setTimeout(() => {
-        if (this.state.roomId) {
-          storage.removeGameSession(this.state.roomId);
+        if (currentState.roomId) {
+          storage.removeGameSession(currentState.roomId);
         }
       }, 30000); // 30 seconds
     }
@@ -236,56 +303,53 @@ export class MessageHandlersManager implements MessageHandlers {
 
   handleRoomState = (player: Player, room: PublicRoomState) => {
     console.log("Handling room state - player:", player, "room:", room);
-    // Clear joining flag
-    this.state.isJoining = false;
-
-    // Set current player
-    this.state.currentPlayer = player;
-
-    // Update room state
-    this.state.roomId = room.id;
-    this.state.roundNumber = room.roundNumber;
-    this.state.leaderId = room.leaderId;
-    this.state.currentDescription = room.currentDescription;
-    this.state.votes = room.votes;
-
-    // Clear existing players and add new ones to maintain reactivity
-    this.state.players.length = 0;
-    this.state.players.push(...room.players);
 
     // Map room stage to game phase
+    let phase: GameState["phase"];
     switch (room.stage) {
       case "joining":
-        this.state.phase = "joining";
+        phase = "joining";
         break;
       case "leader_submitting":
-        this.state.phase = "leader_submitting";
+        phase = "leader_submitting";
         break;
       case "players_submitting":
-        this.state.phase = "players_submitting";
+        phase = "players_submitting";
         break;
       case "voting":
-        this.state.phase = "voting";
+        phase = "voting";
         break;
       case "results":
-        this.state.phase = "results";
+        phase = "results";
         break;
       case "finished":
-        this.state.phase = "game_finished";
+        phase = "game_finished";
         break;
       default:
-        this.state.phase = "joining";
+        phase = "joining";
     }
 
     // Ensure current player is in the players list
-    const existingIndex = this.state.players.findIndex(
-      (p) => p.id === player.id,
-    );
+    const updatedPlayers = [...room.players];
+    const existingIndex = updatedPlayers.findIndex((p) => p.id === player.id);
     if (existingIndex === -1) {
-      this.state.players.push(player);
+      updatedPlayers.push(player);
     } else {
-      this.state.players[existingIndex] = player;
+      updatedPlayers[existingIndex] = player;
     }
+
+    this.state.update((state) => ({
+      ...state,
+      isJoining: false,
+      currentPlayer: player,
+      roomId: room.id,
+      roundNumber: room.roundNumber,
+      leaderId: room.leaderId,
+      currentDescription: room.currentDescription,
+      votes: room.votes,
+      players: updatedPlayers,
+      phase,
+    }));
 
     // Update or save game session with current room state
     storage.addGameSession({
@@ -299,11 +363,13 @@ export class MessageHandlersManager implements MessageHandlers {
   };
 
   private autoJoinRoom = () => {
+    const currentState = get(this.state);
+
     // Prevent multiple join attempts
     if (
-      this.state.isConnecting ||
-      this.state.isJoining ||
-      this.state.currentPlayer
+      currentState.isConnecting ||
+      currentState.isJoining ||
+      currentState.currentPlayer
     ) {
       console.log(
         "Skipping auto-join - already connecting, joining, or player exists",
@@ -317,39 +383,42 @@ export class MessageHandlersManager implements MessageHandlers {
       "Auto-joining room with nickname:",
       nickname,
       "roomId:",
-      this.state.roomId,
+      currentState.roomId,
     );
 
-    if (nickname && this.state.roomId) {
+    if (nickname && currentState.roomId) {
       // Set joining flag
-      this.state.isJoining = true;
+      this.state.update((state) => ({
+        ...state,
+        isJoining: true,
+      }));
 
       // Send join room message
       const message = {
         type: "JOIN_ROOM" as const,
         payload: {
           username: nickname,
-          roomId: this.state.roomId,
+          roomId: currentState.roomId,
         },
       };
 
-      if (this.state.room && this.state.isConnected) {
+      if (currentState.room && currentState.isConnected) {
         console.log("Sending JOIN_ROOM message:", message);
-        this.state.room.send({ message });
+        currentState.room.send({ message });
       } else {
         console.log(
           "Cannot send JOIN_ROOM - no room connection or not connected",
         );
-        this.state.isJoining = false;
+        this.state.update((state) => ({
+          ...state,
+          isJoining: false,
+        }));
       }
     }
   };
 
   handleReconnectSuccess = (player: Player, room: PublicRoomState) => {
     console.log("Reconnect successful:", player, room);
-
-    // Clear joining flag
-    this.state.isJoining = false;
 
     // Handle the reconnection the same way as room state
     this.handleRoomState(player, room);
@@ -369,22 +438,21 @@ export class MessageHandlersManager implements MessageHandlers {
 
   handleReconnectFailed = (message: string) => {
     console.log("Reconnect failed:", message);
-
-    // Clear joining flag
-    this.state.isJoining = false;
-
-    // Set error message
-    this.state.error = `Reconnection failed: ${message}`;
+    const currentState = get(this.state);
 
     // Clear stored session for this room if it exists
-    if (this.state.roomId) {
-      storage.removeGameSession(this.state.roomId);
+    if (currentState.roomId) {
+      storage.removeGameSession(currentState.roomId);
     }
 
-    // Reset room state
-    this.state.roomId = null;
-    this.state.currentPlayer = null;
-    this.state.phase = "joining";
+    this.state.update((state) => ({
+      ...state,
+      isJoining: false,
+      error: `Reconnection failed: ${message}`,
+      roomId: null,
+      currentPlayer: null,
+      phase: "joining" as const,
+    }));
 
     console.log("Reconnection failed, cleared stored session");
   };

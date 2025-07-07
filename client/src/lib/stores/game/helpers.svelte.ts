@@ -1,128 +1,158 @@
+import { get, type Writable } from "svelte/store";
 import type { Player } from "$shared/models/player";
 import type { PublicCard } from "$shared/models/public_card";
 import type { GameState, GameHelpers } from "./types";
 
 export class GameHelpersManager implements GameHelpers {
-  constructor(private state: GameState) {}
+  constructor(private state: Writable<GameState>) {}
 
   getCardById = (cardId: string): PublicCard | null => {
-    return this.state.currentHand.find((card) => card.id === cardId) || null;
+    const currentState = get(this.state);
+    return currentState.currentHand.find((card) => card.id === cardId) || null;
   };
 
   getVotingCardById = (cardId: string): PublicCard | null => {
-    return this.state.cardsForVoting.find((card) => card.id === cardId) || null;
+    const currentState = get(this.state);
+    return (
+      currentState.cardsForVoting.find((card) => card.id === cardId) || null
+    );
   };
 
   getPlayerById = (playerId: string): Player | null => {
-    return this.state.players.find((p) => p.id === playerId) || null;
+    const currentState = get(this.state);
+    return currentState.players.find((p) => p.id === playerId) || null;
   };
 
   canSubmitCard = (): boolean => {
+    const currentState = get(this.state);
     return (
-      this.state.phase === "players_submitting" &&
-      !this.state.hasSubmittedCard &&
+      currentState.phase === "players_submitting" &&
+      !currentState.hasSubmittedCard &&
       !this.isCurrentPlayerLeader()
     );
   };
 
   canVote = (): boolean => {
+    const currentState = get(this.state);
     return (
-      this.state.phase === "voting" &&
-      !this.state.hasVoted &&
+      currentState.phase === "voting" &&
+      !currentState.hasVoted &&
       !this.isCurrentPlayerLeader()
     );
   };
 
   canLeaderSubmitCard = (): boolean => {
+    const currentState = get(this.state);
     return (
-      this.state.phase === "leader_submitting" && this.isCurrentPlayerLeader()
+      currentState.phase === "leader_submitting" && this.isCurrentPlayerLeader()
     );
   };
 
   // Additional helper methods
   isCurrentPlayerLeader = (): boolean => {
-    return this.state.currentPlayer?.id === this.state.leaderId;
+    const currentState = get(this.state);
+    return currentState.currentPlayer?.id === currentState.leaderId;
   };
 
   getCurrentLeader = (): Player | null => {
-    return this.state.players.find((p) => p.id === this.state.leaderId) || null;
+    const currentState = get(this.state);
+    return (
+      currentState.players.find((p) => p.id === currentState.leaderId) || null
+    );
   };
 
   getReadyPlayers = (): Player[] => {
-    return this.state.players.filter((p) => p.status === "ready");
+    const currentState = get(this.state);
+    return currentState.players.filter((p) => p.status === "ready");
   };
 
   getOnlinePlayers = (): Player[] => {
-    return this.state.players.filter((p) => p.status !== "offline");
+    const currentState = get(this.state);
+    return currentState.players.filter((p) => p.status !== "offline");
   };
 
   canStartGame = (): boolean => {
+    const currentState = get(this.state);
     return (
-      this.state.players.length >= 3 &&
-      this.state.players.length <= 8 &&
-      this.state.players.every((p) => p.status === "ready")
+      currentState.players.length >= 3 &&
+      currentState.players.length <= 8 &&
+      currentState.players.every((p) => p.status === "ready")
     );
   };
 
   allPlayersReady = (): boolean => {
+    const currentState = get(this.state);
     return (
-      this.state.players.length > 0 &&
-      this.state.players.every((p) => p.status === "ready")
+      currentState.players.length > 0 &&
+      currentState.players.every((p) => p.status === "ready")
     );
   };
 
   isGameStarted = (): boolean => {
-    return this.state.phase !== "joining";
+    const currentState = get(this.state);
+    return currentState.phase !== "joining";
   };
 
   isGameFinished = (): boolean => {
-    return this.state.phase === "game_finished";
+    const currentState = get(this.state);
+    return currentState.phase === "game_finished";
   };
 
   getReadyPlayersCount = (): number => {
-    return this.state.players.filter((p) => p.status === "ready").length;
+    const currentState = get(this.state);
+    return currentState.players.filter((p) => p.status === "ready").length;
   };
 
   getTotalPlayersCount = (): number => {
-    return this.state.players.length;
+    const currentState = get(this.state);
+    return currentState.players.length;
   };
 
   getWinner = (): Player | null => {
-    return this.state.winner;
+    const currentState = get(this.state);
+    return currentState.winner;
   };
 
   // Card related helpers
   hasCardInHand = (cardId: string): boolean => {
-    return this.state.currentHand.some((card) => card.id === cardId);
+    const currentState = get(this.state);
+    return currentState.currentHand.some((card) => card.id === cardId);
   };
 
   getHandSize = (): number => {
-    return this.state.currentHand.length;
+    const currentState = get(this.state);
+    return currentState.currentHand.length;
   };
 
   getVotingCardsCount = (): number => {
-    return this.state.cardsForVoting.length;
+    const currentState = get(this.state);
+    return currentState.cardsForVoting.length;
   };
 
   // Phase related helpers
   isJoiningPhase = (): boolean => {
-    return this.state.phase === "joining";
+    const currentState = get(this.state);
+    return currentState.phase === "joining";
   };
 
   isLeaderSubmittingPhase = (): boolean => {
-    return this.state.phase === "leader_submitting";
+    const currentState = get(this.state);
+    return currentState.phase === "leader_submitting";
   };
 
   isPlayersSubmittingPhase = (): boolean => {
-    return this.state.phase === "players_submitting";
+    const currentState = get(this.state);
+    return currentState.phase === "players_submitting";
   };
 
   isVotingPhase = (): boolean => {
-    return this.state.phase === "voting";
+    const currentState = get(this.state);
+    return currentState.phase === "voting";
   };
 
   isResultsPhase = (): boolean => {
-    return this.state.phase === "results";
+    const currentState = get(this.state);
+    return currentState.phase === "results";
   };
 
   // Player status helpers
@@ -143,24 +173,27 @@ export class GameHelpersManager implements GameHelpers {
 
   // Game flow helpers
   canPlayerAct = (): boolean => {
+    const currentState = get(this.state);
     return (
-      this.state.isConnected &&
-      this.state.currentPlayer !== null &&
-      this.state.phase !== "joining" &&
-      this.state.phase !== "game_finished"
+      currentState.isConnected &&
+      currentState.currentPlayer !== null &&
+      currentState.phase !== "joining" &&
+      currentState.phase !== "game_finished"
     );
   };
 
   shouldShowReadyButton = (): boolean => {
+    const currentState = get(this.state);
     return (
-      this.state.phase === "joining" &&
-      this.state.currentPlayer?.status !== "ready"
+      currentState.phase === "joining" &&
+      currentState.currentPlayer?.status !== "ready"
     );
   };
 
   shouldShowStartGameButton = (): boolean => {
+    const currentState = get(this.state);
     return (
-      this.state.phase === "joining" &&
+      currentState.phase === "joining" &&
       this.canStartGame() &&
       this.isCurrentPlayerLeader()
     );
@@ -179,12 +212,14 @@ export class GameHelpersManager implements GameHelpers {
   };
 
   shouldShowResults = (): boolean => {
-    return this.state.phase === "results";
+    const currentState = get(this.state);
+    return currentState.phase === "results";
   };
 
   shouldShowNextRoundButton = (): boolean => {
+    const currentState = get(this.state);
     return (
-      this.state.phase === "results" &&
+      currentState.phase === "results" &&
       this.isCurrentPlayerLeader() &&
       !this.isGameFinished()
     );
