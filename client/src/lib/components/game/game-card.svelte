@@ -68,7 +68,6 @@
   onclick={handleClick}
   ondblclick={handleDoubleClick}
   role={isClickable ? "button" : "img"}
-  tabindex={isClickable ? 0 : -1}
   onkeydown={(e) => {
     if (isClickable && (e.key === "Enter" || e.key === " ")) {
       e.preventDefault();

@@ -64,6 +64,7 @@
   const votedPairs = $derived(roomState.votes);
   const players = $derived(roomState.players);
   const winner = $derived(roomState.winner);
+  let hasSubmitted = $derived(false);
 
   // Store actions and helpers
   const actions = gameStore.actions;
@@ -86,6 +87,7 @@
 
   function handleSubmitPlayerCard() {
     if (selectedCardId) {
+      hasSubmitted = true;
       actions.submitPlayerCard(selectedCardId);
     }
   }
@@ -227,7 +229,7 @@
               />
             </div>
 
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div class="grid grid-cols-3 lg:grid-cols-6 gap-4">
               {#each currentPlayerHand as card}
                 <GameCard
                   {card}
@@ -275,7 +277,7 @@
             {/each}
           </div>
 
-          {#if selectedCardId}
+          {#if selectedCardId && !hasSubmitted}
             <button
               onclick={handleSubmitPlayerCard}
               class="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"

@@ -3,6 +3,7 @@ import { Player } from "$shared/models/player";
 import { Card, serializeCardForClient } from "../models/card.model";
 import { Submit } from "../models/submit.model";
 import { Hand } from "../models/hand.model";
+
 import { GAME_CONFIG } from "$shared/constants";
 import {
   getPlayersIDsInRoom,
@@ -205,10 +206,10 @@ export function playerSubmitCard(
   if (playerId === leaderId) {
     throw new Error(`Player ${playerId} is the leader ${leaderId}`);
   }
-  const card = getCardOfPlayer(room.id, playerId, cardId);
-  if (room.submittedCards.find((card) => card.playerId === playerId)) {
+  if (room.submittedCards.find((submit) => submit.playerId === playerId)) {
     throw new Error(`Player ${playerId} has already submitted a card`);
   }
+  const card = getCardOfPlayer(room.id, playerId, cardId);
   room.submittedCards.push({ playerId: playerId, card });
   removeCardFromPlayer(roomId, playerId, card);
   if (allPlayersSubmitted(roomId)) {
@@ -257,6 +258,16 @@ export function hasVoted(roomId: string, playerId: string): boolean {
   return room.votes.some((vote) => vote.playerId === playerId);
 }
 
+function getPlayerSubmit(room: RoomState, playerId: string): Submit {
+  const submit = room.submittedCards.find(
+    (submit) => submit.playerId === playerId,
+  );
+  if (!submit) {
+    throw new Error(`Player ${playerId} has not submitted a card`);
+  }
+  return submit;
+}
+
 export function playerVote(
   roomId: string,
   playerId: string,
@@ -269,13 +280,16 @@ export function playerVote(
   } else if (hasVoted(roomId, playerId)) {
     throw new Error(`Player ${playerId} has already voted`);
   }
-  // const card = getCardById(room.id, cardId);
-  const card = getSubmittedCards(room).find((card) => card.id === cardId);
-  if (!card) {
+  const playerSubmit = getPlayerSubmit(room, playerId);
+  const playerCard = playerSubmit.card;
+  const voteCard = getSubmittedCards(room).find((card) => card.id === cardId);
+  if (!voteCard) {
     console.error(`Submitted cards: ${JSON.stringify(room.submittedCards)}`);
     throw new Error(`Card ${cardId} not found`);
+  } else if (playerCard.id == voteCard.id) {
+    throw new Error(`Player ${playerId} cannot vote for their own card`);
   }
-  room.votes.push({ playerId, card });
+  room.votes.push({ playerId, card: voteCard });
   if (allPlayersVoted(roomId)) {
     endVote(roomId);
   }
