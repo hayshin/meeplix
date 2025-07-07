@@ -109,7 +109,8 @@
   };
 
   const submitLeaderChoice = async () => {
-    if (!selectedCardId || !associationInput.trim()) return;
+    if (!selectedCardId || !associationInput.trim())
+      throw new Error("Invalid input");
 
     game.submitLeaderCard(selectedCardId, associationInput.trim());
     selectedCardId = null;

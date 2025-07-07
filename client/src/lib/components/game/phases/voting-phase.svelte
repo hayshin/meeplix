@@ -1,26 +1,18 @@
 <script lang="ts">
   import { AlertCircle, Clock, Send } from "lucide-svelte";
-  import GameCard from "$lib/components/game/game-card.svelte";
-  import type { PublicCard } from "$shared/models/public_card";
 
   interface VotingPhaseProps {
     isCurrentPlayerLeader: boolean;
-    votingCards: PublicCard[];
+    association: string;
     selectedVoteCardId: string | null;
-    onCardSelect: (cardId: string) => void;
     onSubmitVote: () => void;
-    enlargedCardId: string | null;
-    onCardEnlarge: (cardId: string | null) => void;
   }
 
   let {
     isCurrentPlayerLeader,
-    votingCards,
+    association,
     selectedVoteCardId,
-    onCardSelect,
     onSubmitVote,
-    enlargedCardId,
-    onCardEnlarge,
   }: VotingPhaseProps = $props();
 </script>
 
@@ -29,16 +21,22 @@
   <div class="bg-white/5 rounded-xl p-6 border border-white/10">
     <div class="flex items-center gap-3 mb-4">
       <AlertCircle size={24} class="text-green-400" />
-      <h3 class="text-2xl font-bold text-white">Vote for the Best Card</h3>
+      <h3 class="text-2xl font-bold text-white">
+        {#if !isCurrentPlayerLeader}
+          Vote for the Leader's Card
+        {:else}
+          Voting in Progress
+        {/if}
+      </h3>
     </div>
     <div class="text-slate-300 text-lg">
+      <p>
+        Association: <strong class="text-green-300">{association}</strong>
+      </p>
       {#if !isCurrentPlayerLeader}
-        <p>
-          Choose the card that best matches the association (excluding your own
-          card).
-        </p>
+        <p class="mt-2">Choose the card that best matches the association.</p>
       {:else}
-        <p>Waiting for players to vote...</p>
+        <p class="mt-2">Players are voting for your card...</p>
       {/if}
     </div>
   </div>
@@ -51,41 +49,29 @@
           <AlertCircle size={24} class="text-green-400" />
           <h3 class="text-xl font-bold text-white">Cast Your Vote</h3>
         </div>
-        <button
-          onclick={onSubmitVote}
-          disabled={!selectedVoteCardId}
-          class="px-6 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-        >
-          <Send size={16} />
-          Vote
-        </button>
+        <div class="text-slate-300">
+          Selected: {selectedVoteCardId ? "✓" : "None"}
+        </div>
       </div>
-      <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
-        {#each votingCards as card (card.id)}
-          <GameCard
-            {card}
-            isClickable={true}
-            isSelected={selectedVoteCardId === card.id}
-            isEnlarged={enlargedCardId === card.id}
-            onclick={() => onCardSelect(card.id)}
-            onEnlarge={() =>
-              onCardEnlarge(enlargedCardId === card.id ? null : card.id)}
-          />
-        {/each}
-      </div>
+      <button
+        onclick={onSubmitVote}
+        disabled={!selectedVoteCardId}
+        class="w-full px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+      >
+        <Send size={20} />
+        Submit Vote
+      </button>
     </div>
   {:else}
     <!-- Leader Waiting View -->
-    <div class="bg-white/5 rounded-xl p-6 border border-white/10">
-      <div class="flex items-center gap-3 mb-6">
+    <div class="bg-white/5 rounded-xl p-6 border border-white/10 text-center">
+      <div class="flex items-center justify-center gap-3 mb-4">
         <Clock size={24} class="text-slate-400" />
         <h3 class="text-xl font-bold text-white">Waiting for Votes</h3>
       </div>
-      <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
-        {#each votingCards as card (card.id)}
-          <GameCard {card} isClickable={false} />
-        {/each}
-      </div>
+      <p class="text-slate-300">
+        Players are deciding which card matches your association.
+      </p>
     </div>
   {/if}
 </div>

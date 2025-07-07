@@ -75,7 +75,8 @@ export class GameActionsManager implements GameActions {
   };
 
   submitLeaderCard = (cardId: string, description: string) => {
-    if (!this.state.currentPlayer || !this.state.roomId) return;
+    if (!this.state.currentPlayer || !this.state.roomId)
+      throw new Error("Player or room ID not found");
 
     const message: LeaderSubmitCardMessage = {
       type: "LEADER_SUBMIT_CARD",
