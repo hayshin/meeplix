@@ -1,45 +1,21 @@
 <script lang="ts">
-  import { type GameState } from "$lib/stores/game/types";
-  import { type Player } from "$shared/models/player";
-  import { type PublicCard } from "$shared/models/public_card";
-  import { type Vote } from "$shared/models/vote";
+  import { useGameStore } from "$lib/stores/game";
   import GameHeader from "./game-header.svelte";
   import GameStatusBar from "./game-status-bar.svelte";
   import NicknameModal from "./nickname-modal.svelte";
   import PlayerHand from "./player-hand.svelte";
 
   interface GameLayoutProps {
-    roomId: string;
-    gameState: GameState;
-    gamePhase: string;
     showNicknameModal: boolean;
     nickname: string;
-    isCurrentPlayerLeader: boolean;
-    canStartGame: boolean;
-    allPlayersReady: boolean;
-    currentLeader: Player | null;
-    association: string;
     selectedCardId: string | null;
     selectedVoteCardId: string | null;
     enlargedCardId: string | null;
     associationInput: string;
-    votingCards: PublicCard[];
-    currentPlayerHand: PublicCard[];
-    leaderCard: PublicCard | null;
-    votedPairs: Vote[];
-    players: Player[];
-    isGameFinished: boolean;
-    winner: Player | null;
     onNicknameChange: (value: string) => void;
     onNicknameSubmit: () => void;
     onLeaveGame: () => void;
-    onToggleReady: () => void;
-    onStartGame: () => void;
     onAssociationChange: (value: string) => void;
-    onSubmitLeaderChoice: () => void;
-    onSubmitPlayerCard: () => void;
-    onSubmitVote: () => void;
-    onStartNextRound: () => void;
     onCardSelect: (cardId: string) => void;
     onCardEnlarge: (cardId: string | null) => void;
     onVoteCardSelect: (cardId: string) => void;
@@ -47,48 +23,91 @@
   }
 
   let {
-    roomId,
-    gameState,
-    gamePhase,
     showNicknameModal,
     nickname,
-    isCurrentPlayerLeader,
-    canStartGame,
-    allPlayersReady,
-    currentLeader,
-    association,
     selectedCardId,
     selectedVoteCardId,
     enlargedCardId,
     associationInput,
-    votingCards,
-    currentPlayerHand,
-    leaderCard,
-    votedPairs,
-    players,
-    isGameFinished,
-    winner,
     onNicknameChange,
     onNicknameSubmit,
     onLeaveGame,
-    onToggleReady,
-    onStartGame,
     onAssociationChange,
-    onSubmitLeaderChoice,
-    onSubmitPlayerCard,
-    onSubmitVote,
-    onStartNextRound,
     onCardSelect,
     onCardEnlarge,
     onVoteCardSelect,
     onConnectToGame,
   }: GameLayoutProps = $props();
 
-  // Debug logging for gamePhase changes
+  // Use the game store
+  const gameStore = useGameStore();
+
+  // Destructure individual stores
+  const {
+    state,
+    isGameStarted,
+    isCurrentPlayerLeader,
+    canStartGame,
+    allPlayersReady,
+    currentLeader,
+    isGameFinished,
+  } = gameStore;
+
+  // Derived values from store using $derived
+  const gameState = $derived($state);
+  const gamePhase = $derived(gameState.phase);
+  const roomId = $derived(gameState.roomId);
+  const association = $derived(gameState.currentDescription);
+  const votingCards = $derived(gameState.cardsForVoting);
+  const currentPlayerHand = $derived(gameState.currentHand);
+  const votedPairs = $derived(gameState.votes);
+  const players = $derived(gameState.players);
+  const winner = $derived(gameState.winner);
+
+  // Store actions and helpers
+  const actions = gameStore.actions;
+  const helpers = gameStore.helpers;
+
+  // Action handlers using store
+  function handleToggleReady() {
+    actions.setReady();
+  }
+
+  function handleStartGame() {
+    actions.startGame();
+  }
+
+  function handleSubmitLeaderChoice() {
+    if (selectedCardId && associationInput.trim()) {
+      actions.submitLeaderCard(selectedCardId, associationInput.trim());
+    }
+  }
+
+  function handleSubmitPlayerCard() {
+    if (selectedCardId) {
+      actions.submitPlayerCard(selectedCardId);
+    }
+  }
+
+  function handleSubmitVote() {
+    if (selectedVoteCardId) {
+      actions.submitVote(selectedVoteCardId);
+    }
+  }
+
+  function handleStartNextRound() {
+    actions.startNextRound();
+  }
+
+  function handleClearError() {
+    actions.clearError();
+  }
+
+  // Debug logging for gamePhase changes using $effect
   $effect(() => {
     console.log("=== GAME LAYOUT DEBUG ===");
     console.log("gamePhase:", gamePhase);
-    console.log("isCurrentPlayerLeader:", isCurrentPlayerLeader);
+    console.log("isCurrentPlayerLeader:", $isCurrentPlayerLeader);
     console.log("gameState.phase:", gameState.phase);
     console.log("========================");
   });
@@ -99,20 +118,20 @@
 >
   <!-- Header -->
   <GameHeader
-    {roomId}
+    roomId={roomId || ""}
     {gameState}
-    {canStartGame}
-    {allPlayersReady}
-    {isCurrentPlayerLeader}
+    canStartGame={$canStartGame}
+    allPlayersReady={$allPlayersReady}
+    isCurrentPlayerLeader={$isCurrentPlayerLeader}
     {onLeaveGame}
-    {onToggleReady}
-    {onStartGame}
+    onToggleReady={handleToggleReady}
+    onStartGame={handleStartGame}
   />
 
   <!-- Main Content -->
   <div class="container mx-auto px-4 py-8">
     <!-- Game Status Bar -->
-    <GameStatusBar {gameState} {isCurrentPlayerLeader} />
+    <GameStatusBar {gameState} isCurrentPlayerLeader={$isCurrentPlayerLeader} />
 
     <!-- Error Display -->
     {#if gameState.error}
@@ -120,7 +139,7 @@
         <div class="flex justify-between items-center">
           <span>{gameState.error}</span>
           <button
-            onclick={() => (gameState.error = null)}
+            onclick={handleClearError}
             class="text-white hover:text-red-200"
           >
             ×
@@ -160,18 +179,18 @@
 
             <!-- Action Buttons -->
             <div class="flex gap-4">
-              {#if gameState.currentPlayer?.status !== "ready"}
+              {#if helpers.shouldShowReadyButton()}
                 <button
-                  onclick={onToggleReady}
+                  onclick={handleToggleReady}
                   class="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
                 >
                   Ready
                 </button>
               {/if}
 
-              {#if canStartGame && isCurrentPlayerLeader}
+              {#if helpers.shouldShowStartGameButton()}
                 <button
-                  onclick={onStartGame}
+                  onclick={handleStartGame}
                   class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
                 >
                   Start Game
@@ -183,7 +202,7 @@
       {/if}
 
       <!-- Leader Submitting Phase -->
-      {#if gamePhase === "leader_submitting" && isCurrentPlayerLeader}
+      {#if gamePhase === "leader_submitting" && $isCurrentPlayerLeader}
         <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6">
           <h2 class="text-2xl font-bold text-white mb-4">
             Choose a Card and Description
@@ -197,6 +216,7 @@
               <input
                 id="description-input"
                 bind:value={associationInput}
+                oninput={(e) => onAssociationChange(e.target.value)}
                 placeholder="Describe your card..."
                 class="w-full p-3 rounded-lg bg-white/20 text-white placeholder-white/60"
               />
@@ -219,7 +239,7 @@
             </div>
 
             <button
-              onclick={onSubmitLeaderChoice}
+              onclick={handleSubmitLeaderChoice}
               disabled={!selectedCardId || !associationInput.trim()}
               class="px-6 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
             >
@@ -227,17 +247,17 @@
             </button>
           </div>
         </div>
-      {:else if gamePhase === "leader_submitting" && !isCurrentPlayerLeader}
+      {:else if gamePhase === "leader_submitting" && !$isCurrentPlayerLeader}
         <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6 text-center">
           <h2 class="text-2xl font-bold text-white mb-4">Waiting for Leader</h2>
           <p class="text-white/80">
-            {currentLeader?.username} is choosing a card and description...
+            {$currentLeader?.username} is choosing a card and description...
           </p>
         </div>
       {/if}
 
       <!-- Players Submitting Phase -->
-      {#if gamePhase === "players_submitting" && !isCurrentPlayerLeader}
+      {#if gamePhase === "players_submitting" && !$isCurrentPlayerLeader}
         <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6">
           <h2 class="text-2xl font-bold text-white mb-4">Choose Your Card</h2>
           <p class="text-white/80 mb-4">
@@ -261,14 +281,14 @@
 
           {#if selectedCardId}
             <button
-              onclick={onSubmitPlayerCard}
+              onclick={handleSubmitPlayerCard}
               class="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
             >
               Submit Card
             </button>
           {/if}
         </div>
-      {:else if gamePhase === "players_submitting" && isCurrentPlayerLeader}
+      {:else if gamePhase === "players_submitting" && $isCurrentPlayerLeader}
         <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6 text-center">
           <h2 class="text-2xl font-bold text-white mb-4">
             Waiting for Players
@@ -280,7 +300,7 @@
       {/if}
 
       <!-- Voting Phase -->
-      {#if gamePhase === "voting" && !isCurrentPlayerLeader}
+      {#if gamePhase === "voting" && !$isCurrentPlayerLeader}
         <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6">
           <h2 class="text-2xl font-bold text-white mb-4">
             Vote for the Leader's Card
@@ -305,14 +325,14 @@
 
           {#if selectedVoteCardId}
             <button
-              onclick={onSubmitVote}
+              onclick={handleSubmitVote}
               class="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
             >
               Submit Vote
             </button>
           {/if}
         </div>
-      {:else if gamePhase === "voting" && isCurrentPlayerLeader}
+      {:else if gamePhase === "voting" && $isCurrentPlayerLeader}
         <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6 text-center">
           <h2 class="text-2xl font-bold text-white mb-4">Voting in Progress</h2>
           <p class="text-white/80">
@@ -345,9 +365,9 @@
               {/each}
             </div>
 
-            {#if isCurrentPlayerLeader && !isGameFinished}
+            {#if helpers.shouldShowNextRoundButton()}
               <button
-                onclick={onStartNextRound}
+                onclick={handleStartNextRound}
                 class="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
               >
                 Next Round
