@@ -19,4 +19,11 @@ After start, when room will be playing, we are generating cards in background fo
 ## 2. The size of the cards
 We need to consider the size of the cards.
 Dimension of cards should be as similar as possible to the original dixit cards. It's 3x4 (80 mm x 120mm).
-OpenAI DALL-E 3 generates 4x7, 1024x1792
+OpenAI DALL-E 3 generates 4x7, 1024x1792. Stability API can generate almost any sizes, i think?
+
+## 3. The quality of the cards
+To MVP, we can use just Stability Diffusion XL. It's cheap (on Runware 500 images per 1$), and maybe fast? We should check how fast is generation, but for first time, we will use it.
+So, quality in runware for 3x4 is 896x1152. We will stick with FLUX Schnell, it's good enough, cheap, and generate image in 4 steps (vs SD XL 30 steps), so it very fast.
+
+## How to store this shit
+Let's use Microsoft Azure, it's S3 compatible storage service. We will use Blob Storage for storing images.
