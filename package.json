@@ -1,6 +1,14 @@
 {
+  "scripts": {
+    "dixit-prompts": "bun run ai/dixit-prompt-generator.ts",
+    "dixit-prompts-simple": "bun run ai/dixit-prompt-generator-simple.ts",
+    "test-dixit": "bun run ai/test-dixit-generator.ts"
+  },
   "dependencies": {
+    "@azure/identity": "^4.10.2",
+    "@azure/storage-blob": "^12.27.0",
     "@google/genai": "^1.8.0",
+    "@runware/sdk-js": "^1.1.42",
     "@sinclair/typebox": "^0.34.37",
     "@types/bun": "^1.2.18",
     "elysia": "^1.3.5",
