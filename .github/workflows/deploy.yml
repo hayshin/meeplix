@@ -21,6 +21,7 @@ jobs:
             cd /home/azureuser/narrari/
             git pull
             bun install
+            docker compose up -d
             cd server && bun install
             bun build \
              	--compile \
