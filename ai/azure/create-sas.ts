@@ -33,11 +33,11 @@ async function generateReadSasTokenForBlob(
 
 // Example usage in a hypothetical API endpoint:
 // This function would be called by your API when a user requests an image.
-async function getSignedImageUrl(
+export async function getSignedImageUrl(
   containerClient: ContainerClient,
   sharedKeyCredential: StorageSharedKeyCredential,
   imageFilename: string,
-  expiryMinutes: number,
+  expiryMinutes?: number,
 ): Promise<string> {
   try {
     const imageUrl = await generateReadSasTokenForBlob(

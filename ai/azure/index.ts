@@ -3,6 +3,7 @@ import {
   StorageSharedKeyCredential,
 } from "@azure/storage-blob";
 import { uploadImageToAzureContainer } from "./upload-image";
+import { getSignedImageUrl } from "./create-sas";
 
 const AZURE_STORAGE_ACCOUNT_NAME = process.env.AZURE_STORAGE_ACCOUNT_NAME;
 const AZURE_STORAGE_ACCOUNT_KEY = process.env.AZURE_STORAGE_ACCOUNT_KEY;
@@ -31,5 +32,15 @@ export async function uploadImageToAzure(
   imageUrl: string,
   blobName: string,
 ): Promise<string> {
-  return uploadImageToAzureContainer(containerClient, imageUrl, blobName);
+  uploadImageToAzureContainer(containerClient, imageUrl, blobName);
+  return getImageUrl(blobName);
+}
+
+export async function getImageUrl(blobName: string): Promise<string> {
+  const url = await getSignedImageUrl(
+    containerClient,
+    sharedKeyCredential,
+    blobName,
+  );
+  return url;
 }
