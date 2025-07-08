@@ -1,3 +1,4 @@
+import { Card } from "../models/card.model";
 import {
   createEmptyRoomState,
   createRoomState,
@@ -9,8 +10,9 @@ const rooms = new Map<string, RoomState>();
 // room id -> set of player ids
 const roomToPlayers = new Map<string, string[]>();
 
-export function addRoom(deckId?: string): RoomState {
+export function addRoom(deck: Card[]): RoomState {
   const room = createEmptyRoomState();
+  room.deck = deck;
   rooms.set(room.id, room);
   return room;
 }

@@ -26,9 +26,9 @@ export function loadCardsFromAssets(): Card[] {
       const cardName = path.parse(filename).name;
       return {
         id: String(index + 1),
-        name: filename,
-        // imageUrl: `$assets/cards/${filename}`,
-        description: cardName.replace(/[-_]/g, " "), // Change dashes to whitespaces
+        // name: filename,
+        imageUrl: `$assets/cards/${filename}`,
+        // description: cardName.replace(/[-_]/g, " "), // Change dashes to whitespaces
       };
     });
 
@@ -51,9 +51,9 @@ function createFallbackCards(): Card[] {
   return Array.from({ length: 30 }, (_, i) => {
     return {
       id: String(i + 1),
-      name: `Card ${i + 1}`,
-      // imageUrl: `$assets/cards/card${i + 1}.jpg`,
-      description: `Card ${i + 1}`,
+      // name: `Card ${i + 1}`,
+      imageUrl: `$assets/cards/card${i + 1}.jpg`,
+      // description: `Card ${i + 1}`,
     };
   });
 }

@@ -133,13 +133,12 @@ export function getCardById(roomId: string, cardId: string): Card {
   return card;
 }
 
-export function setDeck(roomId: string, deck?: Card[]): void {
+export function setDeck(roomId: string): void {
   const room = getRoomById(roomId);
-  if (!deck) {
-    deck = loadCardsFromAssets();
+  if (!room.deck) {
+    room.deck = loadCardsFromAssets();
   }
-  deck = shuffle(deck);
-  room.deck = deck;
+  room.deck = shuffle(room.deck);
   updateRoom(roomId, room);
 }
 export function dealCards(roomId: string, amountPerPlayer: number): void {
