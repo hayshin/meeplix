@@ -27,3 +27,9 @@ So, quality in runware for 3x4 is 896x1152. We will stick with FLUX Schnell, it'
 
 ## How to store this shit
 Let's use Microsoft Azure, it's S3 compatible storage service. We will use Blob Storage for storing images.
+
+## How to generate prompts
+Model RPM Input Output Token limit
+Gemini 2.5 Flash Lite	4,000 0.10 0.40 64k
+Gemini 2.5 Flash 	1,000 0.30 2.50 65k
+Gemini 2.0 Flash 	2,000 0.10 0.40 8k

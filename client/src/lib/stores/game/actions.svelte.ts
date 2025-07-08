@@ -17,13 +17,13 @@ import { storage } from "$lib/utils";
 export class GameActionsManager implements GameActions {
   constructor(private state: Writable<GameState>) {}
 
-  createRoom = (username: string) => {
+  createRoom = (username: string, topic: string) => {
     const currentState = get(this.state);
     if (currentState.isConnecting) return;
 
     const message: CreateRoomMessage = {
       type: "CREATE_ROOM",
-      payload: { username },
+      payload: { username, topic },
     };
 
     this.sendMessage(message);

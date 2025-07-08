@@ -4,6 +4,7 @@ import { messageSchema } from "./message";
 
 export const CreateRoomMessage = messageSchema("CREATE_ROOM", {
   username: t.String(),
+  topic: t.String(),
 });
 
 export const JoinRoomMessage = messageSchema("JOIN_ROOM", {

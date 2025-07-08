@@ -17,6 +17,7 @@
 
   // Local component state
   let nickname = $state("");
+  let topic = $state("");
   let isLoading = $state(false);
   let clientError = $state("");
 
@@ -85,7 +86,7 @@
       actions.clearError();
 
       // Use WebSocket-based room creation
-      actions.createRoom(nickname.trim());
+      actions.createRoom(nickname.trim(), topic.trim());
 
       // Navigation will be handled by the reactive effect
     } catch (error) {
@@ -136,7 +137,7 @@
 </script>
 
 <svelte:head>
-  <title>Narrari - AI-Enhanced Storytelling Adventure</title>
+  <title>Meeplix - AI-Enhanced Storytelling Adventure</title>
   <meta
     name="description"
     content="Embark on a magical journey where imagination meets artificial intelligence"
@@ -159,9 +160,11 @@
 
       <MainGameCard
         bind:nickname
+        bind:topic
         {clientError}
         {isLoading}
         onNicknameChange={(value) => (nickname = value)}
+        onTopicChange={(value) => (topic = value)}
         onCreateGame={createGame}
         onJoinGame={joinByGameId}
         onEnterPress={createGame}

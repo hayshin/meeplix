@@ -126,7 +126,7 @@ export class GameStore {
   }
 
   // Connection actions
-  createRoom = (username: string) => {
+  createRoom = (username: string, topic: string) => {
     const currentState = this.getCurrentState();
     if (currentState.isConnecting) return;
 
@@ -145,7 +145,7 @@ export class GameStore {
           isConnected: true,
           isConnecting: false,
         }));
-        this.actionsManager.createRoom(username);
+        this.actionsManager.createRoom(username, topic);
       },
       onMessage: (data) => {
         this.messageHandlers.handleServerMessage(data as ServerMessage);
