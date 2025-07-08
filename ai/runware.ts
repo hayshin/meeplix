@@ -39,7 +39,6 @@ export async function generateCardImage(
 
 import { uploadImageToAzure } from "./azure";
 
-// Test the upload
 async function testUpload() {
   try {
     const imageUrl = await generateCardImage(card_prompt);
@@ -54,5 +53,4 @@ async function testUpload() {
   }
 }
 
-// Uncomment to test
 testUpload();
