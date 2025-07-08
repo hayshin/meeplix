@@ -177,14 +177,14 @@
     </div>
 
     <!-- Card Title -->
-    <div class="relative h-1/4 p-2 flex items-center justify-center">
+    <!-- <div class="relative h-1/4 p-2 flex items-center justify-center">
       <h3
         class="text-center text-white font-medium text-sm leading-tight line-clamp-2"
         title={card.id}
       >
         {card.id}
       </h3>
-    </div>
+    </div> -->
   </div>
 
   <!-- Close button for enlarged state -->
