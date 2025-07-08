@@ -17,6 +17,12 @@ const models = {
 
 export async function createDixitPrompts(
   topic: string,
+  amount: number,
 ): Promise<DixitPrompt[]> {
-  return Prompter.createDixitPrompts(ai, models.gemini_flash_lite, topic);
+  return Prompter.createDixitPrompts(
+    ai,
+    models.gemini_flash_lite,
+    topic,
+    amount,
+  );
 }

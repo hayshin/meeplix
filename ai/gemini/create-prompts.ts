@@ -5,32 +5,22 @@ export async function createDixitPrompts(
   ai: GoogleGenAI,
   model: string,
   topic: string,
+  amount: number,
 ): Promise<DixitPrompt[]> {
-  console.log(`🤖 Generating 84 Dixit prompts for topic: "${topic}"`);
+  console.log(`🤖 Generating ${amount} Dixit prompts for topic: "${topic}"`);
 
-  const prompt = `You are a creative assistant for a board game similar to Dixit. Your task is to generate 84 unique, imaginative, and surreal image descriptions that will be used to generate artwork for playing cards.
-
-  Each card should depict a dreamlike, poetic, or metaphorical scene that sparks interpretation and storytelling. The illustrations will be in a whimsical, surreal, and painterly art style (similar to Dixit cards).
-
-  The deck must be centered around a specific theme provided by the user. You should use the theme to inspire your prompts. Use the theme to create a cohesive and engaging narrative for the deck. Use the theme to guide the imagery and symbolism in each prompt.
-
-  Instructions:
-    - You must generate 84 unique image prompts.
-    - Avoid concrete references to existing intellectual property unless allowed by the theme.
-    - Blend surreal, symbolic, and fantastical elements.
-    - The prompts should be diverse — vary the scenes, subjects, symbolism, and emotional tone.
-    - Do not number the items.
-
-  Theme: {${topic}}
-
-  Begin generating the prompts now.`;
+  const prompt = `Create ${amount} prompts for generating ${amount} images of cards inspired by Dixit boardgame and ${topic}`;
 
   try {
     const response = await ai.models.generateContent({
       model,
       contents: prompt,
       config: {
-        responseSchema: DixitPromptsSchema,
+        responseSchema: {
+          ...DixitPromptsSchema,
+          minItems: amount.toString(),
+          maxItems: amount.toString(),
+        },
         responseMimeType: "application/json",
       },
     });
@@ -45,8 +35,8 @@ export async function createDixitPrompts(
     const parsed = JSON.parse(responseText);
     console.log(parsed);
 
-    if (parsed.length !== 84) {
-      console.warn(`⚠️  Expected 84 prompts, got ${parsed.length}`);
+    if (parsed.length !== amount) {
+      console.warn(`⚠️  Expected ${amount} prompts, got ${parsed.length}`);
     }
 
     console.log(`✅ Successfully generated ${parsed.length} prompts`);

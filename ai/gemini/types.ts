@@ -13,8 +13,6 @@ export const DixitPromptSchema: Schema = {
 export const DixitPromptsSchema: Schema = {
   type: Type.ARRAY,
   items: DixitPromptSchema,
-  minItems: "84",
-  maxItems: "84",
   description: "Response containing exactly 84 creative Dixit prompts",
 };
 

@@ -40,7 +40,7 @@ export async function createImage(
   runware: RunwareClient,
   prompt: string,
 ): Promise<ITextToImage> {
-  const images = createImages(runware, prompt, 1);
+  const images = await createImages(runware, prompt, 1);
   return images[0];
 }
 
