@@ -1,7 +1,13 @@
 import { createDixitPrompts } from "./gemini";
 import * as RunWare from "./runware";
+import { Card } from "../server/src/ws/models/card.model";
 
 const topic = "disney";
-const dixitPrompts = await createDixitPrompts(topic, 5);
-const prompts = dixitPrompts.map((dixitPrompt) => dixitPrompt.prompt);
-const deck = RunWare.createDeck(prompts);
+export async function createDeck(
+  topic: string,
+  count: number,
+): Promise<{ cards: Card[]; prompts: string[] }> {
+  const dixitPrompts = await createDixitPrompts(topic, count);
+  const prompts = dixitPrompts.map((dixitPrompt) => dixitPrompt.prompt);
+  return RunWare.createDeck(prompts);
+}

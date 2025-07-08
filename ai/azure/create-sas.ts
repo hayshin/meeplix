@@ -49,7 +49,7 @@ export async function getSignedImageUrl(
     console.log(`Generated SAS URL for ${imageFilename}: ${imageUrl}`);
     return imageUrl;
   } catch (error) {
-    console.error(`Error generating SAS for ${imageFilename}:`, error.message);
+    console.error(`Error generating SAS for ${imageFilename}:`, error);
     throw new Error("Could not generate signed image URL.");
   }
 }

@@ -19,7 +19,7 @@ export async function uploadImageToAzureContainer(
     console.log("Upload from URL completed successfully!");
     return blockBlobClient.url;
   } catch (error) {
-    console.error("Error uploading from URL:", error.message);
+    console.error("Error uploading from URL: ", error);
     throw error;
   }
 }

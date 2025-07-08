@@ -1,11 +1,11 @@
 services:
   postgres:
     image: postgres:15-alpine
-    container_name: narrari_postgres
+    container_name: meeplix_postgres
     environment:
-      POSTGRES_DB: narrari_db
-      POSTGRES_USER: narrari_user
-      POSTGRES_PASSWORD: narrari_password
+      POSTGRES_DB: meeplix_db
+      POSTGRES_USER: meeplix_user
+      POSTGRES_PASSWORD: meeplix_password
     ports:
       - "5432:5432"
     volumes:
@@ -13,19 +13,10 @@ services:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U narrari_user -d narrari_db"]
+      test: ["CMD-SHELL", "pg_isready -U meeplix_user -d meeplix_db"]
       interval: 30s
       timeout: 10s
       retries: 3
-
-  adminer:
-    image: adminer:latest
-    container_name: narrari_adminer
-    ports:
-      - "8080:8080"
-    depends_on:
-      - postgres
-    restart: unless-stopped
 
 volumes:
   postgres_data:

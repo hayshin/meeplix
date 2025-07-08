@@ -38,7 +38,9 @@
   };
 
   const getImageUrl = (card: PublicCard): string => {
-    let imageUrl = card.name ? `${PUBLIC_API_URL}/api/cards/${card.name}` : "";
+    // const blobUrl = "https://meeplix.blob.core.windows.net/runware-uploads";
+    // let imageUrl = card.id ? `${blobUrl}/${card.id}/${sas_token}` : "";
+    const imageUrl = card.imageUrl;
     console.log(imageUrl);
     return imageUrl;
   };
@@ -97,7 +99,7 @@
       {#if imageLoaded && !imageError}
         <img
           src={getImageUrl(card)}
-          alt={card.name}
+          alt={card.id}
           class="w-full h-full object-cover transition-transform duration-200 {isHovered &&
           isClickable
             ? 'scale-110'
@@ -178,9 +180,9 @@
     <div class="relative h-1/4 p-2 flex items-center justify-center">
       <h3
         class="text-center text-white font-medium text-sm leading-tight line-clamp-2"
-        title={card.name}
+        title={card.id}
       >
-        {card.name}
+        {card.id}
       </h3>
     </div>
   </div>

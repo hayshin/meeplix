@@ -46,7 +46,7 @@ export interface GameState {
 }
 
 export interface GameActions {
-  createRoom: (username: string) => void;
+  createRoom: (username: string, topic: string) => void;
   joinRoom: (roomId: string, username: string) => void;
   reconnectToRoom: (roomId: string, playerId: string, username: string) => void;
   startGame: () => void;
