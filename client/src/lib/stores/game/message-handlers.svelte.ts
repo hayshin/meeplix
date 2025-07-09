@@ -92,8 +92,8 @@ export class MessageHandlersManager implements MessageHandlers {
       case "RECONNECT_SUCCESS":
         this.handleReconnectSuccess(
           message.payload.player,
-          message.payload.hand,
           message.payload.room,
+          message.payload.hand,
         );
         break;
 
@@ -368,6 +368,7 @@ export class MessageHandlersManager implements MessageHandlers {
       leaderId: room.leaderId,
       currentDescription: room.currentDescription,
       votes: room.votes,
+      cardsForVoting: room.submittedCards,
       players: updatedPlayers,
       phase,
     }));
@@ -440,8 +441,8 @@ export class MessageHandlersManager implements MessageHandlers {
 
   handleReconnectSuccess = (
     player: Player,
-    hand: PublicCard[],
     room: PublicRoomState,
+    hand?: PublicCard[],
   ) => {
     console.log("Reconnect successful:", player, room);
 
