@@ -83,6 +83,14 @@ export function getHandOfPlayer(roomId: string, playerId: string): Hand {
   return hand;
 }
 
+export function hasHand(roomId: string, playerId: string): boolean {
+  const room = getRoomById(roomId);
+  const player = getPlayerInRoom(roomId, playerId);
+  const hands = room.hands;
+  let hand = hands.find((hand) => hand.playerId === playerId);
+  return hand !== undefined;
+}
+
 export function getCardsOfPlayer(roomId: string, playerId: string): Card[] {
   const hand = getHandOfPlayer(roomId, playerId);
   if (!hand) {

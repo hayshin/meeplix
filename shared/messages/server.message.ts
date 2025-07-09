@@ -77,6 +77,7 @@ export const ErrorMessage = messageSchema("ERROR", {
 export const ReconnectSuccessMessage = messageSchema("RECONNECT_SUCCESS", {
   player: PlayerDTO,
   room: PublicRoomStateDTO,
+  hand: t.Optional(t.Array(PublicCardDTO)),
 });
 
 export const ReconnectFailedMessage = messageSchema("RECONNECT_FAILED", {
