@@ -16,18 +16,14 @@ export async function createDeck(
       "A surreal, dreamlike illustration in the style of Dixit cards. " +
       prompt +
       " Art style similar to Marie Cardouat.";
-    // const image = await createImage(runware, prompt);
-    const url = "test.url";
-    const id = "prompt";
-    // const url = image.imageURL;
-    // if (!url) {
-    //   throw new Error(`Failed to generate image for prompt: ${prompt}`);
-    // }
-    // uploadImageToAzure(url, image.imageUUID);
-    uploadImageToAzure(url, id);
+    const image = await createImage(runware, prompt);
+    const url = image.imageURL;
+    if (!url) {
+      throw new Error(`Failed to generate image for prompt: ${prompt}`);
+    }
+    uploadImageToAzure(url, image.imageUUID);
     const card = {
-      // id: image.imageUUID,
-      id,
+      id: image.imageUUID,
       // name: prompt,
       imageUrl: url,
     };

@@ -93,6 +93,7 @@ export class MessageHandlersManager implements MessageHandlers {
         this.handleReconnectSuccess(
           message.payload.player,
           message.payload.room,
+          message.payload.hand,
         );
         break;
 
@@ -316,7 +317,11 @@ export class MessageHandlersManager implements MessageHandlers {
     }
   };
 
-  handleRoomState = (player: Player, room: PublicRoomState) => {
+  handleRoomState = (
+    player: Player,
+    room: PublicRoomState,
+    hand?: PublicCard[],
+  ) => {
     console.log("Handling room state - player:", player, "room:", room);
 
     // Map room stage to game phase
@@ -357,11 +362,13 @@ export class MessageHandlersManager implements MessageHandlers {
       ...state,
       isJoining: false,
       currentPlayer: player,
+      currentHand: hand || state.currentHand,
       roomId: room.id,
       roundNumber: room.roundNumber,
       leaderId: room.leaderId,
       currentDescription: room.currentDescription,
       votes: room.votes,
+      cardsForVoting: room.submittedCards,
       players: updatedPlayers,
       phase,
     }));
@@ -432,11 +439,15 @@ export class MessageHandlersManager implements MessageHandlers {
     }
   };
 
-  handleReconnectSuccess = (player: Player, room: PublicRoomState) => {
+  handleReconnectSuccess = (
+    player: Player,
+    room: PublicRoomState,
+    hand?: PublicCard[],
+  ) => {
     console.log("Reconnect successful:", player, room);
 
     // Handle the reconnection the same way as room state
-    this.handleRoomState(player, room);
+    this.handleRoomState(player, room, hand);
 
     // Update the stored game session
     storage.addGameSession({
