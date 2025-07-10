@@ -7,11 +7,17 @@
     id: string;
     name: string;
     amount: number;
-    description?: string | null | undefined;
+    description?: string | null;
     ai_model?: string | null;
     ai_provider?: string | null;
     createdAt: Date | null;
   }
+
+  interface DecksLayoutProps {
+    onDeckSelect?: (deck: Deck) => void;
+  }
+
+  let { onDeckSelect }: DecksLayoutProps = $props();
 
   let decks = $state<Deck[]>([]);
   let isLoading = $state(true);
@@ -40,9 +46,12 @@
   };
 
   const handleDeckClick = (deck: Deck) => {
-    // Navigate to deck details or start game
-    console.log("Deck clicked:", deck);
-    // TODO: Implement navigation to deck details or game start
+    if (onDeckSelect) {
+      onDeckSelect(deck);
+    } else {
+      // Default behavior if no callback provided
+      console.log("Deck clicked:", deck);
+    }
   };
 
   const handleCreateDeck = () => {
@@ -57,11 +66,11 @@
   });
 </script>
 
-<div class="container mx-auto px-4 py-8">
+<div class="mx-auto">
   <div class="mb-8 flex items-center justify-between">
     <div>
-      <h1 class="text-3xl font-bold tracking-tight">Decks</h1>
-      <p class="text-muted-foreground">Choose a deck to start playing</p>
+      <h2 class="text-2xl font-bold tracking-tight">Choose Your Deck</h2>
+      <p class="text-muted-foreground">Select a deck to start your adventure</p>
     </div>
     <button
       onclick={handleCreateDeck}

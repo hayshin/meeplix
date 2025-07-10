@@ -33,7 +33,7 @@
   const currentPlayer = $derived(roomState.currentPlayer);
   const error = $derived(roomState.error);
 
-  // Effect to handle navigation after room creation
+  // Effect to handle navigation after room creation (kept for direct join functionality)
   $effect(() => {
     console.log("Navigation effect triggered:", {
       roomId,
@@ -76,23 +76,20 @@
       return;
     }
 
-    isLoading = true;
-    clientError = "";
-
     try {
+      // Save nickname
       storage.saveNickname(nickname.trim());
 
-      // Clear any previous errors
-      actions.clearError();
+      // Navigate to decks page with nickname and topic as URL parameters
+      const searchParams = new URLSearchParams({
+        nickname: nickname.trim(),
+        ...(topic.trim() && { topic: topic.trim() }),
+      });
 
-      // Use WebSocket-based room creation
-      actions.createRoom(nickname.trim(), topic.trim());
-
-      // Navigation will be handled by the reactive effect
+      goto(`/decks?${searchParams.toString()}`);
     } catch (error) {
-      console.error("Error creating room:", error);
-      clientError = "Failed to create room. Please try again.";
-      isLoading = false;
+      console.error("Error navigating to decks:", error);
+      clientError = "Failed to navigate to deck selection. Please try again.";
     }
   };
 
