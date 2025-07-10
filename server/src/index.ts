@@ -5,6 +5,7 @@ import { cors } from "@elysiajs/cors";
 import { swagger } from "@elysiajs/swagger";
 import { cardsRoutes } from "./routes/cards";
 import { logger } from "@bogeychan/elysia-logger";
+import { decksRoute } from "./routes/decks";
 const app = new Elysia({
   // Add WebSocket configuration
   prefix: "/api",
@@ -38,6 +39,7 @@ const app = new Elysia({
   .use(websocket)
   .use(gameRoutes)
   .use(cardsRoutes)
+  .use(decksRoute)
   .listen({
     port: 3000,
     hostname: "0.0.0.0", // Listen on all interfaces

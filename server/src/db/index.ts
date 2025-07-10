@@ -16,8 +16,11 @@ export async function closeDB() {
   await client.end();
 }
 
-// const query = db.select().from(schema.cards);
-const query = await db.execute(sql`SELECT * FROM cards`);
-console.log(query);
-
 export * from "./schema";
+
+// const query = await db
+//   .insert(schema.decks)
+//   .values({ name: "test", amount: 84 });
+
+// console.log(query);
+// const id = "d22f868f-ead2-4213-8e49-e0ad7b50cda4"
