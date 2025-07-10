@@ -52,6 +52,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
           script: |
+            set -e # for error handling
             export PATH="$HOME/.bun/bin:$PATH"
             cd /home/azureuser/meeplix/server || { echo "Server directory not found!"; exit 1; }
 
