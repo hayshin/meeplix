@@ -134,10 +134,3 @@
     <DecksLayout onDeckSelect={handleDeckSelect} />
   </div>
 </div>
-
-<style>
-  :global(html, body) {
-    overflow: hidden;
-    height: 100vh;
-  }
-</style>
