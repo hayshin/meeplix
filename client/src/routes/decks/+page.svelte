@@ -150,10 +150,3 @@
     </div>
   </div>
 {/if}
-
-<style>
-  :global(html, body) {
-    overflow-x: hidden;
-    height: 100vh;
-  }
-</style>
