@@ -1,6 +1,7 @@
 <script lang="ts">
   import { api } from "$lib/utils";
   import DeckCard from "./deck-card.svelte";
+  import CreateDeckModal from "./create-deck-modal.svelte";
   import { LoaderIcon, PlusIcon } from "lucide-svelte";
 
   interface Deck {
@@ -22,6 +23,11 @@
   let decks = $state<Deck[]>([]);
   let isLoading = $state(true);
   let error = $state<string | null>(null);
+
+  // Modal state
+  let showCreateModal = $state(false);
+  let isCreating = $state(false);
+  let createError = $state<string | null>(null);
 
   const fetchDecks = async () => {
     try {
@@ -55,10 +61,39 @@
   };
 
   const handleCreateDeck = () => {
-    // Navigate to deck creation
-    // console.log("Create deck clicked");
-    const data = api.decks.post({ topic: "New Deck" });
-    // TODO: Implement navigation to deck creation
+    showCreateModal = true;
+    createError = null;
+  };
+
+  const handleModalClose = () => {
+    showCreateModal = false;
+    createError = null;
+  };
+
+  const handleDeckCreate = async (topic: string) => {
+    try {
+      isCreating = true;
+      createError = null;
+
+      const response = await api.decks.post({ topic });
+
+      if (response.error) {
+        throw new Error(response.error.value as string);
+      }
+
+      if (response.data) {
+        // Add the new deck to the list
+        decks = [...decks, response.data];
+        // Close the modal
+        showCreateModal = false;
+      }
+    } catch (err) {
+      createError =
+        err instanceof Error ? err.message : "Failed to create deck";
+      console.error("Error creating deck:", err);
+    } finally {
+      isCreating = false;
+    }
   };
 
   // Fetch decks on component mount
@@ -127,3 +162,12 @@
     </div>
   {/if}
 </div>
+
+<!-- Create Deck Modal -->
+<CreateDeckModal
+  show={showCreateModal}
+  onClose={handleModalClose}
+  onSubmit={handleDeckCreate}
+  isLoading={isCreating}
+  error={createError}
+/>
