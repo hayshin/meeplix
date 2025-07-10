@@ -10,6 +10,8 @@
     isEnlarged?: boolean;
     onclick?: () => void;
     onEnlarge?: () => void;
+    onmouseenter?: () => void;
+    onmouseleave?: () => void;
   }
 
   let {
@@ -19,11 +21,15 @@
     isEnlarged = false,
     onclick,
     onEnlarge,
+    onmouseenter,
+    onmouseleave,
   }: GameCardProps = $props();
 
   let isHovered = $state(false);
   let imageLoaded = $state(false);
   let imageError = $state(false);
+  let touchStartTime = $state(0);
+  let touchHoldTimeout: NodeJS.Timeout | null = null;
 
   const handleClick = () => {
     if (isClickable && onclick) {
@@ -35,6 +41,49 @@
     if (onEnlarge) {
       onEnlarge();
     }
+  };
+
+  const handleMouseEnter = () => {
+    if (onmouseenter) {
+      onmouseenter();
+    }
+  };
+
+  const handleMouseLeave = () => {
+    if (onmouseleave) {
+      onmouseleave();
+    }
+  };
+
+  const handleTouchStart = (e: TouchEvent) => {
+    touchStartTime = Date.now();
+    touchHoldTimeout = setTimeout(() => {
+      handleMouseEnter();
+    }, 200); // 200ms hold to trigger hover
+  };
+
+  const handleTouchEnd = (e: TouchEvent) => {
+    if (touchHoldTimeout) {
+      clearTimeout(touchHoldTimeout);
+      touchHoldTimeout = null;
+    }
+
+    const touchDuration = Date.now() - touchStartTime;
+    if (touchDuration < 200) {
+      // Short tap - treat as click
+      handleClick();
+    } else {
+      // Long hold - remove hover
+      handleMouseLeave();
+    }
+  };
+
+  const handleTouchCancel = () => {
+    if (touchHoldTimeout) {
+      clearTimeout(touchHoldTimeout);
+      touchHoldTimeout = null;
+    }
+    handleMouseLeave();
   };
 
   const getImageUrl = (card: PublicCard): string => {
@@ -65,10 +114,19 @@
     ? 'ring-2 ring-purple-400 ring-offset-2 ring-offset-slate-900'
     : ''} {isEnlarged ? 'fixed inset-4 z-50 !cursor-default' : 'aspect-[3/4]'}"
   class:hovered={isHovered && isClickable}
-  onmouseenter={() => (isHovered = true)}
-  onmouseleave={() => (isHovered = false)}
+  onmouseenter={() => {
+    isHovered = true;
+    handleMouseEnter();
+  }}
+  onmouseleave={() => {
+    isHovered = false;
+    handleMouseLeave();
+  }}
   onclick={handleClick}
   ondblclick={handleDoubleClick}
+  ontouchstart={handleTouchStart}
+  ontouchend={handleTouchEnd}
+  ontouchcancel={handleTouchCancel}
   role={isClickable ? "button" : "img"}
   onkeydown={(e) => {
     if (isClickable && (e.key === "Enter" || e.key === " ")) {
