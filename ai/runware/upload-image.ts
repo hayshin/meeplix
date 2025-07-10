@@ -1,7 +1,10 @@
 import { ITextToImage } from "@runware/sdk-js";
 import { uploadImageToAzure } from "../azure";
 
-export function uploadImage(image: ITextToImage): Promise<string> {
+export function uploadImage(
+  folder: string,
+  image: ITextToImage,
+): Promise<string> {
   const { imageURL, imageUUID } = image;
   if (!imageURL) {
     throw new Error("Undefined image URL");
@@ -9,10 +12,13 @@ export function uploadImage(image: ITextToImage): Promise<string> {
   if (!imageUUID) {
     throw new Error("Undefined image UUID");
   }
-  return uploadImageToAzure(imageURL, imageUUID);
+  return uploadImageToAzure(imageURL, folder + "/" + imageUUID);
 }
 
-export function uploadImages(images: ITextToImage[]): Promise<string[]> {
-  const urls = images.map((image) => uploadImage(image));
+export function uploadImages(
+  folder: string,
+  images: ITextToImage[],
+): Promise<string[]> {
+  const urls = images.map((image) => uploadImage(folder, image));
   return Promise.all(urls);
 }

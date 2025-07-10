@@ -56,7 +56,8 @@
 
   const handleCreateDeck = () => {
     // Navigate to deck creation
-    console.log("Create deck clicked");
+    // console.log("Create deck clicked");
+    const data = api.decks.post({ topic: "New Deck" });
     // TODO: Implement navigation to deck creation
   };
 

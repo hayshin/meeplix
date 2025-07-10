@@ -5,6 +5,7 @@
   import { useGameStore } from "$lib/stores/game";
   import DecksLayout from "$lib/components/decks/decks-layout.svelte";
   import { ArrowLeftIcon } from "lucide-svelte";
+  import { GradientBackground, MagicalCursor } from "$lib/components/home";
 
   // Use the game store
   const gameStore = useGameStore();
@@ -85,6 +86,8 @@
 </svelte:head>
 
 <div class="min-h-screen bg-background">
+  <!-- <GradientBackground />
+  <MagicalCursor /> -->
   <div class="container mx-auto px-4 py-8">
     <!-- Header with back button -->
     <div class="mb-8 flex items-center gap-4">
@@ -130,3 +133,10 @@
     <DecksLayout onDeckSelect={handleDeckSelect} />
   </div>
 </div>
+
+<style>
+  :global(html, body) {
+    overflow: hidden;
+    height: 100vh;
+  }
+</style>

@@ -3,18 +3,18 @@ import { ServerMessage } from "$messages/index";
 import { WS, sendError, sendMessage } from "../index";
 import { addPlayerConnection } from "../stores/connection.store";
 import { addRoom } from "../stores/room.store";
-import { createDeck } from "$/game/decks";
+import { createDeck, getCardsFromDeck } from "$/game/decks";
 
 export async function handleCreateRoom(ws: WS, message: CreateRoomMessage) {
-  const { username, topic } = message.payload;
+  const { username, deckId } = message.payload;
   console.log("=== HANDLING CREATE ROOM ===");
   console.log("Creator username:", username);
 
   try {
     console.log(`Creating room with creator username: ${username}`);
 
-    const deck = await createDeck(topic);
-    console.log(`Deck created`);
+    const deck = await getCardsFromDeck(deckId);
+    console.log(`Deck loaded`);
     console.log(deck);
     const room = addRoom(deck);
     console.log(`Room created with ID: ${room.id}`);

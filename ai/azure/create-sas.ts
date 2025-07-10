@@ -11,8 +11,6 @@ async function generateReadSasTokenForBlob(
   blobName: string,
   expiryMinutes: number = 60,
 ): Promise<string> {
-  const blobClient = containerClient.getBlobClient(blobName);
-
   const sasOptions = {
     containerName: containerClient.containerName,
     blobName: blobName,
@@ -28,28 +26,36 @@ async function generateReadSasTokenForBlob(
 
   // Construct the full URL with the SAS token
   // This URL will look like: https://youraccount.blob.core.windows.net/my-image-container/my-image.jpg?sp=r&st=...
-  return `${blobClient.url}?${sasToken}`;
+  return `${sasToken}`;
 }
+
+// blobName -> token
+const sasTokens = new Map<string, string>();
 
 // Example usage in a hypothetical API endpoint:
 // This function would be called by your API when a user requests an image.
-export async function getSignedImageUrl(
+export async function getReadSasToken(
   containerClient: ContainerClient,
   sharedKeyCredential: StorageSharedKeyCredential,
-  imageFilename: string,
+  blobName: string,
+  newToken?: boolean,
   expiryMinutes?: number,
 ): Promise<string> {
   try {
-    const imageUrl = await generateReadSasTokenForBlob(
+    if (sasTokens.has(blobName) && !newToken) {
+      return sasTokens.get(blobName)!;
+    }
+    const sasToken = await generateReadSasTokenForBlob(
       containerClient,
       sharedKeyCredential,
-      imageFilename,
+      blobName,
       expiryMinutes,
     );
-    console.log(`Generated SAS URL for ${imageFilename}: ${imageUrl}`);
-    return imageUrl;
+    console.log(`Generated SAS URL for ${blobName}: ${sasToken}`);
+    sasTokens.set(blobName, sasToken);
+    return sasToken;
   } catch (error) {
-    console.error(`Error generating SAS for ${imageFilename}:`, error);
+    console.error(`Error generating SAS for ${blobName}:`, error);
     throw new Error("Could not generate signed image URL.");
   }
 }

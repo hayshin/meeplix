@@ -7,6 +7,7 @@ import { Card } from "../../server/src/ws/models/card.model";
 import { uploadImageToAzure } from "../azure";
 
 export async function createDeck(
+  deckId: string,
   prompts: string[],
 ): Promise<{ cards: Card[]; prompts: string[] }> {
   const cards: Card[] = [];
@@ -21,7 +22,7 @@ export async function createDeck(
     if (!url) {
       throw new Error(`Failed to generate image for prompt: ${prompt}`);
     }
-    uploadImageToAzure(url, image.imageUUID);
+    uploadImage(deckId, image);
     const card = {
       id: image.imageUUID,
       // name: prompt,
