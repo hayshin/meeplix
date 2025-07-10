@@ -3,7 +3,9 @@
   import { page } from "$app/stores";
   import { storage } from "$lib/utils";
   import { useGameStore } from "$lib/stores/game";
-  import DecksLayout from "$lib/components/decks/decks-layout.svelte";
+  import DecksLayout, {
+    type Deck,
+  } from "$lib/components/decks/decks-layout.svelte";
   import { ArrowLeftIcon } from "lucide-svelte";
   import { GradientBackground, MagicalCursor } from "$lib/components/home";
 
@@ -14,7 +16,6 @@
   // Get URL parameters
   const searchParams = $derived($page.url.searchParams);
   const nickname = $derived(searchParams.get("nickname") || "");
-  const topic = $derived(searchParams.get("topic") || "");
 
   // Redirect back to home if no nickname is provided
   $effect(() => {
@@ -53,7 +54,7 @@
     }
   });
 
-  const handleDeckSelect = async (deck: any) => {
+  const handleDeckSelect = async (deck: Deck) => {
     console.log("Deck selected:", deck);
 
     isCreatingRoom = true;
@@ -65,7 +66,7 @@
 
       // Create room with selected deck
       // You might want to pass deck information to the room creation
-      actions.createRoom(nickname, topic || `Playing with ${deck.name}`);
+      actions.createRoom(nickname, deck.id || `Playing with ${deck.name}`);
 
       // Navigation will be handled by the reactive effect
     } catch (err) {

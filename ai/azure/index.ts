@@ -43,10 +43,10 @@ export async function getImageUrl(
   const sasToken = await getReadSasToken(
     containerClient,
     sharedKeyCredential,
-    folder + "/",
-    newToken,
+    folder + "/" + imageName,
+    true,
   );
   const containerUrl = containerClient.url;
   const blobUrl = `${containerUrl}/${folder}/${imageName}`;
-  return `${blobUrl}${sasToken}`;
+  return `${blobUrl}?${sasToken}`;
 }

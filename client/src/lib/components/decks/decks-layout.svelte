@@ -4,7 +4,7 @@
   import CreateDeckModal from "./create-deck-modal.svelte";
   import { LoaderIcon, PlusIcon } from "lucide-svelte";
 
-  interface Deck {
+  export interface Deck {
     id: string;
     name: string;
     amount: number;
