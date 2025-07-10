@@ -55,9 +55,9 @@ export function createRoomState(
     hands,
   };
 }
-export function createEmptyRoomState(): RoomState {
+export function createEmptyRoomState(id: string): RoomState {
   return {
-    id: uuidv4(),
+    id,
     deck: [],
     roundNumber: 0,
     leaderId: "",

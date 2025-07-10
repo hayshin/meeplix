@@ -10,8 +10,25 @@ const rooms = new Map<string, RoomState>();
 // room id -> set of player ids
 const roomToPlayers = new Map<string, string[]>();
 
+function generateId(): string {
+  const chars = "abcdefghijklmnopqrstuvwxyz";
+  let id = "";
+  for (let i = 0; i < 4; i++) {
+    id += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return id;
+}
+function createRoomId(): string {
+  let id = generateId();
+  while (rooms.has(id)) {
+    id = generateId();
+  }
+  return id;
+}
+
 export function addRoom(deck: Card[]): RoomState {
-  const room = createEmptyRoomState();
+  const id = createRoomId();
+  const room = createEmptyRoomState(id);
   room.deck = deck;
   rooms.set(room.id, room);
   return room;
