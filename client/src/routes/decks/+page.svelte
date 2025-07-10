@@ -86,23 +86,27 @@
   <meta name="description" content="Choose a deck to start your adventure" />
 </svelte:head>
 
-<div class="min-h-screen bg-background">
-  <!-- <GradientBackground />
-  <MagicalCursor /> -->
-  <div class="container mx-auto px-4 py-8">
-    <!-- Header with back button -->
+<GradientBackground />
+<MagicalCursor />
+
+<div class="min-h-screen relative z-10">
+  <!-- Full height container with padding -->
+  <div class="min-h-screen flex flex-col p-6">
+    <!-- Header Section -->
     <div class="mb-8 flex items-center gap-4">
       <button
         onclick={handleGoBack}
-        class="flex items-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
+        class="flex items-center gap-2 rounded-lg bg-white/10 backdrop-blur-sm border border-white/20 px-4 py-2 text-sm font-medium text-white/90 hover:bg-white/20 hover:text-white transition-all duration-200 shadow-lg hover:scale-105"
       >
         <ArrowLeftIcon class="h-4 w-4" />
         Back
       </button>
       <div class="flex-1">
-        <h1 class="text-2xl font-bold">Welcome, {nickname}!</h1>
-        <p class="text-muted-foreground">
-          Select a deck to begin your adventure
+        <h1 class="text-3xl font-bold text-white mb-2">
+          Welcome, <span class="text-purple-300">{nickname}</span>!
+        </h1>
+        <p class="text-white/70 text-lg">
+          Select a deck to begin your magical adventure
         </p>
       </div>
     </div>
@@ -110,27 +114,46 @@
     <!-- Error message -->
     {#if error}
       <div
-        class="mb-6 rounded-lg bg-destructive/10 border border-destructive/20 p-4"
+        class="mb-6 rounded-lg bg-red-500/20 backdrop-blur-sm border border-red-400/30 p-4"
       >
-        <p class="text-destructive text-sm font-medium">{error}</p>
+        <p class="text-red-300 text-sm font-medium">{error}</p>
       </div>
     {/if}
 
-    <!-- Loading state -->
-    {#if isCreatingRoom}
+    <!-- Main Content Area - Full width container -->
+    <div class="flex-1 max-w-none w-full">
       <div
-        class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+        class="bg-black/40 backdrop-blur-md border border-white/30 rounded-2xl p-8 shadow-2xl h-full min-h-[calc(100vh-200px)]"
       >
-        <div class="bg-card rounded-lg p-6 text-center">
-          <div
-            class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"
-          ></div>
-          <p class="text-card-foreground">Creating your game...</p>
-        </div>
+        <!-- Decks layout takes full available space -->
+        <DecksLayout onDeckSelect={handleDeckSelect} />
       </div>
-    {/if}
-
-    <!-- Decks layout -->
-    <DecksLayout onDeckSelect={handleDeckSelect} />
+    </div>
   </div>
 </div>
+
+<!-- Loading state overlay -->
+{#if isCreatingRoom}
+  <div
+    class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50"
+  >
+    <div
+      class="bg-black/40 backdrop-blur-md border border-white/30 rounded-2xl p-8 text-center shadow-2xl"
+    >
+      <div
+        class="animate-spin rounded-full h-12 w-12 border-2 border-purple-400 border-t-transparent mx-auto mb-4"
+      ></div>
+      <p class="text-white text-lg font-medium">
+        Creating your magical realm...
+      </p>
+      <p class="text-white/70 text-sm mt-2">Preparing the adventure ahead</p>
+    </div>
+  </div>
+{/if}
+
+<style>
+  :global(html, body) {
+    overflow-x: hidden;
+    height: 100vh;
+  }
+</style>
