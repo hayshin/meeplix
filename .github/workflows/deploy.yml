@@ -12,13 +12,22 @@ jobs:
     steps:
       - name: Deploy to Azure VM
         uses: appleboy/ssh-action@v1.0.0
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          AZURE_STORAGE_ACCOUNT_NAME: ${{ secrets.AZURE_STORAGE_ACCOUNT_NAME }}
+          AZURE_STORAGE_ACCOUNT_KEY: ${{ secrets.AZURE_STORAGE_ACCOUNT_KEY }}
+          RUNWARE_API_KEY: ${{ secrets.RUNWARE_API_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          NODE_ENV: production
+          PORT: 3000
+          PUBLIC_API: meeplix.live
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             export PATH="$HOME/.bun/bin:$PATH"
-            cd /home/azureuser/narrari/
+            cd /home/azureuser/meeplix/
             git pull
             bun install
             # sudo docker compose up -d
