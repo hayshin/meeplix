@@ -139,7 +139,7 @@
   <!-- Main Content Area -->
   <div class="flex-1 flex flex-col">
     <!-- Top Content -->
-    <div class="container mx-auto px-4 py-8">
+    <div class="container mx-auto px-4 py-4">
       <!-- Game Status Bar -->
       <GameStatusBar
         gameState={roomState}
@@ -163,28 +163,45 @@
     </div>
 
     <!-- Center Preview Area -->
-    <div class="flex-1 flex items-center justify-center px-4">
-      {#if hoveredCard}
-        {@const card = [...currentPlayerHand, ...votingCards].find(
-          (c) => c.id === hoveredCard,
-        )}
-        {#if card}
-          <div class="w-80 h-96 transition-all duration-300 ease-out">
-            <GameCard
-              {card}
-              isSelected={selectedCardId === card.id ||
-                selectedVoteCardId === card.id}
-              isClickable={false}
-              isEnlarged={false}
-            />
+    <div class="flex-1 flex items-center justify-center px-4 min-h-0 relative">
+      <!-- Fixed preview container that NEVER changes size -->
+      <div
+        class="w-48 h-64 sm:w-56 sm:h-72 md:w-64 md:h-80 lg:w-80 lg:h-96 relative"
+      >
+        <!-- Always visible placeholder -->
+        <div
+          class="absolute inset-0 flex items-center justify-center text-center text-white/40"
+        >
+          <div>
+            <div
+              class="text-2xl sm:text-3xl md:text-4xl lg:text-6xl mb-2 sm:mb-4"
+            >
+              🎭
+            </div>
+            <p class="text-xs sm:text-sm md:text-base lg:text-lg">
+              Hover over a card to preview it here
+            </p>
           </div>
-        {/if}
-      {:else}
-        <div class="text-center text-white/60">
-          <div class="text-6xl mb-4">🎭</div>
-          <p class="text-lg">Hover over a card to preview it here</p>
         </div>
-      {/if}
+
+        <!-- Overlay card when hovered -->
+        {#if hoveredCard}
+          {@const card = [...currentPlayerHand, ...votingCards].find(
+            (c) => c.id === hoveredCard,
+          )}
+          {#if card}
+            <div class="absolute inset-0 transition-all duration-300 ease-out">
+              <GameCard
+                {card}
+                isSelected={selectedCardId === card.id ||
+                  selectedVoteCardId === card.id}
+                isClickable={false}
+                isEnlarged={false}
+              />
+            </div>
+          {/if}
+        {/if}
+      </div>
     </div>
 
     <!-- Game Phase Info -->
@@ -362,15 +379,19 @@
     </div>
 
     <!-- Bottom Cards Area -->
-    <div class="bg-white/10 backdrop-blur-sm rounded-t-lg p-4">
+    <div class="bg-white/10 backdrop-blur-sm rounded-t-lg p-2 sm:p-4">
       <!-- Current Player Hand -->
       {#if gamePhase === "leader_submitting" && $isCurrentPlayerLeader}
         <div class="text-center mb-2">
-          <h3 class="text-white font-medium">Your Cards</h3>
+          <h3 class="text-white font-medium text-sm sm:text-base">
+            Your Cards
+          </h3>
         </div>
-        <div class="flex justify-center gap-2 overflow-x-auto pb-2">
+        <div class="flex justify-center gap-1 sm:gap-2 overflow-x-auto pb-2">
           {#each currentPlayerHand as card}
-            <div class="flex-shrink-0 w-24 h-32">
+            <div
+              class="flex-shrink-0 w-16 h-20 sm:w-20 sm:h-24 md:w-24 md:h-32"
+            >
               <GameCard
                 {card}
                 isSelected={selectedCardId === card.id}
@@ -386,11 +407,15 @@
 
       {#if gamePhase === "players_submitting" && !$isCurrentPlayerLeader}
         <div class="text-center mb-2">
-          <h3 class="text-white font-medium">Your Cards</h3>
+          <h3 class="text-white font-medium text-sm sm:text-base">
+            Your Cards
+          </h3>
         </div>
-        <div class="flex justify-center gap-2 overflow-x-auto pb-2">
+        <div class="flex justify-center gap-1 sm:gap-2 overflow-x-auto pb-2">
           {#each currentPlayerHand as card}
-            <div class="flex-shrink-0 w-24 h-32">
+            <div
+              class="flex-shrink-0 w-16 h-20 sm:w-20 sm:h-24 md:w-24 md:h-32"
+            >
               <GameCard
                 {card}
                 isSelected={selectedCardId === card.id}
@@ -407,11 +432,15 @@
       <!-- Voting Cards -->
       {#if gamePhase === "voting" && !$isCurrentPlayerLeader}
         <div class="text-center mb-2">
-          <h3 class="text-white font-medium">Vote for the Leader's Card</h3>
+          <h3 class="text-white font-medium text-sm sm:text-base">
+            Vote for the Leader's Card
+          </h3>
         </div>
-        <div class="flex justify-center gap-2 overflow-x-auto pb-2">
+        <div class="flex justify-center gap-1 sm:gap-2 overflow-x-auto pb-2">
           {#each votingCards as card}
-            <div class="flex-shrink-0 w-24 h-32">
+            <div
+              class="flex-shrink-0 w-16 h-20 sm:w-20 sm:h-24 md:w-24 md:h-32"
+            >
               <GameCard
                 {card}
                 isSelected={selectedVoteCardId === card.id}

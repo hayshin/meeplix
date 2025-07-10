@@ -153,7 +153,7 @@
       : ''}"
   >
     <!-- Card Image -->
-    <div class="relative h-3/4 overflow-hidden">
+    <div class="relative overflow-hidden">
       {#if imageLoaded && !imageError}
         <img
           src={getImageUrl(card)}
