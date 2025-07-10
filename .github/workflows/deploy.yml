@@ -1,59 +1,135 @@
+# .github/workflows/deploy-azure-vm.yml
 name: Deploy to Azure VM
 
 on:
   push:
     branches: [master]
-  workflow_dispatch:
+  workflow_dispatch: # Allows manual triggering from GitHub UI
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest # The GitHub Actions runner VM
 
     steps:
-      - name: Deploy to Azure VM
+      - name: Checkout code on runner
+        uses: actions/checkout@v4
+
+      - name: Setup Bun on runner (for local operations if any)
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      # --- SSH Connection and Remote Operations ---
+      # Step 1: Initial SSH connection and Git Pull
+      - name: Connect to VM & Pull Latest Code
         uses: appleboy/ssh-action@v1.0.0
-        env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          AZURE_STORAGE_ACCOUNT_NAME: ${{ secrets.AZURE_STORAGE_ACCOUNT_NAME }}
-          AZURE_STORAGE_ACCOUNT_KEY: ${{ secrets.AZURE_STORAGE_ACCOUNT_KEY }}
-          RUNWARE_API_KEY: ${{ secrets.RUNWARE_API_KEY }}
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          NODE_ENV: production
-          PORT: 3000
-          PUBLIC_API: meeplix.live
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22 # Default SSH port
+          script: |
+            # Ensure Bun is in PATH for the session
+            export PATH="$HOME/.bun/bin:$PATH"
+            echo "PATH=$PATH" # For debugging purposes in logs
+
+            # Navigate to the application root directory on the VM
+            echo "Navigating to /home/azureuser/meeplix/"
+            cd /home/azureuser/meeplix/ || { echo "Directory not found!"; exit 1; }
+
+            # Pull the latest code from the GitHub repository
+            echo "Pulling latest code..."
+            git pull
+
+            echo "Initial setup and git pull complete."
+
+      # Step 2: Set Environment Variables and Build/Run Server
+      - name: Configure Server Environment & Build
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
           script: |
             export PATH="$HOME/.bun/bin:$PATH"
-            cd /home/azureuser/meeplix/
-            git pull
-            bun install
-            # sudo docker compose up -d
-            cd server && bun install
-            bun build \
-             	--compile \
-             	--minify-whitespace \
-             	--minify-syntax \
-             	--target bun \
-             	--outfile server \
-             	./src/index.ts
+            cd /home/azureuser/meeplix/server || { echo "Server directory not found!"; exit 1; }
 
-            pkill server
-            chmod +x server
-            # --- IMPORTANT: Stop existing server process first ---
+            echo "Creating .env file in ./server/"
+            # Create or overwrite the .env file in the server directory
+            cat <<EOF > ./.env
+            GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
+            AZURE_STORAGE_ACCOUNT_NAME=${{ secrets.AZURE_STORAGE_ACCOUNT_NAME }}
+            AZURE_STORAGE_ACCOUNT_KEY=${{ secrets.AZURE_STORAGE_ACCOUNT_KEY }}
+            RUNWARE_API_KEY=${{ secrets.RUNWARE_API_KEY }}
+            DATABASE_URL=${{ secrets.DATABASE_URL }}
+            NODE_ENV=production
+            PORT=3000
+            EOF
+            echo ".env file created with secrets."
+
+            echo "Installing Bun dependencies for server..."
+            bun install
+
+            echo "Building Bun server binary..."
+            bun build \
+              --compile \
+              --minify-whitespace \
+              --minify-syntax \
+              --target bun \
+              --outfile server \
+              ./src/index.ts
+
+            echo "Bun server build complete."
+
+            echo "Stopping existing server process if running on port 3000..."
+            # Check if a process is listening on port 3000 and kill it
             if lsof -i :3000 -t > /dev/null 2>&1; then
-                echo "Killing existing process on port 3000..."
-                kill -9 $(lsof -ti :3000)
-                sleep 2 # Give it a moment to release the port
+              echo "Killing existing process on port 3000..."
+              kill -9 $(lsof -ti :3000)
+              sleep 2 # Give it a moment to release the port
+            else
+              echo "No process found on port 3000."
             fi
 
-            # Start the server and immediately disown it
+            echo "Making server binary executable..."
+            chmod +x server
+
+            echo "Starting server in detached mode..."
+            # Start the server in the background and immediately disown it
+            # Output logs to files for debugging
             nohup ./server > stdout.log 2> stderr.log & disown
 
-            cd ../client && bun install
-            bun run build
-            mkdir -p /var/www/hayshin.dev/html || true
-            cp -r build/* /var/www/hayshin.dev/html/
+            echo "Server started."
+
+      # Step 3: Build Client and Deploy Static Files
+      - name: Build Client & Deploy Static Assets
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          script: |
+            export PATH="$HOME/.bun/bin:$PATH"
+            cd /home/azureuser/meeplix/client || { echo "Client directory not found!"; exit 1; }
+            echo "PUBLIC_API=meeplix.live" >> .env
+            echo "Installing Bun dependencies for client..."
+            bun install
+
+            echo "Building client application..."
+            bun run build # Assuming this builds to a 'build' directory
+
+            echo "Client build complete."
+
+            echo "Deploying client static files to Nginx web root..."
+            # Create Nginx web root directory if it doesn't exist
+            sudo mkdir -p /var/www/hayshin.dev/html || true
+            # Copy built client files to the Nginx web root
+            sudo cp -r build/* /var/www/hayshin.dev/html/
+
+            echo "Restarting Nginx service..."
             sudo systemctl restart nginx
+
+            echo "Client deployment and Nginx restart complete."
+            echo "Deployment workflow finished successfully!"

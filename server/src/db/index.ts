@@ -6,7 +6,7 @@ import * as schema from "./schema";
 // Database connection configuration
 const connectionString =
   process.env.DATABASE_URL ||
-  `postgresql://${process.env.DB_USER || "meeplix_user"}:${process.env.DB_PASSWORD || "meeplix_password"}@${process.env.DB_HOST || "localhost"}:${process.env.DB_PORT || "5432"}/${process.env.DB_NAME || "meeplix_db"}`;
+  `postgresql://${process.env.DB_USER || "user"}:${process.env.DB_PASSWORD || "password"}@${process.env.DB_HOST || "localhost"}:${process.env.DB_PORT || "5432"}/${process.env.DB_NAME || "database"}`;
 
 // Create postgres client
 const client = postgres(connectionString);
