@@ -542,3 +542,13 @@
     />
   {/if}
 </div>
+
+<style>
+  html,
+  body {
+    height: 100%; /* Important if you want the viewport to define the height */
+    overflow: auto; /* Adds scrollbar only if content overflows */
+    /* OR */
+    overflow: scroll; /* Always shows scrollbar, even if not needed */
+  }
+</style>
