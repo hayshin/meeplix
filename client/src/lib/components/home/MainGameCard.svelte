@@ -42,14 +42,6 @@
     {onEnterPress}
   />
 
-  <RoomTopicInput
-    bind:topic
-    {clientError}
-    {isLoading}
-    {onTopicChange}
-    {onEnterPress}
-  />
-
   <GameActionButtons {nickname} {isLoading} {onCreateGame} {onJoinGame} />
 
   <HowToPlaySection />

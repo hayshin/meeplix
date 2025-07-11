@@ -64,7 +64,11 @@
   const votedPairs = $derived(roomState.votes);
   const players = $derived(roomState.players);
   const winner = $derived(roomState.winner);
+  const leaderCardId = $derived(roomState.leaderCardId);
   let hasSubmitted = $derived(false);
+  let hasVoted = $state(false);
+  let hoveredCard = $state<string | null>(null);
+  let playerSubmittedCardId = $state<string | null>(null);
 
   // Store actions and helpers
   const actions = gameStore.actions;
@@ -88,12 +92,14 @@
   function handleSubmitPlayerCard() {
     if (selectedCardId) {
       hasSubmitted = true;
+      playerSubmittedCardId = selectedCardId;
       actions.submitPlayerCard(selectedCardId);
     }
   }
 
   function handleSubmitVote() {
     if (selectedVoteCardId) {
+      hasVoted = true;
       actions.submitVote(selectedVoteCardId);
     }
   }
@@ -106,6 +112,16 @@
     actions.clearError();
   }
 
+  // Reset voting state when game phase changes
+  $effect(() => {
+    if (gamePhase !== "voting") {
+      hasVoted = false;
+    }
+    if (gamePhase === "leader_submitting") {
+      playerSubmittedCardId = null;
+    }
+  });
+
   // Debug logging for gamePhase changes using $effect
   $effect(() => {
     console.log("=== GAME LAYOUT DEBUG ===");
@@ -114,10 +130,14 @@
     console.log("roomState.phase:", roomState.phase);
     console.log("========================");
   });
+
+  function handleCardHover(cardId: string | null) {
+    hoveredCard = cardId;
+  }
 </script>
 
 <div
-  class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900"
+  class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex flex-col"
 >
   <!-- Header -->
   <GameHeader
@@ -131,127 +151,164 @@
     onStartGame={handleStartGame}
   />
 
-  <!-- Main Content -->
-  <div class="container mx-auto px-4 py-8">
-    <!-- Game Status Bar -->
-    <GameStatusBar
-      gameState={roomState}
-      isCurrentPlayerLeader={$isCurrentPlayerLeader}
-    />
+  <!-- Main Content Area -->
+  <div class="flex-1 flex flex-col">
+    <!-- Top Content -->
+    <div class="container mx-auto px-4 py-4">
+      <!-- Game Status Bar -->
+      <GameStatusBar
+        gameState={roomState}
+        isCurrentPlayerLeader={$isCurrentPlayerLeader}
+      />
 
-    <!-- Error Display -->
-    {#if roomState.error}
-      <div class="mb-4 p-4 bg-red-500 text-white rounded-lg">
-        <div class="flex justify-between items-center">
-          <span>{roomState.error}</span>
-          <button
-            onclick={handleClearError}
-            class="text-white hover:text-red-200"
-          >
-            ×
-          </button>
+      <!-- Error Display -->
+      {#if roomState.error}
+        <div class="mb-4 p-4 bg-red-500 text-white rounded-lg">
+          <div class="flex justify-between items-center">
+            <span>{roomState.error}</span>
+            <button
+              onclick={handleClearError}
+              class="text-white hover:text-red-200"
+            >
+              ×
+            </button>
+          </div>
         </div>
-      </div>
-    {/if}
+      {/if}
+    </div>
 
-    <!-- Game Phases -->
-    <div class="space-y-8">
+    <!-- Center Preview Area -->
+    <div
+      class="flex-1 flex items-center justify-center px-4 min-h-0 relative {gamePhase ===
+      'results'
+        ? 'hidden'
+        : ''}"
+    >
+      <!-- Fixed preview container that NEVER changes size -->
+      <div
+        class="w-48 h-64 sm:w-56 sm:h-72 md:w-64 md:h-80 lg:w-80 lg:h-96 relative"
+      >
+        <!-- Always visible placeholder -->
+        {#if gamePhase !== "results"}
+          <div
+            class="absolute inset-0 flex items-center justify-center text-center text-white/40 {hoveredCard ||
+            selectedCardId ||
+            selectedVoteCardId
+              ? 'opacity-0'
+              : 'opacity-100'} transition-opacity duration-300"
+          >
+            <div>
+              <div
+                class="text-2xl sm:text-3xl md:text-4xl lg:text-6xl mb-2 sm:mb-4"
+              >
+                🎭
+              </div>
+              <p class="text-xs sm:text-sm md:text-base lg:text-lg">
+                Select or hover over a card to preview it here
+              </p>
+            </div>
+          </div>
+        {/if}
+
+        <!-- Overlay card when hovered or selected -->
+        {#if hoveredCard || selectedCardId || selectedVoteCardId}
+          {@const displayCardId =
+            hoveredCard ||
+            (gamePhase === "voting" ? selectedVoteCardId : selectedCardId) ||
+            selectedVoteCardId}
+          {@const card = [...currentPlayerHand, ...votingCards].find(
+            (c) => c.id === displayCardId,
+          )}
+          {#if card}
+            <div class="absolute inset-0 transition-all duration-300 ease-out">
+              <GameCard
+                {card}
+                isSelected={selectedCardId === card.id ||
+                  selectedVoteCardId === card.id}
+                isClickable={false}
+                isEnlarged={false}
+              />
+            </div>
+          {/if}
+        {/if}
+      </div>
+    </div>
+
+    <!-- Game Phase Info -->
+    <div
+      class="bg-white/10 backdrop-blur-sm rounded-lg p-4 mb-4 {gamePhase ===
+      'results'
+        ? 'flex-1 overflow-y-auto'
+        : ''}"
+    >
       <!-- Joining Phase -->
       {#if gamePhase === "joining"}
-        <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6">
-          <h2 class="text-2xl font-bold text-white mb-4">
-            Waiting for Players
-          </h2>
-
-          <div class="space-y-4">
-            <!-- Players List -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {#each players as player}
-                <div class="bg-white/20 rounded-lg p-4">
-                  <div class="flex items-center justify-between">
-                    <span class="text-white font-medium">{player.username}</span
-                    >
-                    <span
-                      class="text-sm {player.status === 'ready'
-                        ? 'text-green-300'
-                        : 'text-yellow-300'}"
-                    >
-                      {player.status === "ready" ? "Ready" : "Not Ready"}
-                    </span>
-                  </div>
+        <div class="text-center">
+          <h2 class="text-xl font-bold text-white mb-2">Waiting for Players</h2>
+          <div class="flex justify-center gap-4 mb-4">
+            {#each players as player}
+              <div class="bg-white/20 rounded-lg p-2">
+                <div class="text-white text-sm font-medium">
+                  {player.username}
                 </div>
-              {/each}
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="flex gap-4">
-              {#if helpers.shouldShowReadyButton()}
-                <button
-                  onclick={handleToggleReady}
-                  class="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+                <div
+                  class="text-xs {player.status === 'ready'
+                    ? 'text-green-300'
+                    : 'text-yellow-300'}"
                 >
-                  Ready
-                </button>
-              {/if}
-
-              {#if helpers.shouldShowStartGameButton()}
-                <button
-                  onclick={handleStartGame}
-                  class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-                >
-                  Start Game
-                </button>
-              {/if}
-            </div>
+                  {player.status === "ready" ? "Ready" : "Not Ready"}
+                </div>
+              </div>
+            {/each}
+          </div>
+          <div class="flex justify-center gap-4">
+            {#if helpers.shouldShowReadyButton()}
+              <button
+                onclick={handleToggleReady}
+                class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+              >
+                Ready
+              </button>
+            {/if}
+            {#if helpers.shouldShowStartGameButton()}
+              <button
+                onclick={handleStartGame}
+                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              >
+                Start Game
+              </button>
+            {/if}
           </div>
         </div>
       {/if}
 
       <!-- Leader Submitting Phase -->
       {#if gamePhase === "leader_submitting" && $isCurrentPlayerLeader}
-        <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6">
-          <h2 class="text-2xl font-bold text-white mb-4">
+        <div class="text-center">
+          <h2 class="text-xl font-bold text-white mb-2">
             Choose a Card and Description
           </h2>
-
-          <div class="space-y-4">
-            <div>
-              <label for="description-input" class="block text-white mb-2"
-                >Description:</label
-              >
-              <input
-                id="description-input"
-                bind:value={associationInput}
-                oninput={(e) =>
-                  onAssociationChange((e.target as HTMLInputElement).value)}
-                placeholder="Describe your card..."
-                class="w-full p-3 rounded-lg bg-white/20 text-white placeholder-white/60"
-              />
-            </div>
-
-            <div class="grid grid-cols-3 lg:grid-cols-6 gap-4">
-              {#each currentPlayerHand as card}
-                <GameCard
-                  {card}
-                  isSelected={selectedCardId === card.id}
-                  onclick={() => onCardSelect(card.id)}
-                  onEnlarge={() => onCardEnlarge(card.id)}
-                />
-              {/each}
-            </div>
-
-            <button
-              onclick={handleSubmitLeaderChoice}
-              disabled={!selectedCardId || !associationInput.trim()}
-              class="px-6 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
-            >
-              Submit Choice
-            </button>
+          <div class="mb-4">
+            <input
+              id="description-input"
+              bind:value={associationInput}
+              oninput={(e) =>
+                onAssociationChange((e.target as HTMLInputElement).value)}
+              placeholder="Describe your card..."
+              class="w-full max-w-md p-2 rounded-lg bg-white/20 text-white placeholder-white/60"
+            />
           </div>
+          <button
+            onclick={handleSubmitLeaderChoice}
+            disabled={!selectedCardId || !associationInput.trim()}
+            class="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+          >
+            Submit Choice
+          </button>
         </div>
       {:else if gamePhase === "leader_submitting" && !$isCurrentPlayerLeader}
-        <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6 text-center">
-          <h2 class="text-2xl font-bold text-white mb-4">Waiting for Leader</h2>
+        <div class="text-center">
+          <h2 class="text-xl font-bold text-white mb-2">Waiting for Leader</h2>
           <p class="text-white/80">
             {$currentLeader?.username} is choosing a card and description...
           </p>
@@ -260,37 +317,23 @@
 
       <!-- Players Submitting Phase -->
       {#if gamePhase === "players_submitting" && !$isCurrentPlayerLeader}
-        <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6">
-          <h2 class="text-2xl font-bold text-white mb-4">Choose Your Card</h2>
-          <p class="text-white/80 mb-4">
+        <div class="text-center">
+          <h2 class="text-xl font-bold text-white mb-2">Choose Your Card</h2>
+          <p class="text-white/80 mb-2">
             Choose a card that matches: "{association}"
           </p>
-
-          <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {#each currentPlayerHand as card}
-              <GameCard
-                {card}
-                isSelected={selectedCardId === card.id}
-                onclick={() => onCardSelect(card.id)}
-                onEnlarge={() => onCardEnlarge(card.id)}
-              />
-            {/each}
-          </div>
-
           {#if selectedCardId && !hasSubmitted}
             <button
               onclick={handleSubmitPlayerCard}
-              class="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+              class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
             >
               Submit Card
             </button>
           {/if}
         </div>
       {:else if gamePhase === "players_submitting" && $isCurrentPlayerLeader}
-        <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6 text-center">
-          <h2 class="text-2xl font-bold text-white mb-4">
-            Waiting for Players
-          </h2>
+        <div class="text-center">
+          <h2 class="text-xl font-bold text-white mb-2">Waiting for Players</h2>
           <p class="text-white/80">
             Players are choosing cards that match: "{association}"
           </p>
@@ -299,35 +342,23 @@
 
       <!-- Voting Phase -->
       {#if gamePhase === "voting" && !$isCurrentPlayerLeader}
-        <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6">
-          <h2 class="text-2xl font-bold text-white mb-4">
+        <div class="text-center">
+          <h2 class="text-xl font-bold text-white mb-2">
             Vote for the Leader's Card
           </h2>
-          <p class="text-white/80 mb-4">Which card matches: "{association}"?</p>
-
-          <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {#each votingCards as card}
-              <GameCard
-                {card}
-                isSelected={selectedVoteCardId === card.id}
-                onclick={() => onVoteCardSelect(card.id)}
-                onEnlarge={() => onCardEnlarge(card.id)}
-              />
-            {/each}
-          </div>
-
-          {#if selectedVoteCardId}
+          <p class="text-white/80 mb-2">Which card matches: "{association}"?</p>
+          {#if selectedVoteCardId && !hasVoted}
             <button
               onclick={handleSubmitVote}
-              class="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+              class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
             >
               Submit Vote
             </button>
           {/if}
         </div>
       {:else if gamePhase === "voting" && $isCurrentPlayerLeader}
-        <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6 text-center">
-          <h2 class="text-2xl font-bold text-white mb-4">Voting in Progress</h2>
+        <div class="text-center">
+          <h2 class="text-xl font-bold text-white mb-2">Voting in Progress</h2>
           <p class="text-white/80">
             Players are voting for your card: "{association}"
           </p>
@@ -336,56 +367,166 @@
 
       <!-- Results Phase -->
       {#if gamePhase === "results"}
-        <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6">
-          <h2 class="text-2xl font-bold text-white mb-4">Round Results</h2>
-
-          <div class="space-y-4">
-            <div class="text-white">
-              <p>Description: "{association}"</p>
-              <p>Votes: {votedPairs.length}</p>
-            </div>
-
-            <!-- Players and Scores -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {#each players as player}
-                <div class="bg-white/20 rounded-lg p-4">
-                  <div class="flex items-center justify-between">
-                    <span class="text-white font-medium">{player.username}</span
-                    >
-                    <span class="text-white">{player.score} points</span>
-                  </div>
-                </div>
-              {/each}
-            </div>
-
-            {#if helpers.shouldShowNextRoundButton()}
-              <button
-                onclick={handleStartNextRound}
-                class="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
-              >
-                Next Round
-              </button>
-            {/if}
-          </div>
-        </div>
+        {#await import("./phases/results-phase.svelte") then ResultsPhase}
+          <ResultsPhase.default
+            isCurrentPlayerLeader={$isCurrentPlayerLeader}
+            isGameFinished={$isGameFinished}
+            {association}
+            {votedPairs}
+            {players}
+            {leaderCardId}
+            leaderId={roomState.leaderId}
+            {votingCards}
+            onStartNextRound={handleStartNextRound}
+          />
+        {/await}
       {/if}
 
       <!-- Game Finished -->
       {#if gamePhase === "game_finished"}
-        <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6 text-center">
-          <h2 class="text-3xl font-bold text-white mb-4">Game Over!</h2>
+        <div class="text-center">
+          <h2 class="text-2xl font-bold text-white mb-2">Game Over!</h2>
           {#if winner}
-            <p class="text-2xl text-yellow-300 mb-4">
+            <p class="text-xl text-yellow-300 mb-4">
               🏆 {winner.username} wins with {winner.score} points!
             </p>
           {/if}
-
           <button
             onclick={onLeaveGame}
-            class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
           >
             Leave Game
           </button>
+        </div>
+      {/if}
+    </div>
+
+    <!-- Bottom Cards Area -->
+    <div class="bg-white/10 backdrop-blur-sm rounded-t-lg p-2 sm:p-4">
+      <!-- Current Player Hand -->
+      {#if gamePhase === "leader_submitting" && $isCurrentPlayerLeader}
+        <div class="text-center mb-2">
+          <h3 class="text-white font-medium text-sm sm:text-base">
+            Your Cards
+          </h3>
+        </div>
+        <div class="flex justify-center gap-1 sm:gap-2 overflow-x-auto pb-2">
+          {#each currentPlayerHand as card}
+            <div
+              class="flex-shrink-0 w-16 h-20 sm:w-20 sm:h-24 md:w-24 md:h-32"
+            >
+              <GameCard
+                {card}
+                isSelected={selectedCardId === card.id}
+                onclick={() => onCardSelect(card.id)}
+                onEnlarge={() => onCardEnlarge(card.id)}
+                onmouseenter={() => handleCardHover(card.id)}
+                onmouseleave={() => handleCardHover(null)}
+              />
+            </div>
+          {/each}
+        </div>
+      {/if}
+
+      {#if gamePhase === "leader_submitting" && !$isCurrentPlayerLeader}
+        <div class="text-center mb-2">
+          <h3 class="text-white font-medium text-sm sm:text-base">
+            Your Cards
+          </h3>
+        </div>
+        <div class="flex justify-center gap-1 sm:gap-2 overflow-x-auto pb-2">
+          {#each currentPlayerHand as card}
+            <div
+              class="flex-shrink-0 w-16 h-20 sm:w-20 sm:h-24 md:w-24 md:h-32"
+            >
+              <GameCard
+                {card}
+                isSelected={false}
+                isClickable={false}
+                onmouseenter={() => handleCardHover(card.id)}
+                onmouseleave={() => handleCardHover(null)}
+              />
+            </div>
+          {/each}
+        </div>
+      {/if}
+
+      {#if gamePhase === "players_submitting" && !$isCurrentPlayerLeader}
+        <div class="text-center mb-2">
+          <h3 class="text-white font-medium text-sm sm:text-base">
+            Your Cards
+          </h3>
+        </div>
+        <div class="flex justify-center gap-1 sm:gap-2 overflow-x-auto pb-2">
+          {#each currentPlayerHand as card}
+            <div
+              class="flex-shrink-0 w-16 h-20 sm:w-20 sm:h-24 md:w-24 md:h-32"
+            >
+              <GameCard
+                {card}
+                isSelected={selectedCardId === card.id}
+                onclick={() => onCardSelect(card.id)}
+                onEnlarge={() => onCardEnlarge(card.id)}
+                onmouseenter={() => handleCardHover(card.id)}
+                onmouseleave={() => handleCardHover(null)}
+              />
+            </div>
+          {/each}
+        </div>
+      {/if}
+
+      <!-- Voting Cards -->
+      {#if gamePhase === "voting" && !$isCurrentPlayerLeader}
+        <div class="text-center mb-2">
+          <h3 class="text-white font-medium text-sm sm:text-base">
+            Vote for the Leader's Card
+          </h3>
+        </div>
+        <div class="flex justify-center gap-1 sm:gap-2 overflow-x-auto pb-2">
+          {#each votingCards as card}
+            <div
+              class="flex-shrink-0 w-16 h-20 sm:w-20 sm:h-24 md:w-24 md:h-32 {card.id ===
+              playerSubmittedCardId
+                ? 'opacity-50'
+                : ''}"
+            >
+              <GameCard
+                {card}
+                isSelected={selectedVoteCardId === card.id}
+                isClickable={card.id !== playerSubmittedCardId}
+                onclick={() =>
+                  card.id !== playerSubmittedCardId
+                    ? onVoteCardSelect(card.id)
+                    : undefined}
+                onEnlarge={() => onCardEnlarge(card.id)}
+                onmouseenter={() => handleCardHover(card.id)}
+                onmouseleave={() => handleCardHover(null)}
+              />
+            </div>
+          {/each}
+        </div>
+      {/if}
+
+      {#if gamePhase === "voting" && $isCurrentPlayerLeader}
+        <div class="text-center mb-2">
+          <h3 class="text-white font-medium text-sm sm:text-base">
+            Submitted Cards
+          </h3>
+        </div>
+        <div class="flex justify-center gap-1 sm:gap-2 overflow-x-auto pb-2">
+          {#each votingCards as card}
+            <div
+              class="flex-shrink-0 w-16 h-20 sm:w-20 sm:h-24 md:w-24 md:h-32"
+            >
+              <GameCard
+                {card}
+                isSelected={false}
+                isClickable={false}
+                onmouseenter={() => handleCardHover(card.id)}
+                onmouseleave={() => handleCardHover(null)}
+              />
+            </div>
+          {/each}
         </div>
       {/if}
     </div>

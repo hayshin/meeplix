@@ -214,6 +214,7 @@ export class MessageHandlersManager implements MessageHandlers {
       cardsForVoting: [],
       currentDescription: "",
       leaderId,
+      leaderCardId: null,
     }));
 
     console.log("Phase after: leader_submitting");
@@ -237,6 +238,7 @@ export class MessageHandlersManager implements MessageHandlers {
       phase: "players_submitting" as const,
       players: updatedPlayers,
       currentDescription: description,
+      leaderCardId: null,
     }));
   };
 
@@ -257,6 +259,7 @@ export class MessageHandlersManager implements MessageHandlers {
       ...state,
       phase: "voting" as const,
       cardsForVoting,
+      leaderCardId: null,
     }));
 
     // Update game session phase
@@ -287,6 +290,7 @@ export class MessageHandlersManager implements MessageHandlers {
       phase: "results" as const,
       players,
       votes,
+      leaderCardId,
     }));
 
     // Update game session phase
@@ -303,6 +307,7 @@ export class MessageHandlersManager implements MessageHandlers {
       ...state,
       phase: "game_finished" as const,
       winner,
+      leaderCardId: null,
     }));
 
     // Update game session phase and remove it since game is finished
@@ -366,6 +371,7 @@ export class MessageHandlersManager implements MessageHandlers {
       roomId: room.id,
       roundNumber: room.roundNumber,
       leaderId: room.leaderId,
+      leaderCardId: null,
       currentDescription: room.currentDescription,
       votes: room.votes,
       cardsForVoting: room.submittedCards,

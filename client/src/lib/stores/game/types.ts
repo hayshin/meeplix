@@ -29,6 +29,7 @@ export interface GameState {
   phase: GamePhase;
   roundNumber: number;
   leaderId: string | null;
+  leaderCardId: string | null;
   currentDescription: string;
 
   // Cards
@@ -118,6 +119,7 @@ export const createInitialGameState = (): GameState => ({
   phase: "joining",
   roundNumber: 0,
   leaderId: null,
+  leaderCardId: null,
   currentDescription: "",
 
   currentHand: [],
