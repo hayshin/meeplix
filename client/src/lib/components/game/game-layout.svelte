@@ -64,6 +64,7 @@
   const votedPairs = $derived(roomState.votes);
   const players = $derived(roomState.players);
   const winner = $derived(roomState.winner);
+  const leaderCardId = $derived(roomState.leaderCardId);
   let hasSubmitted = $derived(false);
   let hasVoted = $state(false);
   let hoveredCard = $state<string | null>(null);
@@ -177,30 +178,37 @@
     </div>
 
     <!-- Center Preview Area -->
-    <div class="flex-1 flex items-center justify-center px-4 min-h-0 relative">
+    <div
+      class="flex-1 flex items-center justify-center px-4 min-h-0 relative {gamePhase ===
+      'results'
+        ? 'hidden'
+        : ''}"
+    >
       <!-- Fixed preview container that NEVER changes size -->
       <div
         class="w-48 h-64 sm:w-56 sm:h-72 md:w-64 md:h-80 lg:w-80 lg:h-96 relative"
       >
         <!-- Always visible placeholder -->
-        <div
-          class="absolute inset-0 flex items-center justify-center text-center text-white/40 {hoveredCard ||
-          selectedCardId ||
-          selectedVoteCardId
-            ? 'opacity-0'
-            : 'opacity-100'} transition-opacity duration-300"
-        >
-          <div>
-            <div
-              class="text-2xl sm:text-3xl md:text-4xl lg:text-6xl mb-2 sm:mb-4"
-            >
-              🎭
+        {#if gamePhase !== "results"}
+          <div
+            class="absolute inset-0 flex items-center justify-center text-center text-white/40 {hoveredCard ||
+            selectedCardId ||
+            selectedVoteCardId
+              ? 'opacity-0'
+              : 'opacity-100'} transition-opacity duration-300"
+          >
+            <div>
+              <div
+                class="text-2xl sm:text-3xl md:text-4xl lg:text-6xl mb-2 sm:mb-4"
+              >
+                🎭
+              </div>
+              <p class="text-xs sm:text-sm md:text-base lg:text-lg">
+                Select or hover over a card to preview it here
+              </p>
             </div>
-            <p class="text-xs sm:text-sm md:text-base lg:text-lg">
-              Select or hover over a card to preview it here
-            </p>
           </div>
-        </div>
+        {/if}
 
         <!-- Overlay card when hovered or selected -->
         {#if hoveredCard || selectedCardId || selectedVoteCardId}
@@ -227,7 +235,12 @@
     </div>
 
     <!-- Game Phase Info -->
-    <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4 mb-4">
+    <div
+      class="bg-white/10 backdrop-blur-sm rounded-lg p-4 mb-4 {gamePhase ===
+      'results'
+        ? 'flex-1 overflow-y-auto'
+        : ''}"
+    >
       <!-- Joining Phase -->
       {#if gamePhase === "joining"}
         <div class="text-center">
@@ -354,31 +367,18 @@
 
       <!-- Results Phase -->
       {#if gamePhase === "results"}
-        <div class="text-center">
-          <h2 class="text-xl font-bold text-white mb-2">Round Results</h2>
-          <div class="text-white mb-4">
-            <p>Description: "{association}"</p>
-            <p>Votes: {votedPairs.length}</p>
-          </div>
-          <div class="flex justify-center gap-4 mb-4">
-            {#each players as player}
-              <div class="bg-white/20 rounded-lg p-2">
-                <div class="text-white text-sm font-medium">
-                  {player.username}
-                </div>
-                <div class="text-white text-xs">{player.score} points</div>
-              </div>
-            {/each}
-          </div>
-          {#if helpers.shouldShowNextRoundButton()}
-            <button
-              onclick={handleStartNextRound}
-              class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
-            >
-              Next Round
-            </button>
-          {/if}
-        </div>
+        {#await import("./phases/results-phase.svelte") then ResultsPhase}
+          <ResultsPhase.default
+            isCurrentPlayerLeader={$isCurrentPlayerLeader}
+            isGameFinished={$isGameFinished}
+            {association}
+            {votedPairs}
+            {players}
+            {leaderCardId}
+            {votingCards}
+            onStartNextRound={handleStartNextRound}
+          />
+        {/await}
       {/if}
 
       <!-- Game Finished -->
