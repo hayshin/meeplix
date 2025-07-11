@@ -12,6 +12,7 @@
     votedPairs: Vote[];
     players: Player[];
     leaderCardId: string;
+    leaderId: string;
     votingCards: PublicCard[];
     onStartNextRound: () => void;
   }
@@ -23,6 +24,7 @@
     votedPairs,
     players,
     leaderCardId,
+    leaderId,
     votingCards,
     onStartNextRound,
   }: ResultsPhaseProps = $props();
@@ -36,8 +38,8 @@
   const cardPlayerMap = $derived(() => {
     const map = new Map<string, Player>();
 
-    // Add leader card
-    const leader = players.find((p) => p.isLeader);
+    // Add leader card - find the leader by leaderId (not leaderCardId)
+    const leader = players.find((p) => p.id === leaderId);
     if (leader) {
       map.set(leaderCardId, leader);
     }
@@ -45,8 +47,8 @@
     // Add other players' cards from votes
     votedPairs.forEach((vote) => {
       const player = players.find((p) => p.id === vote.playerId);
-      if (player && vote.cardId !== leaderCardId) {
-        map.set(vote.cardId, player);
+      if (player && vote.card.id !== leaderCardId) {
+        map.set(vote.card.id, player);
       }
     });
 
@@ -54,14 +56,6 @@
   });
 
   // Sort cards with leader card first
-  const sortedCards = $derived(() => {
-    const cards = [...votingCards];
-    return cards.sort((a, b) => {
-      if (a.id === leaderCardId) return -1;
-      if (b.id === leaderCardId) return 1;
-      return 0;
-    });
-  });
 </script>
 
 <div class="space-y-6">
@@ -90,8 +84,8 @@
     <div
       class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4"
     >
-      {#each sortedCards as card}
-        {@const cardPlayer = cardPlayerMap.get(card.id)}
+      {#each votingCards as card}
+        {@const cardPlayer = cardPlayerMap().get(card.id)}
         <div class="relative">
           <!-- Leader card gets special styling -->
           <div

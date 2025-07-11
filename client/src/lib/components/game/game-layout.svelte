@@ -375,6 +375,7 @@
             {votedPairs}
             {players}
             {leaderCardId}
+            leaderId={roomState.leaderId}
             {votingCards}
             onStartNextRound={handleStartNextRound}
           />
