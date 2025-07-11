@@ -65,10 +65,18 @@
   const players = $derived(roomState.players);
   const winner = $derived(roomState.winner);
   const leaderCardId = $derived(roomState.leaderCardId);
-  let hasSubmitted = $derived(false);
+  let hasSubmitted = $state(false);
   let hasVoted = $state(false);
   let hoveredCard = $state<string | null>(null);
   let playerSubmittedCardId = $state<string | null>(null);
+
+  // Reset submission states when new round starts
+  $effect(() => {
+    if (gamePhase === "leader_submitting") {
+      hasSubmitted = false;
+      hasVoted = false;
+    }
+  });
 
   // Store actions and helpers
   const actions = gameStore.actions;
