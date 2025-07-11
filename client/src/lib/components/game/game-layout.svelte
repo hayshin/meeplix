@@ -65,7 +65,9 @@
   const players = $derived(roomState.players);
   const winner = $derived(roomState.winner);
   let hasSubmitted = $derived(false);
+  let hasVoted = $state(false);
   let hoveredCard = $state<string | null>(null);
+  let playerSubmittedCardId = $state<string | null>(null);
 
   // Store actions and helpers
   const actions = gameStore.actions;
@@ -89,12 +91,14 @@
   function handleSubmitPlayerCard() {
     if (selectedCardId) {
       hasSubmitted = true;
+      playerSubmittedCardId = selectedCardId;
       actions.submitPlayerCard(selectedCardId);
     }
   }
 
   function handleSubmitVote() {
     if (selectedVoteCardId) {
+      hasVoted = true;
       actions.submitVote(selectedVoteCardId);
     }
   }
@@ -106,6 +110,16 @@
   function handleClearError() {
     actions.clearError();
   }
+
+  // Reset voting state when game phase changes
+  $effect(() => {
+    if (gamePhase !== "voting") {
+      hasVoted = false;
+    }
+    if (gamePhase === "leader_submitting") {
+      playerSubmittedCardId = null;
+    }
+  });
 
   // Debug logging for gamePhase changes using $effect
   $effect(() => {
@@ -320,7 +334,7 @@
             Vote for the Leader's Card
           </h2>
           <p class="text-white/80 mb-2">Which card matches: "{association}"?</p>
-          {#if selectedVoteCardId}
+          {#if selectedVoteCardId && !hasVoted}
             <button
               onclick={handleSubmitVote}
               class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
@@ -413,6 +427,29 @@
         </div>
       {/if}
 
+      {#if gamePhase === "leader_submitting" && !$isCurrentPlayerLeader}
+        <div class="text-center mb-2">
+          <h3 class="text-white font-medium text-sm sm:text-base">
+            Your Cards
+          </h3>
+        </div>
+        <div class="flex justify-center gap-1 sm:gap-2 overflow-x-auto pb-2">
+          {#each currentPlayerHand as card}
+            <div
+              class="flex-shrink-0 w-16 h-20 sm:w-20 sm:h-24 md:w-24 md:h-32"
+            >
+              <GameCard
+                {card}
+                isSelected={false}
+                isClickable={false}
+                onmouseenter={() => handleCardHover(card.id)}
+                onmouseleave={() => handleCardHover(null)}
+              />
+            </div>
+          {/each}
+        </div>
+      {/if}
+
       {#if gamePhase === "players_submitting" && !$isCurrentPlayerLeader}
         <div class="text-center mb-2">
           <h3 class="text-white font-medium text-sm sm:text-base">
@@ -447,12 +484,19 @@
         <div class="flex justify-center gap-1 sm:gap-2 overflow-x-auto pb-2">
           {#each votingCards as card}
             <div
-              class="flex-shrink-0 w-16 h-20 sm:w-20 sm:h-24 md:w-24 md:h-32"
+              class="flex-shrink-0 w-16 h-20 sm:w-20 sm:h-24 md:w-24 md:h-32 {card.id ===
+              playerSubmittedCardId
+                ? 'opacity-50'
+                : ''}"
             >
               <GameCard
                 {card}
                 isSelected={selectedVoteCardId === card.id}
-                onclick={() => onVoteCardSelect(card.id)}
+                isClickable={card.id !== playerSubmittedCardId}
+                onclick={() =>
+                  card.id !== playerSubmittedCardId
+                    ? onVoteCardSelect(card.id)
+                    : undefined}
                 onEnlarge={() => onCardEnlarge(card.id)}
                 onmouseenter={() => handleCardHover(card.id)}
                 onmouseleave={() => handleCardHover(null)}
