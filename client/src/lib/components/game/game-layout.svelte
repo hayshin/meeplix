@@ -191,7 +191,9 @@
         <!-- Overlay card when hovered or selected -->
         {#if hoveredCard || selectedCardId || selectedVoteCardId}
           {@const displayCardId =
-            hoveredCard || selectedCardId || selectedVoteCardId}
+            hoveredCard ||
+            (gamePhase === "voting" ? selectedVoteCardId : selectedCardId) ||
+            selectedVoteCardId}
           {@const card = [...currentPlayerHand, ...votingCards].find(
             (c) => c.id === displayCardId,
           )}
@@ -452,6 +454,29 @@
                 isSelected={selectedVoteCardId === card.id}
                 onclick={() => onVoteCardSelect(card.id)}
                 onEnlarge={() => onCardEnlarge(card.id)}
+                onmouseenter={() => handleCardHover(card.id)}
+                onmouseleave={() => handleCardHover(null)}
+              />
+            </div>
+          {/each}
+        </div>
+      {/if}
+
+      {#if gamePhase === "voting" && $isCurrentPlayerLeader}
+        <div class="text-center mb-2">
+          <h3 class="text-white font-medium text-sm sm:text-base">
+            Submitted Cards
+          </h3>
+        </div>
+        <div class="flex justify-center gap-1 sm:gap-2 overflow-x-auto pb-2">
+          {#each votingCards as card}
+            <div
+              class="flex-shrink-0 w-16 h-20 sm:w-20 sm:h-24 md:w-24 md:h-32"
+            >
+              <GameCard
+                {card}
+                isSelected={false}
+                isClickable={false}
                 onmouseenter={() => handleCardHover(card.id)}
                 onmouseleave={() => handleCardHover(null)}
               />
