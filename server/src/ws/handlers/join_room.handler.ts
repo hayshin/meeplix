@@ -1,4 +1,5 @@
 import { JoinRoomMessage } from "$messages/index";
+import { GAME_CONFIG } from "$shared/constants";
 import { WS, sendError, sendMessage, broadcastMessage } from "..";
 import { serializeRoomState } from "../models/room.model";
 import { getPlayersInRoom } from "../services/room.service";
@@ -26,6 +27,9 @@ export async function handleJoinRoom(ws: WS, message: JoinRoomMessage) {
     let player = players.find((player) => player.username === username);
     if (player) {
       throw new Error(`Player ${username} already exists in room ${roomId}`);
+    }
+    if (players.length >= GAME_CONFIG.maxPlayers) {
+      throw new Error(`Room ${roomId} is full`);
     }
 
     // Add player to room

@@ -13,7 +13,7 @@ export type GameConfig = {
 
 export const GAME_CONFIG: GameConfig = {
   minPlayers: 3,
-  maxPlayers: 8,
+  maxPlayers: 6,
   cardsPerPlayer: 6,
   winningScore: 20,
   roundTimeLimit: 120,
