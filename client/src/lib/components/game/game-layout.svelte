@@ -170,7 +170,11 @@
       >
         <!-- Always visible placeholder -->
         <div
-          class="absolute inset-0 flex items-center justify-center text-center text-white/40"
+          class="absolute inset-0 flex items-center justify-center text-center text-white/40 {hoveredCard ||
+          selectedCardId ||
+          selectedVoteCardId
+            ? 'opacity-0'
+            : 'opacity-100'} transition-opacity duration-300"
         >
           <div>
             <div
@@ -179,15 +183,17 @@
               🎭
             </div>
             <p class="text-xs sm:text-sm md:text-base lg:text-lg">
-              Hover over a card to preview it here
+              Select or hover over a card to preview it here
             </p>
           </div>
         </div>
 
-        <!-- Overlay card when hovered -->
-        {#if hoveredCard}
+        <!-- Overlay card when hovered or selected -->
+        {#if hoveredCard || selectedCardId || selectedVoteCardId}
+          {@const displayCardId =
+            hoveredCard || selectedCardId || selectedVoteCardId}
           {@const card = [...currentPlayerHand, ...votingCards].find(
-            (c) => c.id === hoveredCard,
+            (c) => c.id === displayCardId,
           )}
           {#if card}
             <div class="absolute inset-0 transition-all duration-300 ease-out">
