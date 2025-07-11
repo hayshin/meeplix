@@ -58,7 +58,7 @@
   // Sort cards with leader card first
 </script>
 
-<div class="space-y-6">
+<div class="space-y-6 max-h-screen overflow-y-auto">
   <!-- Phase Status -->
   <div class="bg-white/5 rounded-xl p-6 border border-white/10">
     <div class="flex items-center gap-3 mb-4">
@@ -182,11 +182,26 @@
 </div>
 
 <style>
-  html,
-  body {
-    height: 100%; /* Important if you want the viewport to define the height */
-    overflow: auto; /* Adds scrollbar only if content overflows */
-    /* OR */
-    overflow: scroll; /* Always shows scrollbar, even if not needed */
+  /* Ensure proper scrolling behavior for the component */
+  :global(.space-y-6) {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+  }
+
+  :global(.space-y-6::-webkit-scrollbar) {
+    width: 6px;
+  }
+
+  :global(.space-y-6::-webkit-scrollbar-track) {
+    background: transparent;
+  }
+
+  :global(.space-y-6::-webkit-scrollbar-thumb) {
+    background-color: rgba(255, 255, 255, 0.3);
+    border-radius: 3px;
+  }
+
+  :global(.space-y-6::-webkit-scrollbar-thumb:hover) {
+    background-color: rgba(255, 255, 255, 0.5);
   }
 </style>

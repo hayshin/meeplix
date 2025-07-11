@@ -91,7 +91,7 @@
 
 <div class="min-h-screen relative z-10">
   <!-- Full height container with padding -->
-  <div class="min-h-screen flex flex-col p-6">
+  <div class="flex flex-col p-6">
     <!-- Header Section -->
     <div class="mb-8 flex items-center gap-4">
       <button
@@ -121,9 +121,9 @@
     {/if}
 
     <!-- Main Content Area - Full width container -->
-    <div class="flex-1 max-w-none w-full">
+    <div class="flex-1 max-w-none w-full mb-6">
       <div
-        class="bg-black/40 backdrop-blur-md border border-white/30 rounded-2xl p-8 shadow-2xl h-full min-h-[calc(100vh-200px)]"
+        class="bg-black/40 backdrop-blur-md border border-white/30 rounded-2xl p-8 shadow-2xl"
       >
         <!-- Decks layout takes full available space -->
         <DecksLayout onDeckSelect={handleDeckSelect} />
@@ -152,11 +152,10 @@
 {/if}
 
 <style>
-  html,
-  body {
-    height: 100%; /* Important if you want the viewport to define the height */
-    overflow: auto; /* Adds scrollbar only if content overflows */
-    /* OR */
-    overflow: scroll; /* Always shows scrollbar, even if not needed */
+  /* Ensure proper scrolling behavior */
+  :global(html, body) {
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
   }
 </style>
