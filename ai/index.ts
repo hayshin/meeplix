@@ -10,5 +10,5 @@ export async function createDeck(
 ): Promise<{ cards: Card[]; prompts: string[] }> {
   const dixitPrompts = await createDixitPrompts(topic, count);
   const prompts = dixitPrompts.map((dixitPrompt) => dixitPrompt.prompt);
-  return RunWare.createDeck(deckId, prompts, "badFastModel");
+  return RunWare.createDeck(deckId, prompts, "goodSlowModel");
 }
