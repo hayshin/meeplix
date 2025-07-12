@@ -1,27 +1,21 @@
 const card_prompt = "almaty mountains";
-const model = "runware:100@1";
-import { ITextToImage, RunwareClient } from "@runware/sdk-js";
 
-export async function createImages(
+import { ITextToImage, RunwareClient } from "@runware/sdk-js";
+import { IModel, defaultOptions, ModelType, models } from "./models";
+
+export async function createImagesWithClient(
   runware: RunwareClient,
   prompt: string,
+  modelType: ModelType,
   numberResults?: number,
-  uploadEndpoint?: string,
 ): Promise<ITextToImage[]> {
   try {
+    const model = models[modelType];
     const images = await runware.requestImages({
+      ...model.options,
+      ...defaultOptions,
       positivePrompt: prompt,
-      model: model,
-      width: 896,
-      height: 1152,
-      steps: 4,
       numberResults: numberResults,
-      outputFormat: "WEBP",
-      CFGScale: 1,
-      seed: 1,
-      scheduler: "FlowMatchEulerDiscreteScheduler",
-      outputType: "URL",
-      uploadEndpoint,
     });
 
     if (!images || images.length === 0) {
@@ -36,11 +30,12 @@ export async function createImages(
   }
 }
 
-export async function createImage(
+export async function createImageWithClient(
   runware: RunwareClient,
   prompt: string,
+  modelType: ModelType,
 ): Promise<ITextToImage> {
-  const images = await createImages(runware, prompt, 1);
+  const images = await createImagesWithClient(runware, prompt, modelType);
   return images[0];
 }
 
