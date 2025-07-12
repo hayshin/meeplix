@@ -5,7 +5,6 @@ export interface IModel {
     model: string;
     CFGScale: number;
     steps: number;
-    scheduler: string;
   };
 }
 
@@ -13,11 +12,10 @@ export interface IModel {
 const goodSlowModel: IModel = {
   name: "SDXL",
   options: {
-    model: "civitai:101055@128078", // SD XL 1.0
-    // model: "civitai:125907@686204", // RealCartoon XL V7
+    // model: "civitai:101055@128078", // SD XL 1.0
+    model: "civitai:125907@686204", // RealCartoon XL V7
     CFGScale: 7.5,
     steps: 20,
-    scheduler: "EulerDiscreteScheduler",
   },
 };
 
@@ -27,7 +25,6 @@ const badFastModel: IModel = {
     model: "runware:100@1", // Flux1.S
     CFGScale: 1,
     steps: 4,
-    scheduler: "FlowMatchEulerDiscreteScheduler",
   },
 };
 
@@ -44,6 +41,7 @@ export const defaultOptions = {
   seed:1,
   outputFormat: "WEBP" as IOutputFormat,
   outputQuality: 95,
+  scheduler: "Default",
   includeCost: true,
   outputType: "URL" as IOutputType,
 };

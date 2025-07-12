@@ -2,10 +2,6 @@ import { createDixitPrompts } from ".";
 async function getTopicFromConsole(): Promise<string> {
   console.log("🎯 Please enter a topic for generating Dixit prompts:");
 
-  // Read from stdin
-  const decoder = new TextDecoder();
-  const buffer = new Uint8Array(1024);
-
   return new Promise((resolve) => {
     process.stdin.resume();
     process.stdin.setEncoding("utf8");
