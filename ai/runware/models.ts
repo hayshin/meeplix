@@ -13,7 +13,8 @@ export interface IModel {
 const goodSlowModel: IModel = {
   name: "SDXL",
   options: {
-    model: "civitai:101055@128078",
+    model: "civitai:101055@128078", // SD XL 1.0
+    // model: "civitai:125907@686204", // RealCartoon XL V7
     CFGScale: 7.5,
     steps: 20,
     scheduler: "EulerDiscreteScheduler",
@@ -21,9 +22,9 @@ const goodSlowModel: IModel = {
 };
 
 const badFastModel: IModel = {
-  name: "Flux1.D",
+  name: "Flux1.S",
   options: {
-    model: "runware:100@1",
+    model: "runware:100@1", // Flux1.S
     CFGScale: 1,
     steps: 4,
     scheduler: "FlowMatchEulerDiscreteScheduler",
@@ -36,12 +37,13 @@ export const models: Record<ModelType, IModel> = {
   goodSlowModel,
 };
 
+const negativePrompt = "photo, photorealistic, 3D, CGI, sharp edges, text, watermark, signature, blurry, low detail"
 export const defaultOptions = {
   width: 896,
   height: 1152,
   seed:1,
   outputFormat: "WEBP" as IOutputFormat,
-  outputQuality: 85,
+  outputQuality: 95,
   includeCost: true,
   outputType: "URL" as IOutputType,
 };
