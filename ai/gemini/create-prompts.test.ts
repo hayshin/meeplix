@@ -24,7 +24,7 @@ async function main() {
     }
 
     // Step 2: Generate prompts using Gemini AI
-    const prompts = await createDixitPrompts(topic, 5);
+    const prompts = await createDixitPrompts(topic, 10);
 
     // Step 3: Print all prompts to console
     console.log("\n🎨 Generated Dixit Prompts:");

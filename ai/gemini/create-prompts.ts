@@ -16,14 +16,14 @@ export async function createDixitPrompts(
   Each card must:
   - Resemble the visual style of a Dixit card (${dixitStyle})
   - Be based on the theme: "${topic}"
-  - Reference famous or widely recognized characters, motifs, or elements from the topic to make the theme identifiable, but don't put too much emphasis on them. Just a hint.
+  - Reference famous or widely recognized characters, motifs, or elements from the topic to make the theme identifiable, but don't put too much emphasis on them. Describe them properly and in detail.
   - Include brief contextual descriptions for less well-known elements
   - Contain unique compositions and scenes—each card must evoke a different mood or idea
   - Stimulate imagination and various interpretations, just like real Dixit cards
 
   Focus on metaphorical scenes, surreal imagery, emotional depth, and artistic ambiguity. Do **not** use photorealistic rendering—ensure all prompts guide toward artistic and expressive styles.
 
-  You are paid $1000 per prompt, so make them evocative, detailed, and beautifully composed. Output ${amount} prompts, one per line.`;
+  You are paid $1000 per prompt, so make them evocative, detailed, and beautifully composed. Be verbose, show imagination. Output ${amount} prompts.`;
 
   try {
     const response = await ai.models.generateContent({

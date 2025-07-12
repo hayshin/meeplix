@@ -8,14 +8,6 @@ import { ModelType } from "./models";
 const RUNWARE_API_KEY = process.env.RUNWARE_API_KEY || "your_api_key_here";
 const runware = new Runware({ apiKey: RUNWARE_API_KEY });
 
-export async function enhancePrompt(prompt: string): Promise<string> {
-  const enhancedPrompt =
-    "A surreal, dreamlike illustration in the style of Dixit cards. " +
-    prompt +
-    " Art style similar to Marie Cardouat.";
-  return enhancedPrompt;
-}
-
 // Helper function to split array into chunks
 function chunkArray<T>(array: T[], chunkSize: number): T[][] {
   const chunks: T[][] = [];
